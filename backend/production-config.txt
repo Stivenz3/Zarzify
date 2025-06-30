@@ -1,0 +1,36 @@
+# CONFIGURACIÓN PARA PRODUCCIÓN CON SUPABASE
+
+## 1. VARIABLES DE ENTORNO (.env)
+DATABASE_URL=postgresql://postgres:[PASSWORD]@[HOST]:5432/postgres
+DB_USER=postgres
+DB_HOST=[TU_HOST_SUPABASE]
+DB_NAME=postgres
+DB_PASSWORD=[TU_PASSWORD_SUPABASE]
+DB_PORT=5432
+NODE_ENV=production
+PORT=3001
+CORS_ORIGIN=https://tu-dominio.com
+
+## 2. OBTENER CREDENCIALES DE SUPABASE:
+1. Ve a tu dashboard de Supabase
+2. Settings → Database
+3. Copia la Connection String
+4. Reemplaza [PASSWORD] y [HOST] en migrate_to_supabase.js
+
+## 3. PASOS PARA MIGRAR:
+1. Actualizar credenciales en migrate_to_supabase.js
+2. Ejecutar: cd backend && node migrate_to_supabase.js  
+3. Verificar que todos los datos se migraron
+4. Actualizar server.js para usar variables de entorno
+5. Desplegar en Vercel/Railway/Heroku
+
+## 4. FRONTEND PARA PRODUCCIÓN:
+- Actualizar src/config/axios.js con URL de producción
+- Build para producción: npm run build
+- Desplegar en Vercel/Netlify
+
+## 5. TESTING EN PRODUCCIÓN:
+- Probar login con Firebase
+- Verificar conexión a Supabase  
+- Probar creación de negocios
+- Verificar dashboard con datos reales 
