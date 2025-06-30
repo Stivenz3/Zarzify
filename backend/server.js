@@ -932,6 +932,16 @@ app.get('/api/test', async (req, res) => {
   }
 });
 
+// Health check endpoint para Railway
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'healthy',
+    service: 'Zarzify API',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
 // Puerto dinámico para servicios de hosting
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

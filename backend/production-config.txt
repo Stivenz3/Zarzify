@@ -1,7 +1,7 @@
 # CONFIGURACIÓN PARA PRODUCCIÓN CON SUPABASE
 
 ## 1. VARIABLES DE ENTORNO (.env)
-DATABASE_URL=postgresql://postgres:[PASSWORD]@[HOST]:5432/postgres
+DATABASE_URL=postgresql://postgres.ozslmglqdbnoswwxmtbg:1078754787zD.@aws-0-sa-east-1.pooler.supabase.com:6543/postgres
 DB_USER=postgres
 DB_HOST=[TU_HOST_SUPABASE]
 DB_NAME=postgres
@@ -9,7 +9,7 @@ DB_PASSWORD=[TU_PASSWORD_SUPABASE]
 DB_PORT=5432
 NODE_ENV=production
 PORT=3001
-CORS_ORIGIN=https://tu-dominio.com
+CORS_ORIGIN=https://zarzify.web.app
 
 ## 2. OBTENER CREDENCIALES DE SUPABASE:
 1. Ve a tu dashboard de Supabase
