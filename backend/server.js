@@ -938,12 +938,21 @@ app.get('/api/health', (req, res) => {
     status: 'healthy',
     service: 'Zarzify API',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    port: PORT,
+    env: process.env.NODE_ENV
   });
+});
+
+// Health check simple en raíz también
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
 });
 
 // Puerto dinámico para servicios de hosting
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`API escuchando en http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 API escuchando en puerto ${PORT}`);
+  console.log(`🌍 NODE_ENV: ${process.env.NODE_ENV}`);
+  console.log(`📡 Health check disponible en /api/health`);
 }); 
