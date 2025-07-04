@@ -38,6 +38,7 @@ import {
 import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { useApp } from '../context/AppContext';
+import BusinessSelector from '../components/business/BusinessSelector';
 
 const drawerWidth = 240;
 
@@ -53,12 +54,11 @@ const menuItems = [
 
 function MainLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [businessMenuAnchor, setBusinessMenuAnchor] = useState(null);
   const [profileMenuAnchor, setProfileMenuAnchor] = useState(null);
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, currentBusiness, businesses, switchBusiness } = useApp();
+  const { user, currentBusiness } = useApp();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -79,25 +79,12 @@ function MainLayout({ children }) {
     setProfileMenuAnchor(null);
   };
 
-  const handleBusinessMenuOpen = (event) => {
-    setBusinessMenuAnchor(event.currentTarget);
-  };
-
-  const handleBusinessMenuClose = () => {
-    setBusinessMenuAnchor(null);
-  };
-
   const handleProfileMenuOpen = (event) => {
     setProfileMenuAnchor(event.currentTarget);
   };
 
   const handleProfileMenuClose = () => {
     setProfileMenuAnchor(null);
-  };
-
-  const handleBusinessChange = (businessId) => {
-    switchBusiness(businessId);
-    handleBusinessMenuClose();
   };
 
   const isSelected = (path) => {
@@ -113,20 +100,10 @@ function MainLayout({ children }) {
       </Toolbar>
       <Divider />
       
-      {/* Business Selector */}
-      {currentBusiness && (
-        <Box sx={{ p: 2 }}>
-          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-            Negocio Actual
-          </Typography>
-          <Chip
-            icon={<Business />}
-            label={currentBusiness.nombre}
-            variant="outlined"
-            sx={{ width: '100%' }}
-          />
-        </Box>
-      )}
+      {/* Business Selector en sidebar para móviles y escritorio */}
+      <Box sx={{ p: 2 }}>
+        <BusinessSelector />
+      </Box>
       
       <Divider />
       
@@ -194,45 +171,13 @@ function MainLayout({ children }) {
           </IconButton>
           
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {currentBusiness ? `${currentBusiness.nombre} - Zarzify` : 'Zarzify'}
+            Zarzify
           </Typography>
 
-          {/* Business Selector for larger screens */}
-          {businesses.length > 1 && (
-            <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', mr: 2 }}>
-              <IconButton
-                onClick={handleBusinessMenuOpen}
-                sx={{ 
-                  bgcolor: theme.palette.primary.main + '20',
-                  '&:hover': { bgcolor: theme.palette.primary.main + '30' }
-                }}
-              >
-                <Business />
-                <ExpandMore sx={{ ml: 1 }} />
-              </IconButton>
-              <Menu
-                anchorEl={businessMenuAnchor}
-                open={Boolean(businessMenuAnchor)}
-                onClose={handleBusinessMenuClose}
-              >
-                {businesses.map((business) => (
-                  <MenuItem
-                    key={business.id}
-                    onClick={() => handleBusinessChange(business.id)}
-                    selected={currentBusiness?.id === business.id}
-                  >
-                    <Business sx={{ mr: 2 }} />
-                    {business.nombre}
-                  </MenuItem>
-                ))}
-                <Divider />
-                <MenuItem onClick={() => { navigate('/business'); handleBusinessMenuClose(); }}>
-                  <Settings sx={{ mr: 2 }} />
-                  Gestionar Negocios
-                </MenuItem>
-              </Menu>
-            </Box>
-          )}
+          {/* Business Selector - Visible en desktop */}
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', mr: 2 }}>
+            <BusinessSelector />
+          </Box>
 
           {/* User Avatar */}
           <Avatar 

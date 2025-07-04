@@ -555,7 +555,7 @@ const LandingPage = () => {
             El futuro de la gestión empresarial está aquí
           </Typography>
           <Typography sx={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.9rem' }}>
-            © 2024 Zarzify. Todos los derechos reservados.
+            © 2026 Zarzify. Todos los derechos reservados.
           </Typography>
         </Container>
       </Box>

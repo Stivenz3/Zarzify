@@ -251,21 +251,23 @@ function Login() {
         alignItems: 'center',
         justifyContent: 'center',
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        padding: 2,
+        padding: 0,
       }}
     >
-      <Container maxWidth="sm">
+      <Container maxWidth="sm" sx={{ p: 0 }}>
         <Fade in timeout={1000}>
-          <Paper
-            elevation={24}
+          <Box
             sx={{
               padding: 4,
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              borderRadius: 2,
-              background: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(10px)',
+              borderRadius: 3,
+              background: 'rgba(255, 255, 255, 0.1)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)',
+              mx: 2,
             }}
           >
             <Box
@@ -279,7 +281,7 @@ function Login() {
               <StoreIcon
                 sx={{
                   fontSize: 48,
-                  color: theme.palette.primary.main,
+                  color: 'white',
                   mb: 2,
                 }}
               />
@@ -288,7 +290,7 @@ function Login() {
                 variant={isMobile ? 'h5' : 'h4'}
                 sx={{
                   fontWeight: 'bold',
-                  color: theme.palette.primary.main,
+                  color: 'white',
                   textAlign: 'center',
                 }}
               >
@@ -296,8 +298,11 @@ function Login() {
               </Typography>
               <Typography
                 variant="body1"
-                color="text.secondary"
-                sx={{ mt: 1, textAlign: 'center' }}
+                sx={{ 
+                  mt: 1, 
+                  textAlign: 'center',
+                  color: 'rgba(255, 255, 255, 0.8)'
+                }}
               >
                 Sistema de Gestión de Inventario
               </Typography>
@@ -309,7 +314,12 @@ function Login() {
                 sx={{
                   mb: 3,
                   width: '100%',
-                  borderRadius: 1,
+                  borderRadius: 2,
+                  backgroundColor: 'rgba(244, 67, 54, 0.9)',
+                  color: 'white',
+                  '& .MuiAlert-icon': {
+                    color: 'white'
+                  }
                 }}
               >
                 {error}
@@ -322,10 +332,23 @@ function Login() {
                 value={tabValue} 
                 onChange={handleTabChange} 
                 variant="fullWidth"
-                sx={{ borderBottom: 1, borderColor: 'divider' }}
+                sx={{ 
+                  borderBottom: 1, 
+                  borderColor: 'rgba(255, 255, 255, 0.3)',
+                  '& .MuiTab-root': {
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    fontWeight: 'medium',
+                  },
+                  '& .Mui-selected': {
+                    color: 'white !important',
+                  },
+                  '& .MuiTabs-indicator': {
+                    backgroundColor: 'white',
+                  }
+                }}
               >
-                <Tab label="Iniciar Sesión" />
-                <Tab label="Crear Cuenta" />
+                <Tab label="INICIAR SESIÓN" />
+                <Tab label="CREAR CUENTA" />
               </Tabs>
             </Box>
 
@@ -339,7 +362,13 @@ function Login() {
                   label="Email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  sx={{ mb: 2 }}
+                  sx={{ 
+                    mb: 2,
+                    '& .MuiOutlinedInput-root': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                      borderRadius: 2,
+                    }
+                  }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -355,7 +384,13 @@ function Login() {
                   label="Contraseña"
                   value={formData.password}
                   onChange={handleInputChange}
-                  sx={{ mb: 3 }}
+                  sx={{ 
+                    mb: 3,
+                    '& .MuiOutlinedInput-root': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                      borderRadius: 2,
+                    }
+                  }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -379,7 +414,23 @@ function Login() {
                   fullWidth
                   variant="contained"
                   disabled={isLoading}
-                  sx={{ py: 1.5, mb: 2 }}
+                  sx={{ 
+                    py: 1.5, 
+                    mb: 2,
+                    borderRadius: 2,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: theme.palette.primary.main,
+                    fontWeight: 'bold',
+                    '&:hover': {
+                      backgroundColor: 'white',
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 8px 16px rgba(0, 0, 0, 0.2)',
+                    },
+                    '&:disabled': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                      color: 'rgba(102, 126, 234, 0.7)',
+                    }
+                  }}
                 >
                   {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
                 </Button>
@@ -395,7 +446,13 @@ function Login() {
                   label="Nombre completo"
                   value={formData.nombre}
                   onChange={handleInputChange}
-                  sx={{ mb: 2 }}
+                  sx={{ 
+                    mb: 2,
+                    '& .MuiOutlinedInput-root': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                      borderRadius: 2,
+                    }
+                  }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -411,7 +468,13 @@ function Login() {
                   label="Email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  sx={{ mb: 2 }}
+                  sx={{ 
+                    mb: 2,
+                    '& .MuiOutlinedInput-root': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                      borderRadius: 2,
+                    }
+                  }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -427,7 +490,13 @@ function Login() {
                   label="Contraseña"
                   value={formData.password}
                   onChange={handleInputChange}
-                  sx={{ mb: 2 }}
+                  sx={{ 
+                    mb: 2,
+                    '& .MuiOutlinedInput-root': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                      borderRadius: 2,
+                    }
+                  }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -453,7 +522,13 @@ function Login() {
                   label="Confirmar contraseña"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  sx={{ mb: 3 }}
+                  sx={{ 
+                    mb: 3,
+                    '& .MuiOutlinedInput-root': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                      borderRadius: 2,
+                    }
+                  }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -467,7 +542,23 @@ function Login() {
                   fullWidth
                   variant="contained"
                   disabled={isLoading}
-                  sx={{ py: 1.5, mb: 2 }}
+                  sx={{ 
+                    py: 1.5, 
+                    mb: 2,
+                    borderRadius: 2,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: theme.palette.primary.main,
+                    fontWeight: 'bold',
+                    '&:hover': {
+                      backgroundColor: 'white',
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 8px 16px rgba(0, 0, 0, 0.2)',
+                    },
+                    '&:disabled': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                      color: 'rgba(102, 126, 234, 0.7)',
+                    }
+                  }}
                 >
                   {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}
                 </Button>
@@ -475,8 +566,8 @@ function Login() {
             </TabPanel>
 
             {/* Divider y Google */}
-            <Divider sx={{ width: '100%', my: 2 }}>
-              <Typography variant="body2" color="text.secondary">
+            <Divider sx={{ width: '100%', my: 2, borderColor: 'rgba(255, 255, 255, 0.3)' }}>
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
                 o
               </Typography>
             </Divider>
@@ -489,19 +580,23 @@ function Login() {
               disabled={isLoading}
               sx={{
                 py: 1.5,
-                backgroundColor: '#fff',
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
                 color: '#757575',
+                borderRadius: 2,
                 '&:hover': {
-                  backgroundColor: '#f5f5f5',
+                  backgroundColor: 'white',
                   transform: 'translateY(-2px)',
-                  boxShadow: 3,
+                  boxShadow: '0 8px 16px rgba(0, 0, 0, 0.2)',
                 },
-                border: '1px solid #dadce0',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
                 textTransform: 'none',
                 fontSize: '16px',
                 fontWeight: 500,
                 transition: 'all 0.3s ease',
-                boxShadow: 1,
+                '&:disabled': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                  color: 'rgba(117, 117, 117, 0.7)',
+                }
               }}
             >
               {isLoading ? 'Conectando...' : 'Continuar con Google'}
@@ -509,12 +604,15 @@ function Login() {
 
             <Typography
               variant="body2"
-              color="text.secondary"
-              sx={{ mt: 3, textAlign: 'center' }}
+              sx={{ 
+                mt: 3, 
+                textAlign: 'center',
+                color: 'rgba(255, 255, 255, 0.7)'
+              }}
             >
               Al registrarte, aceptas nuestros términos y condiciones
             </Typography>
-          </Paper>
+          </Box>
         </Fade>
       </Container>
     </Box>
