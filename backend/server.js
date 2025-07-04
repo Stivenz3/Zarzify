@@ -5,6 +5,17 @@ const path = require('path');
 
 const app = express();
 
+// Middleware global para capturar errores no manejados
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  // No terminar el proceso inmediatamente, log y continuar
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  // No terminar el proceso inmediatamente, log y continuar
+});
+
 // CORS configuration para producción y desarrollo
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
@@ -15,12 +26,40 @@ app.use(cors({
 
 app.use(express.json());
 
+// Middleware de timeout para evitar requests colgados
+app.use((req, res, next) => {
+  // Timeout de 30 segundos para todas las requests
+  req.setTimeout(30000, () => {
+    console.error('❌ Request timeout:', req.method, req.path);
+    if (!res.headersSent) {
+      res.status(408).json({ 
+        error: 'Request timeout',
+        path: req.path,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+  
+  res.setTimeout(30000, () => {
+    console.error('❌ Response timeout:', req.method, req.path);
+    if (!res.headersSent) {
+      res.status(408).json({ 
+        error: 'Response timeout',
+        path: req.path,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+  
+  next();
+});
+
 // Servir archivos estáticos del frontend en producción
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../build')));
 }
 
-// Configuración de la conexión a PostgreSQL (valores directos)
+// Configuración de la conexión a PostgreSQL con mejor manejo de errores
 const pool = new Pool({
   // Usar variables de entorno para producción
   connectionString: process.env.DATABASE_URL,
@@ -31,12 +70,25 @@ const pool = new Pool({
   port: process.env.DB_PORT || 5432,
   // SSL para producción
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  // Configuraciones para estabilidad
+  max: 10, // Máximo 10 conexiones concurrentes
+  idleTimeoutMillis: 30000, // Cerrar conexiones inactivas después de 30s
+  connectionTimeoutMillis: 10000, // Timeout de conexión de 10s
 });
 
-// Verificar conexión
+// Verificar conexión con mejor manejo de errores
 pool.query('SELECT NOW()')
   .then(() => console.log('✅ Conexión a PostgreSQL exitosa'))
-  .catch(err => console.error('❌ Error de conexión:', err));
+  .catch(err => {
+    console.error('❌ Error de conexión a PostgreSQL:', err.message);
+    // No terminar el proceso, seguir intentando
+  });
+
+// Manejo de errores del pool
+pool.on('error', (err, client) => {
+  console.error('❌ Error inesperado en el pool de PostgreSQL:', err);
+  // No terminar el proceso
+});
 
 // Helper para notificar cambios en el dashboard
 const invalidateDashboardCache = (businessId, reason = 'datos actualizados') => {
@@ -1066,20 +1118,40 @@ app.get('/api/test', async (req, res) => {
 });
 
 // Health check endpoint para Railway
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'healthy',
-    service: 'Zarzify API',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    port: PORT,
-    env: process.env.NODE_ENV
-  });
+app.get('/api/health', async (req, res) => {
+  try {
+    // Verificar conexión a DB rápida
+    await pool.query('SELECT 1');
+    
+    res.status(200).json({ 
+      status: 'healthy',
+      service: 'Zarzify API',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      port: PORT,
+      env: process.env.NODE_ENV,
+      database: 'connected'
+    });
+  } catch (error) {
+    console.error('❌ Health check failed:', error.message);
+    res.status(503).json({ 
+      status: 'unhealthy',
+      service: 'Zarzify API',
+      timestamp: new Date().toISOString(),
+      error: 'Database connection failed',
+      env: process.env.NODE_ENV
+    });
+  }
 });
 
 // Health check simple en raíz también
-app.get('/health', (req, res) => {
-  res.status(200).send('OK');
+app.get('/health', async (req, res) => {
+  try {
+    await pool.query('SELECT 1');
+    res.status(200).send('OK');
+  } catch (error) {
+    res.status(503).send('SERVICE_UNAVAILABLE');
+  }
 });
 
 // Servir frontend React para todas las rutas que no sean API (solo en producción)
@@ -1091,6 +1163,31 @@ if (process.env.NODE_ENV === 'production') {
     }
   });
 }
+
+// Middleware global de manejo de errores
+app.use((err, req, res, next) => {
+  console.error('❌ Error no manejado:', err.stack);
+  
+  // No exponer detalles de error en producción
+  const errorMessage = process.env.NODE_ENV === 'production' 
+    ? 'Error interno del servidor' 
+    : err.message;
+  
+  res.status(500).json({ 
+    error: errorMessage,
+    timestamp: new Date().toISOString(),
+    path: req.path
+  });
+});
+
+// Middleware para rutas no encontradas
+app.use('*', (req, res) => {
+  res.status(404).json({ 
+    error: 'Ruta no encontrada',
+    path: req.originalUrl,
+    timestamp: new Date().toISOString()
+  });
+});
 
 // Puerto dinámico para servicios de hosting
 const PORT = process.env.PORT || 3001;
