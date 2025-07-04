@@ -131,9 +131,9 @@ function Reports() {
   };
 
   return (
-    <Box>
-      <Typography variant="h5" component="h2" gutterBottom>
-        Reportes
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h4" gutterBottom>
+        Reportes y Análisis
       </Typography>
 
       <Grid container spacing={3}>

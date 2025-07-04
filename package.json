@@ -17,13 +17,13 @@
     "npm": ">=8.0.0"
   },
   "dependencies": {
-    "@date-io/date-fns": "^3.2.1",
+    "@date-io/date-fns": "^2.17.0",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
     "@fontsource/roboto": "^5.0.8",
     "@mui/icons-material": "^5.14.19",
     "@mui/material": "^5.14.20",
-    "@mui/x-date-pickers": "^6.20.2",
+    "@mui/x-date-pickers": "^5.0.20",
     "@reduxjs/toolkit": "^2.0.1",
     "aos": "^2.3.4",
     "autoprefixer": "^10.4.16",
@@ -31,6 +31,7 @@
     "chart.js": "^4.4.0",
     "concurrently": "^8.2.2",
     "cors": "^2.8.5",
+    "date-fns": "^2.30.0",
     "express": "^4.18.2",
     "firebase": "^10.7.1",
     "jspdf": "^3.0.1",
