@@ -11,6 +11,7 @@ import {
   DialogActions,
   TextField,
   Alert,
+  Divider,
 } from '@mui/material';
 import {
   Store as StoreIcon,
@@ -145,30 +146,91 @@ function BusinessSelector() {
         sx={{
           color: 'inherit',
           textTransform: 'none',
-          fontSize: '1rem',
+          fontSize: '1.1rem',
+          fontWeight: 'bold',
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          borderRadius: '8px',
+          padding: '8px 16px',
+          '&:hover': {
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            borderColor: 'rgba(255, 255, 255, 0.3)',
+          },
+          minWidth: '200px',
+          justifyContent: 'flex-start',
         }}
       >
-        {currentBusiness?.nombre || 'Seleccionar Negocio'}
+        <Box sx={{ textAlign: 'left', flexGrow: 1 }}>
+          <Typography variant="caption" sx={{ display: 'block', fontSize: '0.7rem', opacity: 0.8 }}>
+            Negocio Actual
+          </Typography>
+          <Typography variant="body2" sx={{ fontSize: '0.9rem', fontWeight: 'bold' }}>
+            {currentBusiness?.nombre || 'Seleccionar Negocio'}
+          </Typography>
+        </Box>
       </Button>
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleClose}
         PaperProps={{
-          sx: { minWidth: 200 }
+          sx: { 
+            minWidth: 250,
+            borderRadius: '8px',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
+          }
         }}
+        transformOrigin={{ horizontal: 'left', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
       >
         {businesses && businesses.length > 0 ? (
-          businesses.map((business) => (
-            <MenuItem
-              key={business.id}
-              onClick={() => handleSwitchBusiness(business)}
-              selected={currentBusiness?.id === business.id}
+          <>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                px: 2, 
+                py: 1, 
+                display: 'block',
+                color: 'text.secondary',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}
             >
-              <StoreIcon sx={{ mr: 1, fontSize: 20 }} />
-              <Typography variant="body1">{business.nombre}</Typography>
-            </MenuItem>
-          ))
+              Mis Negocios
+            </Typography>
+            {businesses.map((business) => (
+              <MenuItem
+                key={business.id}
+                onClick={() => handleSwitchBusiness(business)}
+                selected={currentBusiness?.id === business.id}
+                sx={{
+                  py: 1.5,
+                  px: 2,
+                  '&.Mui-selected': {
+                    backgroundColor: 'primary.light',
+                    color: 'primary.contrastText',
+                    '&:hover': {
+                      backgroundColor: 'primary.main',
+                    },
+                  },
+                }}
+              >
+                <StoreIcon sx={{ mr: 2, fontSize: 20 }} />
+                <Box>
+                  <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                    {business.nombre}
+                  </Typography>
+                  {business.direccion && (
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                      {business.direccion}
+                    </Typography>
+                  )}
+                </Box>
+              </MenuItem>
+            ))}
+            <Divider sx={{ my: 1 }} />
+          </>
         ) : (
           <MenuItem disabled>
             <Typography variant="body2" color="text.secondary">
@@ -181,10 +243,20 @@ function BusinessSelector() {
             handleClose();
             setOpenNewDialog(true);
           }}
-          sx={{ color: 'primary.main' }}
+          sx={{ 
+            color: 'primary.main',
+            py: 1.5,
+            px: 2,
+            '&:hover': {
+              backgroundColor: 'primary.light',
+              color: 'primary.contrastText',
+            },
+          }}
         >
-          <AddIcon sx={{ mr: 1, fontSize: 20 }} />
-          <Typography variant="body1">Nuevo Negocio</Typography>
+          <AddIcon sx={{ mr: 2, fontSize: 20 }} />
+          <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+            Nuevo Negocio
+          </Typography>
         </MenuItem>
       </Menu>
 
@@ -193,8 +265,18 @@ function BusinessSelector() {
         onClose={handleCloseDialog}
         maxWidth="sm"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '12px',
+          }
+        }}
       >
-        <DialogTitle>Crear Nuevo Negocio</DialogTitle>
+        <DialogTitle sx={{ pb: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <StoreIcon sx={{ mr: 1, color: 'primary.main' }} />
+            Crear Nuevo Negocio
+          </Box>
+        </DialogTitle>
         <DialogContent>
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -211,6 +293,7 @@ function BusinessSelector() {
               sx={{ mb: 2 }}
               required
               error={!newBusiness.nombre.trim() && error}
+              helperText={!newBusiness.nombre.trim() && error ? 'El nombre es requerido' : ''}
             />
             <TextField
               fullWidth
@@ -219,6 +302,7 @@ function BusinessSelector() {
               value={newBusiness.direccion}
               onChange={handleNewBusinessChange}
               sx={{ mb: 2 }}
+              placeholder="Opcional"
             />
             <TextField
               fullWidth
@@ -226,10 +310,11 @@ function BusinessSelector() {
               name="telefono"
               value={newBusiness.telefono}
               onChange={handleNewBusinessChange}
+              placeholder="Opcional"
             />
           </Box>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ p: 2.5 }}>
           <Button onClick={handleCloseDialog} disabled={loading}>
             Cancelar
           </Button>
@@ -237,8 +322,9 @@ function BusinessSelector() {
             onClick={handleCreateBusiness}
             variant="contained"
             disabled={!newBusiness.nombre.trim() || loading}
+            sx={{ px: 3 }}
           >
-            {loading ? 'Creando...' : 'Crear'}
+            {loading ? 'Creando...' : 'Crear Negocio'}
           </Button>
         </DialogActions>
       </Dialog>

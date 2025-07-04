@@ -10,210 +10,719 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  TextField,
+  Alert,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Chip,
+  CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  LinearProgress,
 } from '@mui/material';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-} from 'recharts';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+  Warning as WarningIcon,
+  Inventory as InventoryIcon,
+  TrendingUp as TrendingUpIcon,
+  AttachMoney as MoneyIcon,
+  People as PeopleIcon,
+  Assessment as AssessmentIcon,
+  PictureAsPdf as PdfIcon,
+} from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
 import api from '../../config/axios';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 function Reports() {
   const { currentBusiness } = useApp();
-  const [reportType, setReportType] = useState('sales');
-  const [dateRange, setDateRange] = useState({
-    startDate: new Date(new Date().setMonth(new Date().getMonth() - 1)),
-    endDate: new Date(),
-  });
-  const [data, setData] = useState([]);
+  const [reportType, setReportType] = useState('dashboard');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [dashboardData, setDashboardData] = useState(null);
+  const [salesData, setSalesData] = useState([]);
+  const [productsData, setProductsData] = useState([]);
+  const [clientsData, setClientsData] = useState([]);
+  const [expensesData, setExpensesData] = useState([]);
+  const [lowStockProducts, setLowStockProducts] = useState([]);
 
   const reportTypes = [
-    { value: 'sales', label: 'Ventas' },
-    { value: 'inventory', label: 'Inventario' },
-    { value: 'customers', label: 'Clientes' },
-    { value: 'expenses', label: 'Gastos' },
+    { value: 'dashboard', label: 'Resumen General' },
+    { value: 'sales', label: 'Reportes de Ventas' },
+    { value: 'inventory', label: 'Reporte de Inventario' },
+    { value: 'customers', label: 'Reporte de Clientes' },
+    { value: 'expenses', label: 'Reporte de Gastos' },
   ];
 
   useEffect(() => {
     if (currentBusiness) {
       fetchReportData();
     }
-  }, [currentBusiness, reportType, dateRange]);
+  }, [currentBusiness, reportType]);
 
   const fetchReportData = async () => {
     if (!currentBusiness) return;
 
     setLoading(true);
+    setError('');
+    
     try {
-      const response = await api.get(`/reports/${reportType}`, {
-        params: {
-          businessId: currentBusiness.id,
-          startDate: dateRange.startDate.toISOString(),
-          endDate: dateRange.endDate.toISOString(),
-        },
-      });
-      setData(response.data);
+      switch (reportType) {
+        case 'dashboard':
+          await fetchDashboardData();
+          break;
+        case 'sales':
+          await fetchSalesData();
+          break;
+        case 'inventory':
+          await fetchInventoryData();
+          break;
+        case 'customers':
+          await fetchCustomersData();
+          break;
+        case 'expenses':
+          await fetchExpensesData();
+          break;
+        default:
+          await fetchDashboardData();
+      }
     } catch (error) {
-      console.error('Error al cargar los datos del reporte:', error);
+      console.error('Error al cargar reportes:', error);
+      setError('Error al cargar los datos del reporte');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleExport = async (format) => {
+  const fetchDashboardData = async () => {
     try {
-      const response = await api.get(`/reports/${reportType}/export`, {
-        params: {
-          businessId: currentBusiness.id,
-          startDate: dateRange.startDate.toISOString(),
-          endDate: dateRange.endDate.toISOString(),
-          format,
-        },
-        responseType: 'blob',
-      });
-
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `reporte_${reportType}_${format}.${format}`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      const response = await api.get(`/dashboard/${currentBusiness.id}`);
+      setDashboardData(response.data);
+      
+      // También cargar productos con stock bajo
+      const lowStockResponse = await api.get(`/productos/${currentBusiness.id}/low-stock`);
+      setLowStockProducts(lowStockResponse.data);
     } catch (error) {
-      console.error('Error al exportar el reporte:', error);
+      throw error;
     }
   };
 
-  const renderChart = () => {
-    if (!data.length) return null;
+  const fetchSalesData = async () => {
+    try {
+      const response = await api.get(`/ventas/${currentBusiness.id}`);
+      setSalesData(response.data.slice(0, 20)); // Últimas 20 ventas
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const fetchInventoryData = async () => {
+    try {
+      const response = await api.get(`/productos/${currentBusiness.id}`);
+      setProductsData(response.data);
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const fetchCustomersData = async () => {
+    try {
+      const response = await api.get(`/clientes/${currentBusiness.id}`);
+      setClientsData(response.data);
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const fetchExpensesData = async () => {
+    try {
+      const response = await api.get(`/egresos/${currentBusiness.id}`);
+      setExpensesData(response.data.slice(0, 20)); // Últimos 20 gastos
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const getStockStatusColor = (stock, stockMinimo) => {
+    if (stock <= 0) return 'error';
+    if (stock <= stockMinimo) return 'warning';
+    return 'success';
+  };
+
+  const getStockStatusText = (stock, stockMinimo) => {
+    if (stock <= 0) return 'Agotado';
+    if (stock <= stockMinimo) return 'Stock Bajo';
+    return 'Disponible';
+  };
+
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const margin = 20;
+
+    // Encabezado del documento
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ZARZIFY', margin, 30);
+    
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Negocio: ${currentBusiness?.nombre}`, margin, 45);
+    
+    doc.setFontSize(12);
+    doc.text(`Reporte: ${reportTypes.find(type => type.value === reportType)?.label}`, margin, 55);
+    doc.text(`Fecha de generación: ${new Date().toLocaleDateString()}`, margin, 65);
+
+    let yPosition = 80;
+
+    // Alertas de stock bajo
+    if (lowStockProducts.length > 0) {
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 100, 100);
+      doc.text('⚠ ALERTAS DE STOCK BAJO', margin, yPosition);
+      yPosition += 10;
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      
+      lowStockProducts.slice(0, 5).forEach(product => {
+        doc.text(`• ${product.nombre} - Stock: ${product.stock} (Mín: ${product.stock_minimo})`, margin + 5, yPosition);
+        yPosition += 8;
+      });
+      yPosition += 10;
+    }
+
+    // Contenido específico por tipo de reporte
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
 
     switch (reportType) {
       case 'sales':
-        return (
-          <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="total" stroke="#8884d8" name="Ventas" />
-            </LineChart>
-          </ResponsiveContainer>
-        );
+        doc.text('REPORTE DE VENTAS', margin, yPosition);
+        yPosition += 15;
+
+        if (salesData.length > 0) {
+          const tableData = salesData.map(sale => [
+            new Date(sale.created_at).toLocaleDateString(),
+            sale.cliente_nombre || 'Cliente General',
+            `$${parseFloat(sale.total).toFixed(2)}`,
+            sale.metodo_pago
+          ]);
+
+          doc.autoTable({
+            head: [['Fecha', 'Cliente', 'Total', 'Método de Pago']],
+            body: tableData,
+            startY: yPosition,
+            styles: { fontSize: 9 },
+            headStyles: { fillColor: [66, 139, 202] }
+          });
+        }
+        break;
+
       case 'inventory':
-        return (
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="stock" fill="#82ca9d" name="Stock" />
-            </BarChart>
-          </ResponsiveContainer>
-        );
-      default:
-        return null;
+        doc.text('REPORTE DE INVENTARIO', margin, yPosition);
+        yPosition += 15;
+
+        if (productsData.length > 0) {
+          // Sin columna de stock mínimo como solicita el usuario
+          const tableData = productsData.map(product => [
+            product.nombre,
+            product.categoria_nombre || 'Sin categoría',
+            product.stock.toString(),
+            `$${parseFloat(product.precio_venta).toFixed(2)}`,
+            getStockStatusText(product.stock, product.stock_minimo)
+          ]);
+
+          doc.autoTable({
+            head: [['Producto', 'Categoría', 'Stock', 'Precio', 'Estado']],
+            body: tableData,
+            startY: yPosition,
+            styles: { fontSize: 9 },
+            headStyles: { fillColor: [76, 175, 80] }
+          });
+        }
+        break;
+
+      case 'customers':
+        doc.text('REPORTE DE CLIENTES', margin, yPosition);
+        yPosition += 15;
+
+        if (clientsData.length > 0) {
+          const tableData = clientsData.map(client => [
+            client.nombre,
+            client.email || '-',
+            client.telefono || '-',
+            `$${parseFloat(client.credito_disponible || 0).toFixed(2)}`
+          ]);
+
+          doc.autoTable({
+            head: [['Nombre', 'Email', 'Teléfono', 'Crédito Disponible']],
+            body: tableData,
+            startY: yPosition,
+            styles: { fontSize: 9 },
+            headStyles: { fillColor: [156, 39, 176] }
+          });
+        }
+        break;
+
+      case 'expenses':
+        doc.text('REPORTE DE GASTOS', margin, yPosition);
+        yPosition += 15;
+
+        if (expensesData.length > 0) {
+          const tableData = expensesData.map(expense => [
+            new Date(expense.fecha || expense.created_at).toLocaleDateString(),
+            expense.concepto,
+            expense.categoria,
+            `$${parseFloat(expense.monto).toFixed(2)}`,
+            expense.metodo_pago
+          ]);
+
+          doc.autoTable({
+            head: [['Fecha', 'Concepto', 'Categoría', 'Monto', 'Método de Pago']],
+            body: tableData,
+            startY: yPosition,
+            styles: { fontSize: 9 },
+            headStyles: { fillColor: [255, 152, 0] }
+          });
+        }
+        break;
+
+      case 'dashboard':
+        doc.text('RESUMEN GENERAL', margin, yPosition);
+        yPosition += 15;
+
+        if (dashboardData) {
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'normal');
+          doc.text(`Total de Productos: ${dashboardData.totalProducts}`, margin, yPosition);
+          yPosition += 10;
+          doc.text(`Total de Ventas: ${dashboardData.totalSales}`, margin, yPosition);
+          yPosition += 10;
+          doc.text(`Total de Clientes: ${dashboardData.totalCustomers}`, margin, yPosition);
+          yPosition += 10;
+          doc.text(`Ingresos Totales: $${dashboardData.totalRevenue?.toFixed(2)}`, margin, yPosition);
+          yPosition += 10;
+          doc.text(`Valor de Inventario: $${dashboardData.inventoryValue?.toFixed(2)}`, margin, yPosition);
+          yPosition += 10;
+          doc.text(`Ganancia Neta: $${dashboardData.netProfit?.toFixed(2)}`, margin, yPosition);
+          yPosition += 10;
+          doc.text(`Margen de Ganancia: ${dashboardData.profitMargin?.toFixed(1)}%`, margin, yPosition);
+        }
+        break;
     }
+
+    // Guardar el PDF
+    doc.save(`reporte_${reportType}_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
-  return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Reportes y Análisis
-      </Typography>
+  const renderDashboardReport = () => {
+    if (!dashboardData) return null;
 
+    return (
       <Grid container spacing={3}>
-        <Grid item xs={12} md={3}>
+        {/* Alertas de stock bajo */}
+        {lowStockProducts.length > 0 && (
+          <Grid item xs={12}>
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              <Typography variant="h6" gutterBottom>
+                <WarningIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                ¡Atención! {lowStockProducts.length} producto(s) con stock bajo
+              </Typography>
+              <List dense sx={{ mt: 1 }}>
+                {lowStockProducts.slice(0, 5).map((product) => (
+                  <ListItem key={product.id} sx={{ py: 0.5 }}>
+                    <ListItemIcon sx={{ minWidth: 30 }}>
+                      <InventoryIcon color="warning" fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={`${product.nombre} - Stock: ${product.stock}`}
+                      secondary={`Mínimo requerido: ${product.stock_minimo}`}
+                    />
+                    <Chip
+                      size="small"
+                      label={getStockStatusText(product.stock, product.stock_minimo)}
+                      color={getStockStatusColor(product.stock, product.stock_minimo)}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </Alert>
+          </Grid>
+        )}
+
+        {/* Métricas principales */}
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ bgcolor: 'primary.light', color: 'primary.contrastText' }}>
+            <CardContent sx={{ textAlign: 'center' }}>
+              <InventoryIcon sx={{ fontSize: 40, mb: 1 }} />
+              <Typography variant="h4">{dashboardData.totalProducts}</Typography>
+              <Typography variant="body2">Productos</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ bgcolor: 'success.light', color: 'success.contrastText' }}>
+            <CardContent sx={{ textAlign: 'center' }}>
+              <TrendingUpIcon sx={{ fontSize: 40, mb: 1 }} />
+              <Typography variant="h4">{dashboardData.totalSales}</Typography>
+              <Typography variant="body2">Ventas</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ bgcolor: 'info.light', color: 'info.contrastText' }}>
+            <CardContent sx={{ textAlign: 'center' }}>
+              <PeopleIcon sx={{ fontSize: 40, mb: 1 }} />
+              <Typography variant="h4">{dashboardData.totalCustomers}</Typography>
+              <Typography variant="body2">Clientes</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ bgcolor: 'warning.light', color: 'warning.contrastText' }}>
+            <CardContent sx={{ textAlign: 'center' }}>
+              <MoneyIcon sx={{ fontSize: 40, mb: 1 }} />
+              <Typography variant="h4">${dashboardData.totalRevenue?.toFixed(2)}</Typography>
+              <Typography variant="body2">Ingresos</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Métricas financieras */}
+        <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel>Tipo de Reporte</InputLabel>
-                <Select
-                  value={reportType}
-                  onChange={(e) => setReportType(e.target.value)}
-                  label="Tipo de Reporte"
-                >
-                  {reportTypes.map((type) => (
-                    <MenuItem key={type.value} value={type.value}>
-                      {type.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <DatePicker
-                label="Fecha Inicial"
-                value={dateRange.startDate}
-                onChange={(newValue) =>
-                  setDateRange((prev) => ({ ...prev, startDate: newValue }))
-                }
-                renderInput={(params) => (
-                  <TextField {...params} fullWidth sx={{ mb: 2 }} />
-                )}
-              />
-
-              <DatePicker
-                label="Fecha Final"
-                value={dateRange.endDate}
-                onChange={(newValue) =>
-                  setDateRange((prev) => ({ ...prev, endDate: newValue }))
-                }
-                renderInput={(params) => (
-                  <TextField {...params} fullWidth sx={{ mb: 2 }} />
-                )}
-              />
-
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Exportar Reporte
+              <Typography variant="h6" gutterBottom>Métricas Financieras</Typography>
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="body2">Valor de Inventario</Typography>
+                <Typography variant="h5" color="primary">
+                  ${dashboardData.inventoryValue?.toFixed(2)}
                 </Typography>
-                <Button
-                  variant="outlined"
-                  onClick={() => handleExport('xlsx')}
-                  sx={{ mr: 1 }}
+              </Box>
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="body2">Ganancia Neta</Typography>
+                <Typography 
+                  variant="h5" 
+                  color={dashboardData.netProfit >= 0 ? 'success.main' : 'error.main'}
                 >
-                  Excel
-                </Button>
-                <Button
-                  variant="outlined"
-                  onClick={() => handleExport('pdf')}
-                >
-                  PDF
-                </Button>
+                  ${dashboardData.netProfit?.toFixed(2)}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="body2">Margen de Ganancia</Typography>
+                <Typography variant="h5" color="info.main">
+                  {dashboardData.profitMargin?.toFixed(1)}%
+                </Typography>
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={9}>
+        {/* Productos con stock bajo */}
+        <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                {reportTypes.find((type) => type.value === reportType)?.label}
+                <WarningIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                Productos con Stock Bajo
               </Typography>
-              {loading ? (
-                <Typography>Cargando...</Typography>
+              {lowStockProducts.length === 0 ? (
+                <Typography color="text.secondary">
+                  ¡Genial! No hay productos con stock bajo.
+                </Typography>
               ) : (
-                renderChart()
+                <List dense>
+                  {lowStockProducts.slice(0, 5).map((product) => (
+                    <ListItem key={product.id}>
+                      <ListItemIcon>
+                        <InventoryIcon />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={product.nombre}
+                        secondary={`Stock: ${product.stock} | Mínimo: ${product.stock_minimo}`}
+                      />
+                      <Chip
+                        size="small"
+                        label={getStockStatusText(product.stock, product.stock_minimo)}
+                        color={getStockStatusColor(product.stock, product.stock_minimo)}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
               )}
             </CardContent>
           </Card>
         </Grid>
       </Grid>
+    );
+  };
+
+  const renderSalesReport = () => (
+    <Card>
+      <CardContent>
+        <Typography variant="h6" gutterBottom>Últimas Ventas</Typography>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Fecha</TableCell>
+                <TableCell>Cliente</TableCell>
+                <TableCell>Total</TableCell>
+                <TableCell>Método de Pago</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {salesData.map((sale) => (
+                <TableRow key={sale.id}>
+                  <TableCell>
+                    {new Date(sale.created_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>{sale.cliente_nombre || 'Cliente General'}</TableCell>
+                  <TableCell>${parseFloat(sale.total).toFixed(2)}</TableCell>
+                  <TableCell>
+                    <Chip size="small" label={sale.metodo_pago} />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </CardContent>
+    </Card>
+  );
+
+  const renderInventoryReport = () => {
+    const lowStockCount = productsData.filter(p => p.stock <= p.stock_minimo).length;
+    const outOfStockCount = productsData.filter(p => p.stock <= 0).length;
+
+    return (
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent sx={{ textAlign: 'center' }}>
+              <Typography variant="h4" color="primary">{productsData.length}</Typography>
+              <Typography>Total Productos</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent sx={{ textAlign: 'center' }}>
+              <Typography variant="h4" color="warning.main">{lowStockCount}</Typography>
+              <Typography>Stock Bajo</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent sx={{ textAlign: 'center' }}>
+              <Typography variant="h4" color="error.main">{outOfStockCount}</Typography>
+              <Typography>Agotados</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>Productos por Stock</Typography>
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Producto</TableCell>
+                      <TableCell>Categoría</TableCell>
+                      <TableCell>Stock</TableCell>
+                      <TableCell>Precio</TableCell>
+                      <TableCell>Estado</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {productsData.slice(0, 10).map((product) => (
+                      <TableRow key={product.id}>
+                        <TableCell>{product.nombre}</TableCell>
+                        <TableCell>{product.categoria_nombre || 'Sin categoría'}</TableCell>
+                        <TableCell>{product.stock}</TableCell>
+                        <TableCell>${parseFloat(product.precio_venta).toFixed(2)}</TableCell>
+                        <TableCell>
+                          <Chip
+                            size="small"
+                            label={getStockStatusText(product.stock, product.stock_minimo)}
+                            color={getStockStatusColor(product.stock, product.stock_minimo)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    );
+  };
+
+  const renderCustomersReport = () => (
+    <Card>
+      <CardContent>
+        <Typography variant="h6" gutterBottom>Lista de Clientes</Typography>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Nombre</TableCell>
+                <TableCell>Email</TableCell>
+                <TableCell>Teléfono</TableCell>
+                <TableCell>Crédito Disponible</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {clientsData.map((client) => (
+                <TableRow key={client.id}>
+                  <TableCell>{client.nombre}</TableCell>
+                  <TableCell>{client.email || '-'}</TableCell>
+                  <TableCell>{client.telefono || '-'}</TableCell>
+                  <TableCell>
+                    ${parseFloat(client.credito_disponible || 0).toFixed(2)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </CardContent>
+    </Card>
+  );
+
+  const renderExpensesReport = () => (
+    <Card>
+      <CardContent>
+        <Typography variant="h6" gutterBottom>Últimos Gastos</Typography>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Fecha</TableCell>
+                <TableCell>Concepto</TableCell>
+                <TableCell>Categoría</TableCell>
+                <TableCell>Monto</TableCell>
+                <TableCell>Método de Pago</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {expensesData.map((expense) => (
+                <TableRow key={expense.id}>
+                  <TableCell>
+                    {new Date(expense.fecha || expense.created_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>{expense.concepto}</TableCell>
+                  <TableCell>
+                    <Chip size="small" label={expense.categoria} />
+                  </TableCell>
+                  <TableCell>${parseFloat(expense.monto).toFixed(2)}</TableCell>
+                  <TableCell>{expense.metodo_pago}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </CardContent>
+    </Card>
+  );
+
+  const renderReportContent = () => {
+    switch (reportType) {
+      case 'dashboard':
+        return renderDashboardReport();
+      case 'sales':
+        return renderSalesReport();
+      case 'inventory':
+        return renderInventoryReport();
+      case 'customers':
+        return renderCustomersReport();
+      case 'expenses':
+        return renderExpensesReport();
+      default:
+        return renderDashboardReport();
+    }
+  };
+
+  if (!currentBusiness) {
+    return (
+      <Box sx={{ p: 3, textAlign: 'center' }}>
+        <AssessmentIcon sx={{ fontSize: 60, color: 'grey.400', mb: 2 }} />
+        <Typography variant="h5" color="text.secondary">
+          Selecciona un negocio para ver los reportes
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ p: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4">
+          Reportes y Análisis
+        </Typography>
+        
+        <Button
+          variant="contained"
+          color="error"
+          startIcon={<PdfIcon />}
+          onClick={exportToPDF}
+          sx={{ backgroundColor: '#d32f2f' }}
+        >
+          Descargar PDF
+        </Button>
+      </Box>
+
+      {/* Selector de tipo de reporte */}
+      <Box sx={{ mb: 3 }}>
+        <FormControl sx={{ minWidth: 200 }}>
+          <InputLabel>Tipo de Reporte</InputLabel>
+          <Select
+            value={reportType}
+            label="Tipo de Reporte"
+            onChange={(e) => setReportType(e.target.value)}
+          >
+            {reportTypes.map((type) => (
+              <MenuItem key={type.value} value={type.value}>
+                {type.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
+
+      {/* Error */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Loading */}
+      {loading && (
+        <Box sx={{ mb: 3 }}>
+          <LinearProgress />
+        </Box>
+      )}
+
+      {/* Contenido del reporte */}
+      {!loading && renderReportContent()}
     </Box>
   );
 }

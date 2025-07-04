@@ -714,7 +714,8 @@ app.post('/api/ventas', async (req, res) => {
     descuento, 
     metodo_pago, 
     productos, 
-    negocio_id 
+    negocio_id,
+    fecha_venta
   } = req.body;
   
   const client = await pool.connect();
@@ -725,15 +726,16 @@ app.post('/api/ventas', async (req, res) => {
     // Insertar la venta usando nombres correctos de columnas
     const ventaResult = await client.query(
       `INSERT INTO ventas (
-        cliente_id, negocio_id, total, subtotal, impuesto, descuento, metodo_pago
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-      [cliente_id, negocio_id, total, subtotal || 0, impuesto || 0, descuento || 0, metodo_pago]
+        cliente_id, negocio_id, total, subtotal, impuesto, descuento, metodo_pago, fecha_venta
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+      [cliente_id, negocio_id, total, subtotal || 0, impuesto || 0, descuento || 0, metodo_pago, fecha_venta || new Date()]
     );
     const ventaId = ventaResult.rows[0].id;
 
     // Insertar los detalles de la venta usando el nombre correcto de tabla
     for (const producto of productos) {
-      const subtotalProducto = producto.cantidad * producto.precio_unitario;
+      const precio = producto.precio || producto.precio_unitario;
+      const subtotalProducto = producto.cantidad * precio;
       
       await client.query(
         `INSERT INTO detalle_ventas (
@@ -743,7 +745,7 @@ app.post('/api/ventas', async (req, res) => {
           ventaId, 
           producto.id, 
           producto.cantidad, 
-          producto.precio_unitario,
+          precio,
           subtotalProducto
         ]
       );
@@ -866,7 +868,8 @@ app.get('/api/ventas/:saleId/products', async (req, res) => {
         p.id,
         p.nombre,
         dv.cantidad,
-        dv.precio_unitario,
+        dv.precio_unitario as precio,
+        dv.subtotal,
         p.impuesto
       FROM detalle_ventas dv
       INNER JOIN productos p ON dv.producto_id = p.id
@@ -876,6 +879,142 @@ app.get('/api/ventas/:saleId/products', async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     console.error('Error al obtener productos de venta:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Actualizar una venta completa
+app.put('/api/ventas/:id', async (req, res) => {
+  const { id } = req.params;
+  const { 
+    cliente_id, 
+    total, 
+    descuento, 
+    metodo_pago, 
+    productos,
+    fecha_venta
+  } = req.body;
+  
+  const client = await pool.connect();
+  
+  try {
+    await client.query('BEGIN');
+
+    // Restaurar stock de productos anteriores
+    const detallesAnteriores = await client.query(
+      'SELECT producto_id, cantidad FROM detalle_ventas WHERE venta_id = $1',
+      [id]
+    );
+
+    for (const detalle of detallesAnteriores.rows) {
+      await client.query(
+        'UPDATE productos SET stock = stock + $1 WHERE id = $2',
+        [detalle.cantidad, detalle.producto_id]
+      );
+    }
+
+    // Eliminar detalles anteriores
+    await client.query('DELETE FROM detalle_ventas WHERE venta_id = $1', [id]);
+
+    // Actualizar la venta principal
+    const updateFields = [];
+    const updateValues = [];
+    let paramIndex = 1;
+
+    if (cliente_id !== undefined) {
+      updateFields.push(`cliente_id = $${paramIndex}`);
+      updateValues.push(cliente_id || null);
+      paramIndex++;
+    }
+    if (total !== undefined) {
+      updateFields.push(`total = $${paramIndex}`);
+      updateValues.push(total);
+      paramIndex++;
+    }
+    if (descuento !== undefined) {
+      updateFields.push(`descuento = $${paramIndex}`);
+      updateValues.push(descuento);
+      paramIndex++;
+    }
+    if (metodo_pago !== undefined) {
+      updateFields.push(`metodo_pago = $${paramIndex}`);
+      updateValues.push(metodo_pago);
+      paramIndex++;
+    }
+    if (fecha_venta !== undefined) {
+      updateFields.push(`fecha_venta = $${paramIndex}`);
+      updateValues.push(fecha_venta);
+      paramIndex++;
+    }
+
+    updateValues.push(id);
+
+    if (updateFields.length > 0) {
+      await client.query(
+        `UPDATE ventas SET ${updateFields.join(', ')} WHERE id = $${paramIndex}`,
+        updateValues
+      );
+    }
+
+    // Insertar nuevos productos
+    if (productos && productos.length > 0) {
+      for (const producto of productos) {
+        const subtotalProducto = producto.cantidad * (producto.precio || producto.precio_unitario);
+        
+        await client.query(
+          `INSERT INTO detalle_ventas (
+            venta_id, producto_id, cantidad, precio_unitario, subtotal
+          ) VALUES ($1, $2, $3, $4, $5)`,
+          [
+            id, 
+            producto.id, 
+            producto.cantidad, 
+            producto.precio || producto.precio_unitario,
+            subtotalProducto
+          ]
+        );
+
+        // Actualizar stock
+        await client.query(
+          'UPDATE productos SET stock = stock - $1 WHERE id = $2',
+          [producto.cantidad, producto.id]
+        );
+      }
+    }
+
+    await client.query('COMMIT');
+    res.json({ message: 'Venta actualizada con éxito' });
+    
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error al actualizar venta:', err);
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+// Actualizar solo la fecha de una venta
+app.put('/api/ventas/:id/fecha', async (req, res) => {
+  const { id } = req.params;
+  const { fecha_venta } = req.body;
+  
+  try {
+    const result = await pool.query(
+      'UPDATE ventas SET fecha_venta = $1 WHERE id = $2 RETURNING *',
+      [fecha_venta, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Venta no encontrada' });
+    }
+
+    res.json({ 
+      message: 'Fecha de venta actualizada con éxito',
+      venta: result.rows[0]
+    });
+  } catch (err) {
+    console.error('Error al actualizar fecha de venta:', err);
     res.status(500).json({ error: err.message });
   }
 });

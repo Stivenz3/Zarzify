@@ -35,7 +35,9 @@ import {
   ShoppingCart as ShoppingCartIcon,
   Remove as RemoveIcon,
   Edit as EditIcon,
+  EditCalendar as EditCalendarIcon,
 } from '@mui/icons-material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useApp } from '../../context/AppContext';
 import { useDashboard } from '../../context/DashboardContext';
 import api from '../../config/axios';
@@ -53,11 +55,17 @@ function Sales() {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedSale, setSelectedSale] = useState(null);
   
+  // Estados para edición de fecha
+  const [editDateDialog, setEditDateDialog] = useState(false);
+  const [editingDateSale, setEditingDateSale] = useState(null);
+  const [newSaleDate, setNewSaleDate] = useState(new Date());
+  
   const [saleData, setSaleData] = useState({
     cliente_id: '',
     metodo_pago: 'efectivo',
     descuento_total: 0,
     productos: [],
+    fecha_venta: new Date(), // Nueva propiedad para fecha personalizada
   });
 
   const [selectedProduct, setSelectedProduct] = useState('');
@@ -128,6 +136,7 @@ function Sales() {
         metodo_pago: sale.metodo_pago || 'efectivo',
         descuento_total: sale.descuento || 0,
         productos: [], // Se cargarán los productos desde la BD
+        fecha_venta: sale.fecha_venta ? new Date(sale.fecha_venta) : new Date(sale.created_at),
       });
       // Cargar productos de la venta para edición
       loadSaleProducts(sale.id);
@@ -138,6 +147,7 @@ function Sales() {
         metodo_pago: 'efectivo',
         descuento_total: 0,
         productos: [],
+        fecha_venta: new Date(),
       });
     }
     setSelectedProduct('');
@@ -176,6 +186,40 @@ function Sales() {
     }));
   };
 
+  // Funciones para edición de fecha
+  const handleOpenEditDate = (sale) => {
+    setEditingDateSale(sale);
+    setNewSaleDate(sale.fecha_venta ? new Date(sale.fecha_venta) : new Date(sale.created_at));
+    setEditDateDialog(true);
+    setAnchorEl(null);
+  };
+
+  const handleCloseEditDate = () => {
+    setEditDateDialog(false);
+    setEditingDateSale(null);
+    setError('');
+  };
+
+  const handleSaveDateEdit = async () => {
+    if (!editingDateSale || !newSaleDate) return;
+
+    try {
+      await api.put(`/ventas/${editingDateSale.id}/fecha`, {
+        fecha_venta: newSaleDate.toISOString()
+      });
+      
+      // Actualizar la lista de ventas
+      await loadSales();
+      markDashboardForRefresh();
+      
+      handleCloseEditDate();
+      setError('');
+    } catch (error) {
+      console.error('Error al actualizar fecha:', error);
+      setError('Error al actualizar la fecha de la venta');
+    }
+  };
+
   const addProductToSale = () => {
     if (!selectedProduct) {
       setError('Selecciona un producto');
@@ -201,7 +245,19 @@ function Sales() {
     if (existingProductIndex >= 0) {
       // Actualizar cantidad del producto existente
       const updatedProducts = [...saleData.productos];
-      updatedProducts[existingProductIndex].cantidad += productQuantity;
+      const newQuantity = updatedProducts[existingProductIndex].cantidad + productQuantity;
+      
+      if (newQuantity > product.stock) {
+        setError('No hay suficiente stock para esta cantidad total');
+        return;
+      }
+      
+      updatedProducts[existingProductIndex] = {
+        ...updatedProducts[existingProductIndex],
+        cantidad: newQuantity,
+        subtotal: newQuantity * product.precio_venta
+      };
+      
       setSaleData(prev => ({
         ...prev,
         productos: updatedProducts
@@ -211,11 +267,11 @@ function Sales() {
       const newProduct = {
         id: product.id,
         nombre: product.nombre,
-        precio_unitario: product.precio_venta,
+        precio: product.precio_venta,
         cantidad: productQuantity,
-        impuesto: product.impuesto || 0,
+        subtotal: productQuantity * product.precio_venta
       };
-
+      
       setSaleData(prev => ({
         ...prev,
         productos: [...prev.productos, newProduct]
@@ -240,78 +296,72 @@ function Sales() {
       return;
     }
 
+    const product = products.find(p => p.id === productId);
+    if (newQuantity > product.stock) {
+      setError('No hay suficiente stock disponible');
+      return;
+    }
+
     setSaleData(prev => ({
       ...prev,
       productos: prev.productos.map(p => 
-        p.id === productId ? { ...p, cantidad: newQuantity } : p
+        p.id === productId 
+          ? { ...p, cantidad: newQuantity, subtotal: newQuantity * p.precio }
+          : p
       )
     }));
+    setError('');
   };
 
   const calculateTotal = () => {
-    const subtotal = saleData.productos.reduce((sum, product) => {
-      return sum + (product.precio_unitario * product.cantidad);
-    }, 0);
-    
-    const total = subtotal - (saleData.descuento_total || 0);
-    return Math.max(0, total);
+    const subtotal = saleData.productos.reduce((sum, product) => sum + product.subtotal, 0);
+    return Math.max(0, subtotal - (saleData.descuento_total || 0));
   };
 
   const handleSubmit = async () => {
-    if (!saleData.cliente_id) {
-      setError('Selecciona un cliente');
-      return;
-    }
+    if (!currentBusiness) return;
 
     if (saleData.productos.length === 0) {
-      setError('Agrega al menos un producto');
+      setError('Agrega al menos un producto a la venta');
       return;
     }
 
-    setLoading(true);
     try {
-      const subtotal = saleData.productos.reduce((sum, product) => {
-        return sum + (product.precio_unitario * product.cantidad);
-      }, 0);
-      
-      const descuento = parseFloat(saleData.descuento_total) || 0;
-      const total = subtotal - descuento;
-
-      const dataToSend = {
-        cliente_id: saleData.cliente_id || null,
-        total: Math.max(0, total),
-        subtotal: subtotal,
-        impuesto: 0,
-        descuento: descuento,
-        metodo_pago: saleData.metodo_pago || 'efectivo',
-        productos: saleData.productos,
+      const salePayload = {
         negocio_id: currentBusiness.id,
+        cliente_id: saleData.cliente_id || null,
+        metodo_pago: saleData.metodo_pago,
+        descuento: saleData.descuento_total,
+        total: calculateTotal(),
+        productos: saleData.productos,
+        fecha_venta: saleData.fecha_venta.toISOString(), // Incluir fecha personalizada
       };
 
-      console.log('Enviando datos de venta:', dataToSend);
+      if (editingSale) {
+        await api.put(`/ventas/${editingSale.id}`, salePayload);
+      } else {
+        await api.post('/ventas', salePayload);
+      }
 
-      await api.post('/ventas', dataToSend);
-      markDashboardForRefresh('nueva venta registrada');
       await loadSales();
+      markDashboardForRefresh();
       handleCloseDialog();
+      setError('');
     } catch (error) {
       console.error('Error al guardar venta:', error);
       setError(error.response?.data?.error || 'Error al guardar la venta');
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleDelete = async (saleId) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar esta venta? Esto restaurará el stock de los productos.')) {
+    if (window.confirm('¿Estás seguro de que quieres eliminar esta venta?')) {
       try {
         await api.delete(`/ventas/${saleId}`);
-        markDashboardForRefresh('venta eliminada');
         await loadSales();
-        handleCloseMenu();
+        markDashboardForRefresh();
       } catch (error) {
         console.error('Error al eliminar venta:', error);
-        alert(error.response?.data?.error || 'Error al eliminar la venta');
+        setError('Error al eliminar la venta');
       }
     }
   };
@@ -444,6 +494,10 @@ function Sales() {
           <EditIcon sx={{ mr: 1 }} />
           Editar
         </MenuItem>
+        <MenuItem onClick={() => handleOpenEditDate(selectedSale)}>
+          <EditCalendarIcon sx={{ mr: 1 }} />
+          Editar Fecha
+        </MenuItem>
         <MenuItem onClick={() => handleDelete(selectedSale?.id)}>
           <DeleteIcon sx={{ mr: 1 }} />
           Eliminar
@@ -462,43 +516,76 @@ function Sales() {
             </Alert>
           )}
           
-          <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid container spacing={3}>
             {/* Información de la venta */}
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Cliente *</InputLabel>
-                <Select
-                  name="cliente_id"
-                  value={saleData.cliente_id}
-                  onChange={handleInputChange}
-                  label="Cliente *"
-                >
-                  <MenuItem value="">
-                    <em>Cliente General</em>
-                  </MenuItem>
-                  {clients.map((client) => (
-                    <MenuItem key={client.id} value={client.id}>
-                      {client.nombre}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Método de Pago</InputLabel>
-                <Select
-                  name="metodo_pago"
-                  value={saleData.metodo_pago}
-                  onChange={handleInputChange}
-                  label="Método de Pago"
-                >
-                  <MenuItem value="efectivo">Efectivo</MenuItem>
-                  <MenuItem value="tarjeta">Tarjeta</MenuItem>
-                  <MenuItem value="transferencia">Transferencia</MenuItem>
-                  <MenuItem value="credito">Crédito</MenuItem>
-                </Select>
-              </FormControl>
+            <Grid item xs={12} md={4}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Información de la Venta
+                  </Typography>
+
+                  <FormControl fullWidth sx={{ mb: 2 }}>
+                    <InputLabel>Cliente (Opcional)</InputLabel>
+                    <Select
+                      name="cliente_id"
+                      value={saleData.cliente_id}
+                      onChange={handleInputChange}
+                      label="Cliente (Opcional)"
+                    >
+                      <MenuItem value="">Cliente General</MenuItem>
+                      {clients.map((client) => (
+                        <MenuItem key={client.id} value={client.id}>
+                          {client.nombre}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  <FormControl fullWidth sx={{ mb: 2 }}>
+                    <InputLabel>Método de Pago</InputLabel>
+                    <Select
+                      name="metodo_pago"
+                      value={saleData.metodo_pago}
+                      onChange={handleInputChange}
+                      label="Método de Pago"
+                    >
+                      <MenuItem value="efectivo">Efectivo</MenuItem>
+                      <MenuItem value="tarjeta">Tarjeta</MenuItem>
+                      <MenuItem value="transferencia">Transferencia</MenuItem>
+                      <MenuItem value="credito">Crédito</MenuItem>
+                    </Select>
+                  </FormControl>
+
+                  <DatePicker
+                    label="Fecha de Venta"
+                    value={saleData.fecha_venta}
+                    onChange={(newValue) => 
+                      setSaleData(prev => ({ ...prev, fecha_venta: newValue }))
+                    }
+                    renderInput={(params) => (
+                      <TextField {...params} fullWidth sx={{ mb: 2 }} />
+                    )}
+                  />
+
+                  <TextField
+                    fullWidth
+                    label="Descuento Total"
+                    name="descuento_total"
+                    type="number"
+                    value={saleData.descuento_total}
+                    onChange={handleInputChange}
+                    inputProps={{ min: 0 }}
+                    sx={{ mb: 2 }}
+                  />
+
+                  <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
+                    <Typography variant="h6" color="primary">
+                      Total: ${calculateTotal().toFixed(2)}
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
             </Grid>
 
             {/* Agregar productos */}
@@ -575,10 +662,10 @@ function Sales() {
                             />
                           </TableCell>
                           <TableCell align="right">
-                            ${parseFloat(product.precio_unitario).toFixed(2)}
+                            ${parseFloat(product.precio).toFixed(2)}
                           </TableCell>
                           <TableCell align="right">
-                            ${(product.precio_unitario * product.cantidad).toFixed(2)}
+                            ${(product.cantidad * product.precio).toFixed(2)}
                           </TableCell>
                           <TableCell align="center">
                             <IconButton
@@ -596,31 +683,6 @@ function Sales() {
                 </TableContainer>
               </Grid>
             )}
-
-            {/* Total y descuento */}
-            <Grid item xs={12}>
-              <Divider sx={{ my: 2 }} />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Descuento Total"
-                name="descuento_total"
-                type="number"
-                value={saleData.descuento_total}
-                onChange={handleInputChange}
-                inputProps={{ step: "0.01", min: "0" }}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" align="right">
-                    Total: ${calculateTotal().toFixed(2)}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
@@ -686,8 +748,8 @@ function Sales() {
                       <TableRow key={index}>
                         <TableCell>{product.nombre}</TableCell>
                         <TableCell align="center">{product.cantidad}</TableCell>
-                        <TableCell align="right">${parseFloat(product.precio_unitario || 0).toFixed(2)}</TableCell>
-                        <TableCell align="right">${(product.cantidad * product.precio_unitario).toFixed(2)}</TableCell>
+                        <TableCell align="right">${parseFloat(product.precio || 0).toFixed(2)}</TableCell>
+                        <TableCell align="right">${(product.cantidad * product.precio).toFixed(2)}</TableCell>
                       </TableRow>
                     )) || (
                       <TableRow>
@@ -706,6 +768,28 @@ function Sales() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setViewDetailsDialog(false)}>Cerrar</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog para editar fecha de venta */}
+      <Dialog open={editDateDialog} onClose={handleCloseEditDate} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Editar Fecha de Venta
+        </DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <DatePicker
+                label="Fecha de Venta"
+                value={newSaleDate}
+                onChange={(newValue) => setNewSaleDate(newValue)}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseEditDate}>Cancelar</Button>
+          <Button onClick={handleSaveDateEdit}>Guardar</Button>
         </DialogActions>
       </Dialog>
     </Box>
