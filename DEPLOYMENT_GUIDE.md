@@ -2,15 +2,6 @@
 
 ## ✅ **MIGRACIÓN COMPLETADA**
 
-Tu sistema Zarzify ha sido migrado exitosamente a **Supabase** con todos los datos intactos:
-
-- **✅ 2 usuarios**
-- **✅ 1 negocio**
-- **✅ 9 productos**
-- **✅ 2 ventas** con detalles
-- **✅ 1 egreso**
-- **✅ Todas las estructuras de tablas**
-
 ---
 
 ## 🎯 **PASOS PARA DESPLIEGUE EN PRODUCCIÓN**
