@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -23,6 +23,7 @@ function Settings() {
   const { currentBusiness } = useApp();
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
   const [settings, setSettings] = useState({
     notificaciones: {
       stockBajo: true,
@@ -43,6 +44,47 @@ function Settings() {
       copias: 1,
     },
   });
+
+  // Cargar configuración existente al montar el componente
+  useEffect(() => {
+    const loadSettings = async () => {
+      if (!currentBusiness?.id) return;
+      
+      setLoading(true);
+      try {
+        const response = await api.get(`/configuracion/${currentBusiness.id}`);
+        const config = response.data;
+        
+        // Transformar datos del backend al formato del frontend
+        setSettings({
+          notificaciones: {
+            stockBajo: config.alertas_stock_bajo,
+            nuevasVentas: config.notificaciones_email,
+            reportesDiarios: false, // no está en BD
+          },
+          impuestos: {
+            iva: config.impuesto_ventas || 16,
+            ieps: 0, // no está en BD
+          },
+          moneda: {
+            simbolo: config.simbolo_moneda || '$',
+            posicion: 'before', // no está en BD
+          },
+          impresion: {
+            formatoTicket: 'termica', // no está en BD
+            impresora: 'default', // no está en BD
+            copias: 1, // no está en BD
+          },
+        });
+      } catch (error) {
+        console.log('No se pudo cargar configuración existente, usando valores por defecto');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, [currentBusiness?.id]);
 
   const handleNotificationChange = (event) => {
     const { name, checked } = event.target;
@@ -90,11 +132,22 @@ function Settings() {
 
   const handleSave = async () => {
     try {
-      await api.put(`/settings/${currentBusiness.id}`, settings);
+      const backendData = {
+        moneda: 'COP',
+        simbolo_moneda: settings.moneda.simbolo,
+        impuesto_ventas: parseFloat(settings.impuestos.iva) || 0,
+        alertas_stock_bajo: settings.notificaciones.stockBajo,
+        stock_minimo_global: 10,
+        notificaciones_email: settings.notificaciones.nuevasVentas,
+        tema_interfaz: 'light'
+      };
+
+      await api.put(`/configuracion/${currentBusiness.id}`, backendData);
       setSuccess('Configuración guardada exitosamente');
       setError('');
     } catch (error) {
-      setError('Error al guardar la configuración');
+      console.error('Error al guardar configuración:', error.response?.data || error.message);
+      setError('Error al guardar la configuración: ' + (error.response?.data?.error || error.message));
       setSuccess('');
     }
   };

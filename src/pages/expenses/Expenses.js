@@ -26,11 +26,13 @@ import {
   MoneyOff as ExpenseIcon,
 } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
+import { useDashboard } from '../../context/DashboardContext';
 import api from '../../config/axios';
 import DataTable from '../../components/common/DataTable';
 
 function Expenses() {
   const { currentBusiness } = useApp();
+  const { markDashboardForRefresh } = useDashboard();
   const [expenses, setExpenses] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -160,8 +162,10 @@ function Expenses() {
 
       if (editingExpense) {
         await api.put(`/egresos/${editingExpense.id}`, dataToSend);
+        markDashboardForRefresh('egreso actualizado');
       } else {
         await api.post('/egresos', dataToSend);
+        markDashboardForRefresh('nuevo egreso registrado');
       }
 
       await loadExpenses();
@@ -178,6 +182,7 @@ function Expenses() {
     if (window.confirm('¿Estás seguro de que quieres eliminar este egreso?')) {
       try {
         await api.delete(`/egresos/${expenseId}`);
+        markDashboardForRefresh('egreso eliminado');
         await loadExpenses();
         handleCloseMenu();
       } catch (error) {

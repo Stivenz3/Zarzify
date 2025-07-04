@@ -1,12 +1,31 @@
 import express from 'express';
 import cors from 'cors';
 import pkg from 'pg';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const { Pool } = pkg;
 
+// Configuración para ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
-app.use(cors());
+
+// CORS configuration para producción y desarrollo
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://zarzify.up.railway.app', 'https://zarzify.web.app'] 
+    : ['http://localhost:3000', 'http://localhost:3001'],
+  credentials: true
+}));
+
 app.use(express.json());
+
+// Servir archivos estáticos del frontend en producción
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../build')));
+}
 
 // Configuración de la conexión a PostgreSQL (valores directos)
 const pool = new Pool({
@@ -27,8 +46,11 @@ pool.query('SELECT NOW()')
   .catch(err => console.error('❌ Error de conexión:', err));
 
 // Helper para notificar cambios en el dashboard
-const invalidateDashboardCache = (businessId) => {
-  console.log(`🔄 Dashboard actualizado para negocio: ${businessId}`);
+const invalidateDashboardCache = (businessId, reason = 'datos actualizados') => {
+  // Solo mostrar log en desarrollo
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`🔄 Dashboard actualizado para negocio ${businessId}: ${reason}`);
+  }
   // Aquí se podría agregar WebSocket notification en el futuro
 };
 
@@ -308,7 +330,7 @@ app.post('/api/productos', async (req, res) => {
     );
     
     // Invalidar caché del dashboard
-    invalidateDashboardCache(negocio_id);
+    invalidateDashboardCache(negocio_id, 'nuevo producto');
     
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -348,7 +370,7 @@ app.put('/api/productos/:id', async (req, res) => {
     }
     
     // Invalidar caché del dashboard si cambió precio o stock
-    invalidateDashboardCache(result.rows[0].negocio_id);
+    invalidateDashboardCache(result.rows[0].negocio_id, 'producto actualizado');
     
     res.json(result.rows[0]);
   } catch (err) {
@@ -367,6 +389,39 @@ app.delete('/api/productos/:id', async (req, res) => {
     res.json({ message: 'Producto eliminado correctamente' });
   } catch (err) {
     console.error('Error al eliminar producto:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Endpoint para obtener productos con stock bajo
+app.get('/api/productos/:businessId/low-stock', async (req, res) => {
+  const { businessId } = req.params;
+  try {
+    const result = await pool.query(`
+      SELECT 
+        p.*, 
+        c.nombre as categoria_nombre,
+        CASE 
+          WHEN p.stock <= 0 THEN 'agotado'
+          WHEN p.stock <= p.stock_minimo THEN 'stock_bajo'
+          ELSE 'disponible'
+        END as estado_stock
+      FROM productos p
+      LEFT JOIN categorias c ON p.categoria_id = c.id
+      WHERE p.negocio_id = $1 
+        AND p.stock_minimo > 0 
+        AND p.stock <= p.stock_minimo
+      ORDER BY 
+        CASE 
+          WHEN p.stock <= 0 THEN 1
+          WHEN p.stock <= p.stock_minimo THEN 2
+          ELSE 3
+        END,
+        p.stock ASC
+    `, [businessId]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error al obtener productos con stock bajo:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -598,7 +653,7 @@ app.post('/api/ventas', async (req, res) => {
     await client.query('COMMIT');
     
     // Invalidar caché del dashboard después de venta exitosa
-    invalidateDashboardCache(negocio_id);
+    invalidateDashboardCache(negocio_id, 'nueva venta');
     
     res.status(201).json({ id: ventaId, message: 'Venta registrada con éxito' });
     
@@ -771,7 +826,7 @@ app.post('/api/egresos', async (req, res) => {
     );
     
     // Invalidar caché del dashboard después de crear egreso
-    invalidateDashboardCache(negocio_id);
+    invalidateDashboardCache(negocio_id, 'nuevo egreso');
     
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -806,7 +861,7 @@ app.put('/api/egresos/:id', async (req, res) => {
     }
     
     // Invalidar caché del dashboard después de actualizar egreso
-    invalidateDashboardCache(result.rows[0].negocio_id);
+    invalidateDashboardCache(result.rows[0].negocio_id, 'egreso actualizado');
     
     res.json(result.rows[0]);
   } catch (err) {
@@ -833,7 +888,10 @@ app.delete('/api/egresos/:id', async (req, res) => {
 app.get('/api/dashboard/:businessId', async (req, res) => {
   const { businessId } = req.params;
   try {
-    console.log('Obteniendo estadísticas para negocio:', businessId);
+    // Solo log de debug si está habilitado
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📊 Dashboard consultado para negocio:', businessId);
+    }
     
     // Obtener estadísticas del negocio con mayor precisión
     const [products, sales, customers, revenue, expenses, inventoryValue] = await Promise.all([
@@ -853,19 +911,6 @@ app.get('/api/dashboard/:businessId', async (req, res) => {
     ]);
 
     const inventoryData = inventoryValue.rows[0];
-    console.log('Cálculo detallado inventario:', {
-      valor_inventario: inventoryData.valor_inventario,
-      productos_con_precio: inventoryData.productos_con_precio
-    });
-
-    console.log('Estadísticas obtenidas:', {
-      products: products.rows[0].count,
-      sales: sales.rows[0].count,
-      customers: customers.rows[0].count,
-      revenue: revenue.rows[0].total,
-      expenses: expenses.rows[0].total,
-      inventoryValue: inventoryData.valor_inventario
-    });
 
     // Ingresos vs Egresos mensuales de los últimos 6 meses con mayor precisión
     const monthlyStats = await pool.query(`
@@ -886,8 +931,6 @@ app.get('/api/dashboard/:businessId', async (req, res) => {
       GROUP BY DATE_TRUNC('month', fecha), TO_CHAR(fecha, 'Mon YYYY')
       ORDER BY DATE_TRUNC('month', fecha)
     `, [businessId]);
-
-    console.log('Estadísticas mensuales:', monthlyStats.rows);
 
     // Calcular estadísticas financieras precisas
     const totalRevenue = parseFloat(revenue.rows[0].total) || 0;
@@ -911,8 +954,105 @@ app.get('/api/dashboard/:businessId', async (req, res) => {
       }))
     });
   } catch (err) {
-    console.error('Error al obtener estadísticas:', err);
-    console.error('Error detallado:', err.message);
+    console.error('❌ Error al obtener estadísticas del dashboard:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- CONFIGURACIONES ---
+// Obtener configuración del negocio
+app.get('/api/configuracion/:businessId', async (req, res) => {
+  const { businessId } = req.params;
+  console.log('📖 Obteniendo configuración para negocio:', businessId);
+  
+  try {
+    const result = await pool.query(
+      'SELECT * FROM configuraciones WHERE negocio_id = $1',
+      [businessId]
+    );
+    
+    console.log('🔍 Configuraciones encontradas:', result.rows.length);
+    
+    if (result.rows.length === 0) {
+      // Crear configuración por defecto si no existe
+      console.log('➕ Creando configuración por defecto...');
+      const defaultConfig = await pool.query(`
+        INSERT INTO configuraciones (
+          negocio_id, moneda, simbolo_moneda, impuesto_ventas, 
+          alertas_stock_bajo, stock_minimo_global, 
+          notificaciones_email, tema_interfaz
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+        [businessId, 'COP', '$', 19.0, true, 10, true, 'light']
+      );
+      console.log('✅ Configuración por defecto creada:', defaultConfig.rows[0]);
+      return res.json(defaultConfig.rows[0]);
+    }
+    
+    console.log('📋 Configuración encontrada:', result.rows[0]);
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('❌ Error al obtener configuración:', err.message);
+    console.error('🔍 Stack trace:', err.stack);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Actualizar configuración del negocio
+app.put('/api/configuracion/:businessId', async (req, res) => {
+  const { businessId } = req.params;
+  const {
+    moneda,
+    simbolo_moneda,
+    impuesto_ventas,
+    alertas_stock_bajo,
+    stock_minimo_global,
+    notificaciones_email,
+    tema_interfaz
+  } = req.body;
+
+  console.log('🔧 Actualizando configuración para negocio:', businessId);
+  console.log('📊 Datos recibidos:', req.body);
+
+  try {
+    // Verificar si existe configuración
+    const existing = await pool.query(
+      'SELECT id FROM configuraciones WHERE negocio_id = $1',
+      [businessId]
+    );
+
+    console.log('🔍 Configuración existente:', existing.rows.length > 0 ? 'SÍ' : 'NO');
+
+    let result;
+    if (existing.rows.length === 0) {
+      // Crear nueva configuración
+      console.log('➕ Creando nueva configuración...');
+      result = await pool.query(`
+        INSERT INTO configuraciones (
+          negocio_id, moneda, simbolo_moneda, impuesto_ventas,
+          alertas_stock_bajo, stock_minimo_global, notificaciones_email,
+          tema_interfaz, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP) RETURNING *`,
+        [businessId, moneda, simbolo_moneda, impuesto_ventas, alertas_stock_bajo, stock_minimo_global, notificaciones_email, tema_interfaz]
+      );
+    } else {
+      // Actualizar configuración existente
+      console.log('🔄 Actualizando configuración existente...');
+      result = await pool.query(`
+        UPDATE configuraciones SET 
+          moneda = $2, simbolo_moneda = $3, impuesto_ventas = $4,
+          alertas_stock_bajo = $5, stock_minimo_global = $6, 
+          notificaciones_email = $7, tema_interfaz = $8,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE negocio_id = $1 RETURNING *`,
+        [businessId, moneda, simbolo_moneda, impuesto_ventas, alertas_stock_bajo, stock_minimo_global, notificaciones_email, tema_interfaz]
+      );
+    }
+
+    console.log('✅ Configuración guardada exitosamente:', result.rows[0]);
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('❌ Error al actualizar configuración:', err.message);
+    console.error('🔍 Stack trace:', err.stack);
     res.status(500).json({ error: err.message });
   }
 });
@@ -949,10 +1089,24 @@ app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
+// Servir frontend React para todas las rutas que no sean API (solo en producción)
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    // Si no es una ruta de API, servir el frontend React
+    if (!req.path.startsWith('/api') && !req.path.startsWith('/health')) {
+      res.sendFile(path.join(__dirname, '../build', 'index.html'));
+    }
+  });
+}
+
 // Puerto dinámico para servicios de hosting
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 API escuchando en puerto ${PORT}`);
+  console.log(`🚀 Zarzify Full-Stack corriendo en puerto ${PORT}`);
   console.log(`🌍 NODE_ENV: ${process.env.NODE_ENV}`);
   console.log(`📡 Health check disponible en /api/health`);
+  if (process.env.NODE_ENV === 'production') {
+    console.log(`📱 Frontend React: Servido desde /build`);
+    console.log(`🔌 Backend API: Disponible en /api/*`);
+  }
 }); 

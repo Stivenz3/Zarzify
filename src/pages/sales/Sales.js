@@ -37,11 +37,13 @@ import {
   Edit as EditIcon,
 } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
+import { useDashboard } from '../../context/DashboardContext';
 import api from '../../config/axios';
 import DataTable from '../../components/common/DataTable';
 
 function Sales() {
   const { currentBusiness } = useApp();
+  const { markDashboardForRefresh } = useDashboard();
   const [sales, setSales] = useState([]);
   const [clients, setClients] = useState([]);
   const [products, setProducts] = useState([]);
@@ -289,6 +291,7 @@ function Sales() {
       console.log('Enviando datos de venta:', dataToSend);
 
       await api.post('/ventas', dataToSend);
+      markDashboardForRefresh('nueva venta registrada');
       await loadSales();
       handleCloseDialog();
     } catch (error) {
@@ -303,6 +306,7 @@ function Sales() {
     if (window.confirm('¿Estás seguro de que quieres eliminar esta venta? Esto restaurará el stock de los productos.')) {
       try {
         await api.delete(`/ventas/${saleId}`);
+        markDashboardForRefresh('venta eliminada');
         await loadSales();
         handleCloseMenu();
       } catch (error) {

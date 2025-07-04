@@ -7,6 +7,7 @@ import { es } from 'date-fns/locale';
 import CssBaseline from '@mui/material/CssBaseline';
 import theme from './theme';
 import { AppProvider } from './context/AppContext';
+import { DashboardProvider } from './context/DashboardContext';
 import LoadingScreen from './components/common/LoadingScreen';
 import Login from './pages/auth/Login';
 import ProtectedRoutes from './routes/ProtectedRoutes';
@@ -17,13 +18,15 @@ function App() {
       <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
         <CssBaseline />
         <AppProvider>
-          <Router>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/*" element={<ProtectedRoutes />} />
-              <Route path="/" element={<Navigate to="/dashboard" />} />
-            </Routes>
-          </Router>
+          <DashboardProvider>
+            <Router>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/*" element={<ProtectedRoutes />} />
+                <Route path="/" element={<Navigate to="/dashboard" />} />
+              </Routes>
+            </Router>
+          </DashboardProvider>
         </AppProvider>
       </LocalizationProvider>
     </ThemeProvider>

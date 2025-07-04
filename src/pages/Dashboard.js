@@ -7,6 +7,8 @@ import {
   Card,
   CardContent,
   Alert,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import {
   InventoryOutlined,
@@ -14,6 +16,7 @@ import {
   PeopleOutlined,
   AttachMoneyOutlined,
   Business as BusinessIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import { Line } from 'react-chartjs-2';
 import {
@@ -23,10 +26,11 @@ import {
   PointElement,
   LineElement,
   Title,
-  Tooltip,
+  Tooltip as ChartTooltip,
   Legend,
 } from 'chart.js';
 import { useApp } from '../context/AppContext';
+import { useDashboard } from '../context/DashboardContext';
 import api from '../config/axios';
 
 // Registrar los componentes necesarios para Chart.js
@@ -36,12 +40,13 @@ ChartJS.register(
   PointElement,
   LineElement,
   Title,
-  Tooltip,
+  ChartTooltip,
   Legend
 );
 
 function Dashboard() {
   const { currentBusiness } = useApp();
+  const { needsRefresh, markDashboardAsRefreshed, refreshDashboard } = useDashboard();
   const [stats, setStats] = useState({
     totalProducts: 0,
     totalSales: 0,
@@ -61,18 +66,10 @@ function Dashboard() {
     datasets: [],
   });
 
-  // Auto-refresh cada 30 segundos cuando hay un negocio activo
+  // Cargar datos cuando cambia el negocio actual
   useEffect(() => {
-    let interval;
     if (currentBusiness) {
       fetchDashboardData();
-      setLastUpdate(new Date());
-      
-      // Actualizar cada 30 segundos
-      interval = setInterval(() => {
-        fetchDashboardData();
-        setLastUpdate(new Date());
-      }, 30000);
     } else {
       // Reset stats cuando no hay negocio
       setStats({
@@ -91,11 +88,16 @@ function Dashboard() {
       });
       setLastUpdate(null);
     }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
   }, [currentBusiness]);
+
+  // Escuchar cambios que requieren actualización del dashboard
+  useEffect(() => {
+    if (needsRefresh && currentBusiness) {
+      console.log('🔄 Dashboard detectó cambios, actualizando...');
+      fetchDashboardData();
+      markDashboardAsRefreshed();
+    }
+  }, [needsRefresh, currentBusiness, markDashboardAsRefreshed]);
 
   const fetchDashboardData = async () => {
     if (!currentBusiness) return;
@@ -103,6 +105,7 @@ function Dashboard() {
     setLoading(true);
     setError('');
     try {
+      console.log('📊 Obteniendo datos del dashboard para:', currentBusiness.nombre);
       const response = await api.get(`/dashboard/${currentBusiness.id}`);
       const data = response.data;
       
@@ -141,12 +144,20 @@ function Dashboard() {
           },
         ],
       });
+      
+      setLastUpdate(new Date());
+      console.log('✅ Dashboard actualizado exitosamente');
     } catch (error) {
       console.error('Error al cargar datos del dashboard:', error);
       setError('Error al cargar los datos del dashboard');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleManualRefresh = () => {
+    const timestamp = refreshDashboard('manual');
+    fetchDashboardData();
   };
 
   const StatCard = ({ title, value, icon: Icon, color }) => (
@@ -193,15 +204,28 @@ function Dashboard() {
           Dashboard - {currentBusiness.nombre}
         </Typography>
         
-        {lastUpdate && (
-          <Box sx={{ textAlign: 'right' }}>
-            <Typography variant="body2" color="text.secondary">
-              Última actualización: {lastUpdate.toLocaleTimeString()}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-            </Typography>
-          </Box>
-        )}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {lastUpdate && (
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography variant="body2" color="text.secondary">
+                Última actualización: {lastUpdate.toLocaleTimeString()}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Se actualiza automáticamente al realizar cambios
+              </Typography>
+            </Box>
+          )}
+          
+          <Tooltip title="Actualizar manualmente">
+            <IconButton 
+              onClick={handleManualRefresh}
+              disabled={loading}
+              color="primary"
+            >
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
 
       {error && (

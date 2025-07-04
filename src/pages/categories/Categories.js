@@ -22,11 +22,13 @@ import {
   Category as CategoryIcon,
 } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
+import { useDashboard } from '../../context/DashboardContext';
 import api from '../../config/axios';
 import DataTable from '../../components/common/DataTable';
 
 function Categories() {
   const { currentBusiness } = useApp();
+  const { markDashboardForRefresh } = useDashboard();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
@@ -113,6 +115,7 @@ function Categories() {
 
       await loadCategories();
       handleCloseDialog();
+      markDashboardForRefresh();
     } catch (error) {
       console.error('Error al guardar categoría:', error);
       setError(error.response?.data?.error || 'Error al guardar la categoría');
@@ -127,6 +130,7 @@ function Categories() {
         await api.delete(`/categorias/${categoryId}`);
         await loadCategories();
         handleCloseMenu();
+        markDashboardForRefresh();
       } catch (error) {
         console.error('Error al eliminar categoría:', error);
         alert(error.response?.data?.error || 'Error al eliminar la categoría');

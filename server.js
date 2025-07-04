@@ -1,2 +1,2 @@
-// Redirección al servidor principal
+// Servidor Principal - Redirige al Backend que maneja Frontend + API
 import('./backend/server.js'); 

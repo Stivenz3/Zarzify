@@ -21,6 +21,15 @@ import {
   CardMedia,
   Chip,
   Menu,
+  ToggleButton,
+  ToggleButtonGroup,
+  Badge,
+  Divider,
+  Stack,
+  CardActions,
+  Tooltip,
+  Paper,
+  InputAdornment,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -28,21 +37,35 @@ import {
   Delete as DeleteIcon,
   MoreVert as MoreVertIcon,
   Image as ImageIcon,
+  GridView as GridViewIcon,
+  TableRows as TableRowsIcon,
+  Visibility as VisibilityIcon,
+  Search as SearchIcon,
+  Category as CategoryIcon,
+  Inventory as InventoryIcon,
+  AttachMoney as MoneyIcon,
+  Info as InfoIcon,
+  ShoppingCart as ShoppingCartIcon,
 } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
+import { useDashboard } from '../../context/DashboardContext';
 import api from '../../config/axios';
 import DataTable from '../../components/common/DataTable';
 
 function Products() {
   const { currentBusiness } = useApp();
+  const { markDashboardForRefresh } = useDashboard();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
+  const [openDetailDialog, setOpenDetailDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [viewingProduct, setViewingProduct] = useState(null);
   const [error, setError] = useState('');
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'table'
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
   
   const [productData, setProductData] = useState({
     nombre: '',
@@ -88,6 +111,14 @@ function Products() {
     }
   };
 
+  // Filtrar productos
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (product.codigo_barras && product.codigo_barras.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesCategory = !filterCategory || product.categoria_id === filterCategory;
+    return matchesSearch && matchesCategory;
+  });
+
   const handleOpenDialog = (product = null) => {
     if (product) {
       setEditingProduct(product);
@@ -122,10 +153,20 @@ function Products() {
     setError('');
   };
 
+  const handleOpenDetailDialog = (product) => {
+    setViewingProduct(product);
+    setOpenDetailDialog(true);
+  };
+
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingProduct(null);
     setError('');
+  };
+
+  const handleCloseDetailDialog = () => {
+    setOpenDetailDialog(false);
+    setViewingProduct(null);
   };
 
   const handleInputChange = (e) => {
@@ -156,8 +197,10 @@ function Products() {
 
       if (editingProduct) {
         await api.put(`/productos/${editingProduct.id}`, dataToSend);
+        markDashboardForRefresh('producto actualizado');
       } else {
         await api.post('/productos', dataToSend);
+        markDashboardForRefresh('nuevo producto creado');
       }
 
       await loadProducts();
@@ -174,8 +217,8 @@ function Products() {
     if (window.confirm('¿Estás seguro de que quieres eliminar este producto?')) {
       try {
         await api.delete(`/productos/${productId}`);
+        markDashboardForRefresh('producto eliminado');
         await loadProducts();
-        handleCloseMenu();
       } catch (error) {
         console.error('Error al eliminar producto:', error);
         alert(error.response?.data?.error || 'Error al eliminar el producto');
@@ -183,16 +226,291 @@ function Products() {
     }
   };
 
-  const handleMenuClick = (event, product) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedProduct(product);
+  const getCategoryName = (categoryId) => {
+    const category = categories.find(cat => cat.id === categoryId);
+    return category ? category.nombre : 'Sin categoría';
   };
 
-  const handleCloseMenu = () => {
-    setAnchorEl(null);
-    setSelectedProduct(null);
+  const getStockStatus = (stock, stockMinimo) => {
+    if (stock <= 0) return { color: 'error', label: 'Agotado' };
+    if (stock <= stockMinimo) return { color: 'warning', label: 'Stock Bajo' };
+    return { color: 'success', label: 'En Stock' };
   };
 
+  // Componente ProductCard
+  const ProductCard = ({ product }) => {
+    const [localMenuAnchor, setLocalMenuAnchor] = useState(null);
+    const stock = parseFloat(product.stock || 0);
+    const stockMinimo = parseFloat(product.stock_minimo || 0);
+    const stockStatus = getStockStatus(stock, stockMinimo);
+
+    const handleLocalMenuClick = (event) => {
+      event.stopPropagation();
+      setLocalMenuAnchor(event.currentTarget);
+    };
+
+    const handleLocalMenuClose = () => {
+      setLocalMenuAnchor(null);
+    };
+
+    return (
+      <Card 
+        sx={{ 
+          height: '100%', 
+          display: 'flex', 
+          flexDirection: 'column',
+          transition: 'all 0.3s ease-in-out',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: 6,
+          }
+        }}
+      >
+        <Box sx={{ position: 'relative' }}>
+          <CardMedia
+            component="div"
+            sx={{
+              height: 200,
+              backgroundImage: product.imagen_url 
+                ? `url(${product.imagen_url})` 
+                : 'linear-gradient(45deg, #f5f5f5 30%, #e0e0e0 90%)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {!product.imagen_url && (
+              <ImageIcon sx={{ fontSize: 60, color: 'grey.400' }} />
+            )}
+          </CardMedia>
+          
+          {/* Badge de stock */}
+          <Chip
+            label={stockStatus.label}
+            color={stockStatus.color}
+            size="small"
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              fontWeight: 'bold'
+            }}
+          />
+        </Box>
+
+        <CardContent sx={{ flexGrow: 1, pb: 1 }}>
+          <Typography variant="h6" component="h3" noWrap gutterBottom>
+            {product.nombre}
+          </Typography>
+          
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            {getCategoryName(product.categoria_id)}
+          </Typography>
+          
+          {product.descripcion && (
+            <Typography 
+              variant="body2" 
+              color="text.secondary" 
+              sx={{ 
+                mb: 2,
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+              }}
+            >
+              {product.descripcion}
+            </Typography>
+          )}
+
+          <Box sx={{ mt: 'auto' }}>
+            <Grid container spacing={1} alignItems="center">
+              <Grid item xs={6}>
+                <Typography variant="h6" color="primary" fontWeight="bold">
+                  ${parseFloat(product.precio_venta || 0).toFixed(2)}
+                </Typography>
+              </Grid>
+              <Grid item xs={6} sx={{ textAlign: 'right' }}>
+                <Chip 
+                  label={`Stock: ${stock}`}
+                  color={stockStatus.color}
+                  variant="outlined"
+                  size="small"
+                />
+              </Grid>
+            </Grid>
+          </Box>
+        </CardContent>
+
+        <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
+          <Button
+            size="small"
+            startIcon={<VisibilityIcon />}
+            onClick={() => handleOpenDetailDialog(product)}
+          >
+            Ver Detalles
+          </Button>
+          <Box sx={{ position: 'relative' }}>
+            <IconButton
+              size="small"
+              onClick={handleLocalMenuClick}
+            >
+              <MoreVertIcon />
+            </IconButton>
+            <Menu
+              anchorEl={localMenuAnchor}
+              open={Boolean(localMenuAnchor)}
+              onClose={handleLocalMenuClose}
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'right',
+              }}
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+              slotProps={{
+                paper: {
+                  elevation: 8,
+                  sx: {
+                    minWidth: 160,
+                    borderRadius: 2,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    '& .MuiMenuItem-root': {
+                      px: 2,
+                      py: 1,
+                      gap: 1.5,
+                      fontSize: '0.875rem',
+                      '&:hover': {
+                        backgroundColor: 'action.hover',
+                      },
+                    },
+                  },
+                },
+              }}
+            >
+              <MenuItem onClick={() => {
+                handleOpenDetailDialog(product);
+                handleLocalMenuClose();
+              }}>
+                <VisibilityIcon fontSize="small" />
+                Ver Detalles
+              </MenuItem>
+              <MenuItem onClick={() => {
+                handleOpenDialog(product);
+                handleLocalMenuClose();
+              }}>
+                <EditIcon fontSize="small" />
+                Editar
+              </MenuItem>
+              <MenuItem onClick={() => {
+                handleDelete(product.id);
+                handleLocalMenuClose();
+              }}>
+                <DeleteIcon fontSize="small" />
+                Eliminar
+              </MenuItem>
+            </Menu>
+          </Box>
+        </CardActions>
+      </Card>
+    );
+  };
+
+  // Componente para acciones de tabla
+  const TableActions = ({ product }) => {
+    const [localMenuAnchor, setLocalMenuAnchor] = useState(null);
+
+    const handleLocalMenuClick = (event) => {
+      event.stopPropagation();
+      setLocalMenuAnchor(event.currentTarget);
+    };
+
+    const handleLocalMenuClose = () => {
+      setLocalMenuAnchor(null);
+    };
+
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Tooltip title="Ver detalles">
+          <IconButton
+            size="small"
+            onClick={() => handleOpenDetailDialog(product)}
+          >
+            <VisibilityIcon />
+          </IconButton>
+        </Tooltip>
+        <Box sx={{ position: 'relative' }}>
+          <IconButton
+            size="small"
+            onClick={handleLocalMenuClick}
+          >
+            <MoreVertIcon />
+          </IconButton>
+          <Menu
+            anchorEl={localMenuAnchor}
+            open={Boolean(localMenuAnchor)}
+            onClose={handleLocalMenuClose}
+            anchorOrigin={{
+              vertical: 'bottom',
+              horizontal: 'right',
+            }}
+            transformOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+            slotProps={{
+              paper: {
+                elevation: 8,
+                sx: {
+                  minWidth: 160,
+                  borderRadius: 2,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  '& .MuiMenuItem-root': {
+                    px: 2,
+                    py: 1,
+                    gap: 1.5,
+                    fontSize: '0.875rem',
+                    '&:hover': {
+                      backgroundColor: 'action.hover',
+                    },
+                  },
+                },
+              },
+            }}
+          >
+            <MenuItem onClick={() => {
+              handleOpenDetailDialog(product);
+              handleLocalMenuClose();
+            }}>
+              <VisibilityIcon fontSize="small" />
+              Ver Detalles
+            </MenuItem>
+            <MenuItem onClick={() => {
+              handleOpenDialog(product);
+              handleLocalMenuClose();
+            }}>
+              <EditIcon fontSize="small" />
+              Editar
+            </MenuItem>
+            <MenuItem onClick={() => {
+              handleDelete(product.id);
+              handleLocalMenuClose();
+            }}>
+              <DeleteIcon fontSize="small" />
+              Eliminar
+            </MenuItem>
+          </Menu>
+        </Box>
+      </Box>
+    );
+  };
+
+  // Configuración de columnas para la tabla
   const columns = [
     {
       field: 'imagen',
@@ -223,12 +541,12 @@ function Products() {
       renderCell: (params) => {
         const stock = parseFloat(params.row.stock || 0);
         const stockMinimo = parseFloat(params.row.stock_minimo || 0);
-        const isLowStock = stock <= stockMinimo;
+        const stockStatus = getStockStatus(stock, stockMinimo);
         
         return (
           <Chip
             label={stock}
-            color={isLowStock ? 'error' : 'success'}
+            color={stockStatus.color}
             size="small"
           />
         );
@@ -237,14 +555,9 @@ function Products() {
     {
       field: 'actions',
       headerName: 'Acciones',
-      width: 100,
+      width: 150,
       renderCell: (params) => (
-        <IconButton
-          onClick={(e) => handleMenuClick(e, params.row)}
-          size="small"
-        >
-          <MoreVertIcon />
-        </IconButton>
+        <TableActions product={params.row} />
       ),
     },
   ];
@@ -261,46 +574,291 @@ function Products() {
 
   return (
     <Box>
+      {/* Header con controles */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" component="h2">
-          Productos
+          Productos ({filteredProducts.length})
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-        >
-          Nuevo Producto
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
+            onChange={(e, newMode) => newMode && setViewMode(newMode)}
+            size="small"
+          >
+            <ToggleButton value="cards">
+              <GridViewIcon />
+            </ToggleButton>
+            <ToggleButton value="table">
+              <TableRowsIcon />
+            </ToggleButton>
+          </ToggleButtonGroup>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenDialog()}
+          >
+            Nuevo Producto
+          </Button>
+        </Box>
       </Box>
 
-      <DataTable
-        rows={products}
-        columns={columns}
-        loading={loading}
-        getRowId={(row) => row.id}
-      />
+      {/* Filtros */}
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Buscar productos..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Filtrar por categoría</InputLabel>
+              <Select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                label="Filtrar por categoría"
+              >
+                <MenuItem value="">Todas las categorías</MenuItem>
+                {categories.map((category) => (
+                  <MenuItem key={category.id} value={category.id}>
+                    {category.nombre}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <Typography variant="body2" color="text.secondary">
+              {filteredProducts.length} productos encontrados
+            </Typography>
+          </Grid>
+        </Grid>
+      </Paper>
 
-      {/* Menú de acciones */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleCloseMenu}
+      {/* Vista de tarjetas o tabla */}
+      {viewMode === 'cards' ? (
+        <Grid container spacing={3}>
+          {filteredProducts.map((product) => (
+            <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
+              <ProductCard product={product} />
+            </Grid>
+          ))}
+          {filteredProducts.length === 0 && !loading && (
+            <Grid item xs={12}>
+              <Paper sx={{ p: 4, textAlign: 'center' }}>
+                <InventoryIcon sx={{ fontSize: 60, color: 'grey.400', mb: 2 }} />
+                <Typography variant="h6" color="text.secondary">
+                  No se encontraron productos
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {searchTerm || filterCategory 
+                    ? 'Intenta ajustar los filtros de búsqueda'
+                    : 'Comienza agregando tu primer producto'
+                  }
+                </Typography>
+              </Paper>
+            </Grid>
+          )}
+        </Grid>
+      ) : (
+        <DataTable
+          rows={filteredProducts}
+          columns={columns}
+          loading={loading}
+          getRowId={(row) => row.id}
+        />
+      )}
+
+      {/* Dialog de detalles del producto */}
+      <Dialog 
+        open={openDetailDialog} 
+        onClose={handleCloseDetailDialog} 
+        maxWidth="md" 
+        fullWidth
       >
-        <MenuItem onClick={() => {
-          handleOpenDialog(selectedProduct);
-          handleCloseMenu();
-        }}>
-          <EditIcon sx={{ mr: 1 }} />
-          Editar
-        </MenuItem>
-        <MenuItem onClick={() => handleDelete(selectedProduct?.id)}>
-          <DeleteIcon sx={{ mr: 1 }} />
-          Eliminar
-        </MenuItem>
-      </Menu>
+        <DialogTitle sx={{ pb: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <InfoIcon color="primary" />
+            Detalles del Producto
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {viewingProduct && (
+            <Grid container spacing={3} sx={{ mt: 1 }}>
+              {/* Imagen del producto */}
+              <Grid item xs={12} md={4}>
+                <Card sx={{ height: 300 }}>
+                  <CardMedia
+                    component="div"
+                    sx={{
+                      height: '100%',
+                      backgroundImage: viewingProduct.imagen_url 
+                        ? `url(${viewingProduct.imagen_url})` 
+                        : 'linear-gradient(45deg, #f5f5f5 30%, #e0e0e0 90%)',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {!viewingProduct.imagen_url && (
+                      <ImageIcon sx={{ fontSize: 80, color: 'grey.400' }} />
+                    )}
+                  </CardMedia>
+                </Card>
+              </Grid>
 
-      {/* Dialog para crear/editar producto */}
+              {/* Información del producto */}
+              <Grid item xs={12} md={8}>
+                <Stack spacing={2}>
+                  <Box>
+                    <Typography variant="h5" gutterBottom>
+                      {viewingProduct.nombre}
+                    </Typography>
+                    <Chip 
+                      label={getCategoryName(viewingProduct.categoria_id)}
+                      color="primary"
+                      variant="outlined"
+                      icon={<CategoryIcon />}
+                    />
+                  </Box>
+
+                  {viewingProduct.descripcion && (
+                    <Box>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Descripción
+                      </Typography>
+                      <Typography variant="body1">
+                        {viewingProduct.descripcion}
+                      </Typography>
+                    </Box>
+                  )}
+
+                  <Divider />
+
+                  <Grid container spacing={2}>
+                    <Grid item xs={6}>
+                      <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'success.light', borderRadius: 1 }}>
+                        <MoneyIcon sx={{ color: 'success.dark', mb: 1 }} />
+                        <Typography variant="subtitle2" color="success.dark">
+                          Precio de Venta
+                        </Typography>
+                        <Typography variant="h6" color="success.dark">
+                          ${parseFloat(viewingProduct.precio_venta || 0).toFixed(2)}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
+                        <InventoryIcon sx={{ color: 'info.dark', mb: 1 }} />
+                        <Typography variant="subtitle2" color="info.dark">
+                          Stock Disponible
+                        </Typography>
+                        <Typography variant="h6" color="info.dark">
+                          {parseFloat(viewingProduct.stock || 0)} unidades
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  </Grid>
+
+                  <Grid container spacing={2}>
+                    {viewingProduct.precio_compra && (
+                      <Grid item xs={6}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Precio de Compra
+                        </Typography>
+                        <Typography variant="body1">
+                          ${parseFloat(viewingProduct.precio_compra || 0).toFixed(2)}
+                        </Typography>
+                      </Grid>
+                    )}
+                    {viewingProduct.codigo_barras && (
+                      <Grid item xs={6}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Código de Barras
+                        </Typography>
+                        <Typography variant="body1" fontFamily="monospace">
+                          {viewingProduct.codigo_barras}
+                        </Typography>
+                      </Grid>
+                    )}
+                    {viewingProduct.stock_minimo > 0 && (
+                      <Grid item xs={6}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Stock Mínimo
+                        </Typography>
+                        <Typography variant="body1">
+                          {parseFloat(viewingProduct.stock_minimo || 0)} unidades
+                        </Typography>
+                      </Grid>
+                    )}
+                    {viewingProduct.impuesto > 0 && (
+                      <Grid item xs={6}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Impuesto
+                        </Typography>
+                        <Typography variant="body1">
+                          {parseFloat(viewingProduct.impuesto || 0)}%
+                        </Typography>
+                      </Grid>
+                    )}
+                  </Grid>
+
+                  {/* Estado del stock */}
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                      Estado del Stock
+                    </Typography>
+                    {(() => {
+                      const stock = parseFloat(viewingProduct.stock || 0);
+                      const stockMinimo = parseFloat(viewingProduct.stock_minimo || 0);
+                      const stockStatus = getStockStatus(stock, stockMinimo);
+                      
+                      return (
+                        <Chip
+                          label={stockStatus.label}
+                          color={stockStatus.color}
+                          icon={<InventoryIcon />}
+                        />
+                      );
+                    })()}
+                  </Box>
+                </Stack>
+              </Grid>
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDetailDialog}>
+            Cerrar
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<EditIcon />}
+            onClick={() => {
+              handleCloseDetailDialog();
+              handleOpenDialog(viewingProduct);
+            }}
+          >
+            Editar Producto
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog para crear/editar producto - mantener el existente */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>
           {editingProduct ? 'Editar Producto' : 'Nuevo Producto'}

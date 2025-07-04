@@ -1,24 +1,70 @@
 {
   "name": "zarzify-backend",
   "version": "1.0.0",
-  "description": "Sistema de gestión empresarial Zarzify - Backend API",
-  "main": "backend/server.js",
+  "description": "Sistema de gestión empresarial Zarzify - Full Stack",
   "type": "module",
+  "main": "server.js",
   "scripts": {
-    "start": "node backend/server.js",
-    "build": "echo 'Build completed'",
-    "dev": "node backend/server.js"
+    "start": "node server.js",
+    "start-frontend": "react-scripts start",
+    "start-backend": "node backend/start-local.js",
+    "dev": "concurrently \"npm run start-backend\" \"npm run start-frontend\"",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
   },
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=8.0.0"
   },
   "dependencies": {
-    "express": "^4.18.2",
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@fontsource/roboto": "^5.0.8",
+    "@mui/icons-material": "^5.14.19",
+    "@mui/material": "^5.14.20",
+    "@mui/x-date-pickers": "^6.18.2",
+    "@reduxjs/toolkit": "^2.0.1",
+    "autoprefixer": "^10.4.16",
+    "axios": "^1.6.2",
+    "chart.js": "^4.4.0",
+    "concurrently": "^8.2.2",
     "cors": "^2.8.5",
-    "pg": "^8.11.3"
+    "express": "^4.18.2",
+    "firebase": "^10.7.1",
+    "jspdf": "^3.0.1",
+    "jspdf-autotable": "^5.0.2",
+    "pg": "^8.11.3",
+    "postcss-preset-env": "^9.3.0",
+    "react": "^18.2.0",
+    "react-chartjs-2": "^5.2.0",
+    "react-dom": "^18.2.0",
+    "react-redux": "^9.0.4",
+    "react-router-dom": "^6.8.1",
+    "react-scripts": "5.0.1",
+    "recharts": "^2.8.0",
+    "tailwindcss": "^3.4.0"
   },
-  "keywords": ["inventory", "management", "business", "api"],
+  "keywords": [
+    "inventory",
+    "management",
+    "business",
+    "api",
+    "react",
+    "full-stack"
+  ],
   "author": "Stivenz3",
-  "license": "MIT"
+  "license": "MIT",
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
 }

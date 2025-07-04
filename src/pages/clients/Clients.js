@@ -23,11 +23,13 @@ import {
   Person as PersonIcon,
 } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
+import { useDashboard } from '../../context/DashboardContext';
 import api from '../../config/axios';
 import DataTable from '../../components/common/DataTable';
 
 function Clients() {
   const { currentBusiness } = useApp();
+  const { markDashboardForRefresh } = useDashboard();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
@@ -124,6 +126,7 @@ function Clients() {
 
       await loadClients();
       handleCloseDialog();
+      markDashboardForRefresh();
     } catch (error) {
       console.error('Error al guardar cliente:', error);
       setError(error.response?.data?.error || 'Error al guardar el cliente');
@@ -138,6 +141,7 @@ function Clients() {
         await api.delete(`/clientes/${clientId}`);
         await loadClients();
         handleCloseMenu();
+        markDashboardForRefresh();
       } catch (error) {
         console.error('Error al eliminar cliente:', error);
         alert(error.response?.data?.error || 'Error al eliminar el cliente');
