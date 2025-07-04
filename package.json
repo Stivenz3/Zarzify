@@ -2,7 +2,6 @@
   "name": "zarzify-backend",
   "version": "1.0.0",
   "description": "Sistema de gestión empresarial Zarzify - Full Stack",
-  "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

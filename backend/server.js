@@ -1,14 +1,7 @@
-import express from 'express';
-import cors from 'cors';
-import pkg from 'pg';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const { Pool } = pkg;
-
-// Configuración para ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const express = require('express');
+const cors = require('cors');
+const { Pool } = require('pg');
+const path = require('path');
 
 const app = express();
 
