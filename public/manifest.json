@@ -1,6 +1,7 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Zarzify",
+  "name": "Zarzify - Sistema de Gestión de Inventario",
+  "description": "El sistema de gestión de inventario más inteligente del mercado. Controla ventas, stock y reportes desde una sola plataforma.",
   "icons": [
     {
       "src": "favicon.ico",
@@ -20,6 +21,33 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#667eea",
+  "background_color": "#ffffff",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "es",
+  "categories": ["business", "productivity", "finance"],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Ver dashboard principal",
+      "url": "/dashboard",
+      "icons": [{ "src": "logo192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Productos",
+      "short_name": "Productos",
+      "description": "Gestionar inventario",
+      "url": "/products",
+      "icons": [{ "src": "logo192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Ventas",
+      "short_name": "Ventas",
+      "description": "Registrar nueva venta",
+      "url": "/sales/new",
+      "icons": [{ "src": "logo192.png", "sizes": "192x192" }]
+    }
+  ]
 }

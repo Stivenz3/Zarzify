@@ -1,43 +1,140 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#667eea" />
+
+    <!-- SEO Meta Tags -->
     <meta
       name="description"
-      content="Web site created using create-react-app"
+      content="Zarzify - Sistema de Gestión de Inventario Inteligente. Controla tu negocio, inventario, ventas y reportes desde una plataforma moderna y fácil de usar."
     />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
+    <meta
+      name="keywords"
+      content="inventario, gestión, negocio, ventas, productos, reportes, dashboard, zarzify"
+    />
+    <meta name="author" content="Zarzify Team" />
+    <meta name="robots" content="index, follow" />
 
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
-    <title>React App</title>
+    <!-- Open Graph Meta Tags -->
+    <meta
+      property="og:title"
+      content="Zarzify - Sistema de Gestión de Inventario"
+    />
+    <meta
+      property="og:description"
+      content="Revoluciona la gestión de tu negocio con Zarzify. Dashboard inteligente, control de inventario y reportes avanzados."
+    />
+    <meta property="og:image" content="%PUBLIC_URL%/og-image.jpg" />
+    <meta property="og:url" content="https://zarzify.up.railway.app" />
+    <meta property="og:type" content="website" />
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Zarzify - Sistema de Gestión de Inventario"
+    />
+    <meta
+      name="twitter:description"
+      content="Revoluciona la gestión de tu negocio con Zarzify"
+    />
+    <meta name="twitter:image" content="%PUBLIC_URL%/twitter-image.jpg" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- AOS (Animate On Scroll) -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" />
+
+    <!-- Favicon -->
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+
+    <title>Zarzify - Sistema de Gestión de Inventario Inteligente</title>
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", "Poppins", -apple-system, BlinkMacSystemFont,
+          sans-serif;
+        overflow-x: hidden;
+      }
+
+      .loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        transition: opacity 0.5s ease;
+      }
+
+      .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-top: 3px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .fade-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+    </style>
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <noscript>Necesitas habilitar JavaScript para ejecutar Zarzify.</noscript>
+
+    <!-- Loading Screen -->
+    <div id="loading" class="loading">
+      <div class="loading-spinner"></div>
+    </div>
+
     <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
 
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
+    <!-- AOS Script -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
+    <!-- Loading Script -->
+    <script>
+      window.addEventListener("load", function () {
+        setTimeout(function () {
+          const loading = document.getElementById("loading");
+          loading.classList.add("fade-out");
+          setTimeout(function () {
+            loading.style.display = "none";
+          }, 500);
+        }, 1000);
+      });
+    </script>
   </body>
 </html>
