@@ -14,6 +14,9 @@ import {
   Chip,
   Avatar,
   Rating,
+  Dialog,
+  DialogContent,
+  DialogTitle,
 } from '@mui/material';
 import {
   Inventory as InventoryIcon,
@@ -28,6 +31,7 @@ import {
   ArrowForward as ArrowForwardIcon,
   PlayArrow as PlayArrowIcon,
   Store as StoreIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import AOS from 'aos';
 
@@ -35,7 +39,7 @@ const LandingPage = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [isDemoOpen, setIsDemoOpen] = useState(false);
 
   useEffect(() => {
     AOS.init({
@@ -116,15 +120,95 @@ const LandingPage = () => {
   ];
 
   const handleGetStarted = () => {
-    navigate('/login');
+    // Forzar navegación a login con window.location como fallback
+    try {
+      navigate('/login');
+    } catch (error) {
+      window.location.href = '/login';
+    }
   };
 
   const handleWatchDemo = () => {
-    setIsVideoPlaying(true);
+    setIsDemoOpen(true);
+  };
+
+  const handleCloseDemo = () => {
+    setIsDemoOpen(false);
   };
 
   return (
     <Box>
+      {/* Demo Modal */}
+      <Dialog 
+        open={isDemoOpen} 
+        onClose={handleCloseDemo}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white'
+        }}>
+          <Typography variant="h5" sx={{ fontWeight: 700 }}>
+            🎬 Demo de Zarzify
+          </Typography>
+          <IconButton onClick={handleCloseDemo} sx={{ color: 'white' }}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 4, textAlign: 'center' }}>
+          <Typography variant="h6" sx={{ mb: 3, color: '#2c3e50' }}>
+            ¡Ve Zarzify en Acción!
+          </Typography>
+          
+          <Box sx={{ 
+            background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+            p: 4,
+            borderRadius: 3,
+            mb: 3
+          }}>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              📊 Dashboard en tiempo real con métricas de tu negocio
+            </Typography>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              📦 Control total de inventario con alertas inteligentes
+            </Typography>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              💰 Reportes de ventas y análisis de rentabilidad
+            </Typography>
+            <Typography variant="body1">
+              ☁️ Acceso desde cualquier dispositivo, en cualquier lugar
+            </Typography>
+          </Box>
+          
+          <Button
+            variant="contained"
+            size="large"
+            onClick={handleGetStarted}
+            sx={{
+              background: 'linear-gradient(45deg, #FF6B6B, #FF8E53)',
+              px: 4,
+              py: 1.5,
+              borderRadius: 3,
+              fontWeight: 600,
+              fontSize: '1.1rem',
+              textTransform: 'none',
+              boxShadow: '0 8px 32px rgba(255, 107, 107, 0.3)',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: '0 12px 40px rgba(255, 107, 107, 0.4)',
+              },
+            }}
+            endIcon={<ArrowForwardIcon />}
+          >
+            ¡Probarlo Ahora!
+          </Button>
+        </DialogContent>
+      </Dialog>
+
       {/* Hero Section */}
       <Box
         sx={{

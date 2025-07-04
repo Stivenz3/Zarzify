@@ -1,35 +1,31 @@
 import React from 'react';
-import { Outlet, Navigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
 import { Box, Container, Paper } from '@mui/material';
 
-function AuthLayout() {
-  const { user } = useSelector((state) => state.auth);
-
-  if (user) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
+function AuthLayout({ children }) {
   return (
     <Box
       sx={{
         minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
-        bgcolor: 'grey.100',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       }}
     >
       <Container maxWidth="sm">
         <Paper
-          elevation={3}
+          elevation={24}
           sx={{
             p: 4,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
+            borderRadius: 3,
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
           }}
         >
-          <Outlet />
+          {children}
         </Paper>
       </Container>
     </Box>
