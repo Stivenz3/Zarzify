@@ -32,6 +32,8 @@ import {
   Settings,
   Assessment,
   ExpandMore,
+  AccountCircle,
+  Person,
 } from '@mui/icons-material';
 import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebase';
@@ -51,7 +53,8 @@ const menuItems = [
 
 function MainLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [anchorEl, setAnchorEl] = useState(null);
+  const [businessMenuAnchor, setBusinessMenuAnchor] = useState(null);
+  const [profileMenuAnchor, setProfileMenuAnchor] = useState(null);
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -73,19 +76,28 @@ function MainLayout({ children }) {
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
     }
+    setProfileMenuAnchor(null);
+  };
+
+  const handleBusinessMenuOpen = (event) => {
+    setBusinessMenuAnchor(event.currentTarget);
+  };
+
+  const handleBusinessMenuClose = () => {
+    setBusinessMenuAnchor(null);
   };
 
   const handleProfileMenuOpen = (event) => {
-    setAnchorEl(event.currentTarget);
+    setProfileMenuAnchor(event.currentTarget);
   };
 
   const handleProfileMenuClose = () => {
-    setAnchorEl(null);
+    setProfileMenuAnchor(null);
   };
 
   const handleBusinessChange = (businessId) => {
     switchBusiness(businessId);
-    setAnchorEl(null);
+    handleBusinessMenuClose();
   };
 
   const isSelected = (path) => {
@@ -189,7 +201,7 @@ function MainLayout({ children }) {
           {businesses.length > 1 && (
             <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', mr: 2 }}>
               <IconButton
-                onClick={handleProfileMenuOpen}
+                onClick={handleBusinessMenuOpen}
                 sx={{ 
                   bgcolor: theme.palette.primary.main + '20',
                   '&:hover': { bgcolor: theme.palette.primary.main + '30' }
@@ -199,9 +211,9 @@ function MainLayout({ children }) {
                 <ExpandMore sx={{ ml: 1 }} />
               </IconButton>
               <Menu
-                anchorEl={anchorEl}
-                open={Boolean(anchorEl)}
-                onClose={handleProfileMenuClose}
+                anchorEl={businessMenuAnchor}
+                open={Boolean(businessMenuAnchor)}
+                onClose={handleBusinessMenuClose}
               >
                 {businesses.map((business) => (
                   <MenuItem
@@ -214,7 +226,7 @@ function MainLayout({ children }) {
                   </MenuItem>
                 ))}
                 <Divider />
-                <MenuItem onClick={() => navigate('/business')}>
+                <MenuItem onClick={() => { navigate('/business'); handleBusinessMenuClose(); }}>
                   <Settings sx={{ mr: 2 }} />
                   Gestionar Negocios
                 </MenuItem>
@@ -236,6 +248,41 @@ function MainLayout({ children }) {
           >
             {user?.displayName?.charAt(0) || user?.email?.charAt(0)}
           </Avatar>
+          
+          {/* Profile Menu */}
+          <Menu
+            anchorEl={profileMenuAnchor}
+            open={Boolean(profileMenuAnchor)}
+            onClose={handleProfileMenuClose}
+            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+          >
+            <MenuItem onClick={handleProfileMenuClose}>
+              <Person sx={{ mr: 2 }} />
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {user?.displayName || 'Usuario'}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {user?.email}
+                </Typography>
+              </Box>
+            </MenuItem>
+            <Divider />
+            <MenuItem onClick={() => { navigate('/settings'); handleProfileMenuClose(); }}>
+              <Settings sx={{ mr: 2 }} />
+              Configuración
+            </MenuItem>
+            <MenuItem onClick={() => { navigate('/business'); handleProfileMenuClose(); }}>
+              <Business sx={{ mr: 2 }} />
+              Gestionar Negocios
+            </MenuItem>
+            <Divider />
+            <MenuItem onClick={handleLogout}>
+              <ExitToApp sx={{ mr: 2 }} />
+              Cerrar Sesión
+            </MenuItem>
+          </Menu>
         </Toolbar>
       </AppBar>
       

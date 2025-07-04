@@ -21,6 +21,8 @@ import Sales from './pages/sales/Sales';
 import Reports from './pages/reports/Reports';
 import Settings from './pages/settings/Settings';
 import Business from './pages/business/Business';
+import Clients from './pages/clients/Clients';
+import Expenses from './pages/expenses/Expenses';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -81,6 +83,11 @@ function App() {
                     <Products />
                   </MainLayout>
                 } />
+                <Route path="/clients" element={
+                  <MainLayout>
+                    <Clients />
+                  </MainLayout>
+                } />
                 <Route path="/sales" element={
                   <MainLayout>
                     <Sales />
@@ -89,6 +96,11 @@ function App() {
                 <Route path="/reports" element={
                   <MainLayout>
                     <Reports />
+                  </MainLayout>
+                } />
+                <Route path="/expenses" element={
+                  <MainLayout>
+                    <Expenses />
                   </MainLayout>
                 } />
                 <Route path="/settings" element={
