@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './config/firebase';
 import theme from './config/theme';
@@ -44,78 +46,80 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Router>
-        {!user ? (
-          // Usuario no autenticado - Mostrar Landing Page y Login
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={
-              <AuthLayout>
-                <Login />
-              </AuthLayout>
-            } />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        ) : (
-          // Usuario autenticado - Mostrar App
-          <AppProvider>
-            <DashboardProvider>
-              <Routes>
-                {/* Redirect root to dashboard */}
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/login" element={<Navigate to="/dashboard" replace />} />
-                
-                {/* Business */}
-                <Route path="/business" element={
-                  <MainLayout>
-                    <Business />
-                  </MainLayout>
-                } />
-                
-                {/* Main App Routes */}
-                <Route path="/dashboard" element={
-                  <MainLayout>
-                    <Dashboard />
-                  </MainLayout>
-                } />
-                <Route path="/products" element={
-                  <MainLayout>
-                    <Products />
-                  </MainLayout>
-                } />
-                <Route path="/clients" element={
-                  <MainLayout>
-                    <Clients />
-                  </MainLayout>
-                } />
-                <Route path="/sales" element={
-                  <MainLayout>
-                    <Sales />
-                  </MainLayout>
-                } />
-                <Route path="/reports" element={
-                  <MainLayout>
-                    <Reports />
-                  </MainLayout>
-                } />
-                <Route path="/expenses" element={
-                  <MainLayout>
-                    <Expenses />
-                  </MainLayout>
-                } />
-                <Route path="/settings" element={
-                  <MainLayout>
-                    <Settings />
-                  </MainLayout>
-                } />
-                
-                {/* Catch all other routes */}
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
-              </Routes>
-            </DashboardProvider>
-          </AppProvider>
-        )}
-      </Router>
+      <LocalizationProvider dateAdapter={AdapterDateFns}>
+        <Router>
+          {!user ? (
+            // Usuario no autenticado - Mostrar Landing Page y Login
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={
+                <AuthLayout>
+                  <Login />
+                </AuthLayout>
+              } />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          ) : (
+            // Usuario autenticado - Mostrar App
+            <AppProvider>
+              <DashboardProvider>
+                <Routes>
+                  {/* Redirect root to dashboard */}
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+                  
+                  {/* Business */}
+                  <Route path="/business" element={
+                    <MainLayout>
+                      <Business />
+                    </MainLayout>
+                  } />
+                  
+                  {/* Main App Routes */}
+                  <Route path="/dashboard" element={
+                    <MainLayout>
+                      <Dashboard />
+                    </MainLayout>
+                  } />
+                  <Route path="/products" element={
+                    <MainLayout>
+                      <Products />
+                    </MainLayout>
+                  } />
+                  <Route path="/clients" element={
+                    <MainLayout>
+                      <Clients />
+                    </MainLayout>
+                  } />
+                  <Route path="/sales" element={
+                    <MainLayout>
+                      <Sales />
+                    </MainLayout>
+                  } />
+                  <Route path="/reports" element={
+                    <MainLayout>
+                      <Reports />
+                    </MainLayout>
+                  } />
+                  <Route path="/expenses" element={
+                    <MainLayout>
+                      <Expenses />
+                    </MainLayout>
+                  } />
+                  <Route path="/settings" element={
+                    <MainLayout>
+                      <Settings />
+                    </MainLayout>
+                  } />
+                  
+                  {/* Catch all other routes */}
+                  <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                </Routes>
+              </DashboardProvider>
+            </AppProvider>
+          )}
+        </Router>
+      </LocalizationProvider>
     </ThemeProvider>
   );
 }

@@ -1064,6 +1064,199 @@ app.get('/api/dashboard/:businessId', async (req, res) => {
   }
 });
 
+// --- REPORTES ---
+// Obtener datos para reportes de ventas
+app.get('/api/reports/sales', async (req, res) => {
+  const { businessId, startDate, endDate } = req.query;
+  
+  try {
+    const result = await pool.query(`
+      SELECT 
+        DATE(created_at) as date,
+        SUM(total) as total,
+        COUNT(*) as count
+      FROM ventas 
+      WHERE negocio_id = $1 
+        AND created_at >= $2 
+        AND created_at <= $3
+      GROUP BY DATE(created_at)
+      ORDER BY DATE(created_at)
+    `, [businessId, startDate, endDate]);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error al obtener reporte de ventas:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Obtener datos para reportes de inventario
+app.get('/api/reports/inventory', async (req, res) => {
+  const { businessId } = req.query;
+  
+  try {
+    const result = await pool.query(`
+      SELECT 
+        p.nombre as name,
+        p.stock,
+        p.stock_minimo,
+        p.precio_venta,
+        c.nombre as categoria
+      FROM productos p
+      LEFT JOIN categorias c ON p.categoria_id = c.id
+      WHERE p.negocio_id = $1
+      ORDER BY p.stock ASC
+    `, [businessId]);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error al obtener reporte de inventario:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Obtener datos para reportes de clientes
+app.get('/api/reports/customers', async (req, res) => {
+  const { businessId, startDate, endDate } = req.query;
+  
+  try {
+    const result = await pool.query(`
+      SELECT 
+        c.nombre as name,
+        COUNT(v.id) as total_purchases,
+        SUM(v.total) as total_spent
+      FROM clientes c
+      LEFT JOIN ventas v ON c.id = v.cliente_id 
+        AND v.created_at >= $2 
+        AND v.created_at <= $3
+      WHERE c.negocio_id = $1
+      GROUP BY c.id, c.nombre
+      ORDER BY total_spent DESC NULLS LAST
+    `, [businessId, startDate, endDate]);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error al obtener reporte de clientes:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Obtener datos para reportes de gastos
+app.get('/api/reports/expenses', async (req, res) => {
+  const { businessId, startDate, endDate } = req.query;
+  
+  try {
+    const result = await pool.query(`
+      SELECT 
+        categoria as name,
+        SUM(monto) as total
+      FROM egresos 
+      WHERE negocio_id = $1 
+        AND fecha >= $2 
+        AND fecha <= $3
+      GROUP BY categoria
+      ORDER BY total DESC
+    `, [businessId, startDate, endDate]);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error al obtener reporte de gastos:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Exportar reporte en Excel
+app.get('/api/reports/:type/export', async (req, res) => {
+  const { type } = req.params;
+  const { businessId, startDate, endDate, format } = req.query;
+  
+  try {
+    let data = [];
+    let headers = [];
+    
+    switch (type) {
+      case 'sales':
+        const salesResult = await pool.query(`
+          SELECT 
+            v.created_at::date as fecha,
+            COALESCE(c.nombre, 'Cliente General') as cliente,
+            v.total,
+            v.metodo_pago
+          FROM ventas v
+          LEFT JOIN clientes c ON v.cliente_id = c.id
+          WHERE v.negocio_id = $1 
+            AND v.created_at >= $2 
+            AND v.created_at <= $3
+          ORDER BY v.created_at DESC
+        `, [businessId, startDate, endDate]);
+        
+        data = salesResult.rows;
+        headers = ['Fecha', 'Cliente', 'Total', 'Método de Pago'];
+        break;
+        
+      case 'inventory':
+        const inventoryResult = await pool.query(`
+          SELECT 
+            p.nombre as producto,
+            COALESCE(c.nombre, 'Sin categoría') as categoria,
+            p.stock,
+            p.stock_minimo,
+            p.precio_venta
+          FROM productos p
+          LEFT JOIN categorias c ON p.categoria_id = c.id
+          WHERE p.negocio_id = $1
+          ORDER BY p.nombre
+        `, [businessId]);
+        
+        data = inventoryResult.rows;
+        headers = ['Producto', 'Categoría', 'Stock', 'Stock Mínimo', 'Precio'];
+        break;
+        
+      case 'expenses':
+        const expensesResult = await pool.query(`
+          SELECT 
+            fecha,
+            concepto,
+            categoria,
+            monto,
+            metodo_pago
+          FROM egresos 
+          WHERE negocio_id = $1 
+            AND fecha >= $2 
+            AND fecha <= $3
+          ORDER BY fecha DESC
+        `, [businessId, startDate, endDate]);
+        
+        data = expensesResult.rows;
+        headers = ['Fecha', 'Concepto', 'Categoría', 'Monto', 'Método de Pago'];
+        break;
+    }
+
+    if (format === 'xlsx') {
+      // Crear archivo Excel simple en formato CSV
+      let csvContent = headers.join(',') + '\n';
+      data.forEach(row => {
+        const values = headers.map(header => {
+          const key = header.toLowerCase().replace(' ', '_');
+          return row[key] || '';
+        });
+        csvContent += values.join(',') + '\n';
+      });
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=reporte_${type}.csv`);
+      res.send(csvContent);
+    } else {
+      // Formato JSON por defecto
+      res.json({ headers, data });
+    }
+    
+  } catch (err) {
+    console.error('Error al exportar reporte:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- CONFIGURACIONES ---
 // Obtener configuración del negocio
 app.get('/api/configuracion/:businessId', async (req, res) => {
