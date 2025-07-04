@@ -178,6 +178,36 @@ app.get('/api/businesses/:userId', async (req, res) => {
   }
 });
 
+// Debug endpoint temporal
+app.get('/api/debug/user-id/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    console.log('🔍 DEBUG: UID recibido desde Firebase:', userId);
+    
+    // Verificar si este ID existe en usuarios
+    const userCheck = await pool.query('SELECT * FROM usuarios WHERE id = $1', [userId]);
+    console.log('👤 Usuario encontrado por ID:', userCheck.rows);
+    
+    // Verificar negocios
+    const businessCheck = await pool.query('SELECT * FROM negocios WHERE usuario_id = $1', [userId]);
+    console.log('🏢 Negocios para este UID:', businessCheck.rows);
+    
+    // También buscar por email para comparar
+    const emailCheck = await pool.query('SELECT * FROM usuarios WHERE email = $1', ['zzarzarr123@gmail.com']);
+    console.log('📧 Usuario por email conocido:', emailCheck.rows);
+    
+    res.json({
+      receivedUID: userId,
+      userByUID: userCheck.rows,
+      businessesByUID: businessCheck.rows,
+      userByEmail: emailCheck.rows
+    });
+  } catch (err) {
+    console.error('Error en debug:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/businesses/google/:googleId', async (req, res) => {
   const { googleId } = req.params;
   try {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -8,15 +8,11 @@ import {
   Grid,
   Card,
   CardContent,
-  IconButton,
   useTheme,
   useMediaQuery,
   Chip,
   Avatar,
   Rating,
-  Dialog,
-  DialogContent,
-  DialogTitle,
 } from '@mui/material';
 import {
   Inventory as InventoryIcon,
@@ -25,13 +21,9 @@ import {
   Security as SecurityIcon,
   Speed as SpeedIcon,
   Cloud as CloudIcon,
-  Mobile as MobileIcon,
-  Support as SupportIcon,
   Star as StarIcon,
   ArrowForward as ArrowForwardIcon,
-  PlayArrow as PlayArrowIcon,
   Store as StoreIcon,
-  Close as CloseIcon,
 } from '@mui/icons-material';
 import AOS from 'aos';
 
@@ -39,7 +31,6 @@ const LandingPage = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [isDemoOpen, setIsDemoOpen] = useState(false);
 
   useEffect(() => {
     AOS.init({
@@ -128,87 +119,8 @@ const LandingPage = () => {
     }
   };
 
-  const handleWatchDemo = () => {
-    setIsDemoOpen(true);
-  };
-
-  const handleCloseDemo = () => {
-    setIsDemoOpen(false);
-  };
-
   return (
     <Box>
-      {/* Demo Modal */}
-      <Dialog 
-        open={isDemoOpen} 
-        onClose={handleCloseDemo}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white'
-        }}>
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>
-            🎬 Demo de Zarzify
-          </Typography>
-          <IconButton onClick={handleCloseDemo} sx={{ color: 'white' }}>
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ p: 4, textAlign: 'center' }}>
-          <Typography variant="h6" sx={{ mb: 3, color: '#2c3e50' }}>
-            ¡Ve Zarzify en Acción!
-          </Typography>
-          
-          <Box sx={{ 
-            background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-            p: 4,
-            borderRadius: 3,
-            mb: 3
-          }}>
-            <Typography variant="body1" sx={{ mb: 2 }}>
-              📊 Dashboard en tiempo real con métricas de tu negocio
-            </Typography>
-            <Typography variant="body1" sx={{ mb: 2 }}>
-              📦 Control total de inventario con alertas inteligentes
-            </Typography>
-            <Typography variant="body1" sx={{ mb: 2 }}>
-              💰 Reportes de ventas y análisis de rentabilidad
-            </Typography>
-            <Typography variant="body1">
-              ☁️ Acceso desde cualquier dispositivo, en cualquier lugar
-            </Typography>
-          </Box>
-          
-          <Button
-            variant="contained"
-            size="large"
-            onClick={handleGetStarted}
-            sx={{
-              background: 'linear-gradient(45deg, #FF6B6B, #FF8E53)',
-              px: 4,
-              py: 1.5,
-              borderRadius: 3,
-              fontWeight: 600,
-              fontSize: '1.1rem',
-              textTransform: 'none',
-              boxShadow: '0 8px 32px rgba(255, 107, 107, 0.3)',
-              '&:hover': {
-                transform: 'translateY(-2px)',
-                boxShadow: '0 12px 40px rgba(255, 107, 107, 0.4)',
-              },
-            }}
-            endIcon={<ArrowForwardIcon />}
-          >
-            ¡Probarlo Ahora!
-          </Button>
-        </DialogContent>
-      </Dialog>
-
       {/* Hero Section */}
       <Box
         sx={{
@@ -251,7 +163,7 @@ const LandingPage = () => {
             <Grid item xs={12} md={6}>
               <Box data-aos="fade-right">
                 <Chip
-                  label="🚀 Nuevo: IA Integrada"
+                  label="🚀 Sistema de Gestión Completo"
                   sx={{
                     mb: 3,
                     background: 'rgba(255, 255, 255, 0.2)',
@@ -290,56 +202,29 @@ const LandingPage = () => {
                   Controla ventas, stock y reportes desde una sola plataforma.
                 </Typography>
 
-                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                  <Button
-                    variant="contained"
-                    size="large"
-                    onClick={handleGetStarted}
-                    sx={{
-                      background: 'linear-gradient(45deg, #FF6B6B, #FF8E53)',
-                      px: 4,
-                      py: 1.5,
-                      borderRadius: 3,
-                      fontWeight: 600,
-                      fontSize: '1.1rem',
-                      textTransform: 'none',
-                      boxShadow: '0 8px 32px rgba(255, 107, 107, 0.3)',
-                      transition: 'all 0.3s ease',
-                      '&:hover': {
-                        transform: 'translateY(-2px)',
-                        boxShadow: '0 12px 40px rgba(255, 107, 107, 0.4)',
-                      },
-                    }}
-                    endIcon={<ArrowForwardIcon />}
-                  >
-                    Comenzar Gratis
-                  </Button>
-
-                  <Button
-                    variant="outlined"
-                    size="large"
-                    onClick={handleWatchDemo}
-                    sx={{
-                      borderColor: 'rgba(255, 255, 255, 0.5)',
-                      color: 'white',
-                      px: 4,
-                      py: 1.5,
-                      borderRadius: 3,
-                      fontWeight: 600,
-                      fontSize: '1.1rem',
-                      textTransform: 'none',
-                      backdropFilter: 'blur(10px)',
-                      '&:hover': {
-                        borderColor: 'white',
-                        background: 'rgba(255, 255, 255, 0.1)',
-                        transform: 'translateY(-2px)',
-                      },
-                    }}
-                    startIcon={<PlayArrowIcon />}
-                  >
-                    Ver Demo
-                  </Button>
-                </Box>
+                <Button
+                  variant="contained"
+                  size="large"
+                  onClick={handleGetStarted}
+                  sx={{
+                    background: 'linear-gradient(45deg, #FF6B6B, #FF8E53)',
+                    px: 6,
+                    py: 2,
+                    borderRadius: 3,
+                    fontWeight: 700,
+                    fontSize: '1.3rem',
+                    textTransform: 'none',
+                    boxShadow: '0 10px 40px rgba(255, 107, 107, 0.3)',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-3px)',
+                      boxShadow: '0 15px 50px rgba(255, 107, 107, 0.4)',
+                    },
+                  }}
+                  endIcon={<ArrowForwardIcon />}
+                >
+                  Ingresar a Zarzify
+                </Button>
 
                 <Box sx={{ mt: 4, display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Box sx={{ display: 'flex', mr: 1 }}>

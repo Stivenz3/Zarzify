@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   AppBar,
   Box,
@@ -13,6 +13,12 @@ import {
   Toolbar,
   Typography,
   useTheme,
+  Avatar,
+  Menu,
+  MenuItem,
+  Divider,
+  ListItemButton,
+  Chip,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -22,25 +28,34 @@ import {
   ShoppingCart,
   Receipt,
   ExitToApp,
+  Business,
+  Settings,
+  Assessment,
+  ExpandMore,
 } from '@mui/icons-material';
-import { useDispatch } from 'react-redux';
-import { logout } from '../store/slices/authSlice';
+import { signOut } from 'firebase/auth';
+import { auth } from '../config/firebase';
+import { useApp } from '../context/AppContext';
 
 const drawerWidth = 240;
 
 const menuItems = [
   { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard' },
-  { text: 'Inventario', icon: <Inventory />, path: '/inventory/products' },
+  { text: 'Inventario', icon: <Inventory />, path: '/products' },
   { text: 'Clientes', icon: <People />, path: '/clients' },
   { text: 'Ventas', icon: <ShoppingCart />, path: '/sales' },
+  { text: 'Reportes', icon: <Assessment />, path: '/reports' },
   { text: 'Gastos', icon: <Receipt />, path: '/expenses' },
+  { text: 'Configuración', icon: <Settings />, path: '/settings' },
 ];
 
-function MainLayout() {
+function MainLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
   const theme = useTheme();
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const location = useLocation();
+  const { user, currentBusiness, businesses, switchBusiness } = useApp();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -51,31 +66,93 @@ function MainLayout() {
     setMobileOpen(false);
   };
 
-  const handleLogout = () => {
-    dispatch(logout());
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate('/login');
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+    }
+  };
+
+  const handleProfileMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleProfileMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleBusinessChange = (businessId) => {
+    switchBusiness(businessId);
+    setAnchorEl(null);
+  };
+
+  const isSelected = (path) => {
+    return location.pathname === path;
   };
 
   const drawer = (
     <div>
-      <Toolbar />
+      <Toolbar>
+        <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+          Zarzify
+        </Typography>
+      </Toolbar>
+      <Divider />
+      
+      {/* Business Selector */}
+      {currentBusiness && (
+        <Box sx={{ p: 2 }}>
+          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+            Negocio Actual
+          </Typography>
+          <Chip
+            icon={<Business />}
+            label={currentBusiness.nombre}
+            variant="outlined"
+            sx={{ width: '100%' }}
+          />
+        </Box>
+      )}
+      
+      <Divider />
+      
       <List>
         {menuItems.map((item) => (
-          <ListItem
-            button
+          <ListItemButton
             key={item.text}
             onClick={() => handleNavigation(item.path)}
+            selected={isSelected(item.path)}
+            sx={{
+              '&.Mui-selected': {
+                backgroundColor: theme.palette.primary.main + '20',
+                borderRight: `3px solid ${theme.palette.primary.main}`,
+                '& .MuiListItemIcon-root': {
+                  color: theme.palette.primary.main,
+                },
+                '& .MuiListItemText-primary': {
+                  color: theme.palette.primary.main,
+                  fontWeight: 600,
+                },
+              },
+            }}
           >
             <ListItemIcon>{item.icon}</ListItemIcon>
             <ListItemText primary={item.text} />
-          </ListItem>
+          </ListItemButton>
         ))}
-        <ListItem button onClick={handleLogout}>
+      </List>
+      
+      <Divider />
+      
+      <List>
+        <ListItemButton onClick={handleLogout}>
           <ListItemIcon>
             <ExitToApp />
           </ListItemIcon>
           <ListItemText primary="Cerrar Sesión" />
-        </ListItem>
+        </ListItemButton>
       </List>
     </div>
   );
@@ -88,6 +165,9 @@ function MainLayout() {
         sx={{
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
+          backgroundColor: theme.palette.background.paper,
+          color: theme.palette.text.primary,
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
         }}
       >
         <Toolbar>
@@ -100,11 +180,65 @@ function MainLayout() {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div">
-            Sistema de Gestión
+          
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+            {currentBusiness ? `${currentBusiness.nombre} - Zarzify` : 'Zarzify'}
           </Typography>
+
+          {/* Business Selector for larger screens */}
+          {businesses.length > 1 && (
+            <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', mr: 2 }}>
+              <IconButton
+                onClick={handleProfileMenuOpen}
+                sx={{ 
+                  bgcolor: theme.palette.primary.main + '20',
+                  '&:hover': { bgcolor: theme.palette.primary.main + '30' }
+                }}
+              >
+                <Business />
+                <ExpandMore sx={{ ml: 1 }} />
+              </IconButton>
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleProfileMenuClose}
+              >
+                {businesses.map((business) => (
+                  <MenuItem
+                    key={business.id}
+                    onClick={() => handleBusinessChange(business.id)}
+                    selected={currentBusiness?.id === business.id}
+                  >
+                    <Business sx={{ mr: 2 }} />
+                    {business.nombre}
+                  </MenuItem>
+                ))}
+                <Divider />
+                <MenuItem onClick={() => navigate('/business')}>
+                  <Settings sx={{ mr: 2 }} />
+                  Gestionar Negocios
+                </MenuItem>
+              </Menu>
+            </Box>
+          )}
+
+          {/* User Avatar */}
+          <Avatar 
+            src={user?.photoURL} 
+            alt={user?.displayName}
+            sx={{ 
+              width: 32, 
+              height: 32,
+              cursor: 'pointer',
+              bgcolor: theme.palette.primary.main
+            }}
+            onClick={handleProfileMenuOpen}
+          >
+            {user?.displayName?.charAt(0) || user?.email?.charAt(0)}
+          </Avatar>
         </Toolbar>
       </AppBar>
+      
       <Box
         component="nav"
         sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
@@ -140,16 +274,19 @@ function MainLayout() {
           {drawer}
         </Drawer>
       </Box>
+      
       <Box
         component="main"
         sx={{
           flexGrow: 1,
           p: 3,
           width: { sm: `calc(100% - ${drawerWidth}px)` },
+          backgroundColor: theme.palette.background.default,
+          minHeight: '100vh',
         }}
       >
         <Toolbar />
-        <Outlet />
+        {children || <Outlet />}
       </Box>
     </Box>
   );
