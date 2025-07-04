@@ -3,6 +3,15 @@ const cors = require('cors');
 const { Pool } = require('pg');
 const path = require('path');
 
+// Debug de variables de entorno
+console.log('🔍 DEBUG: Variables de entorno');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('PORT:', process.env.PORT);
+console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'PRESENTE' : 'NO PRESENTE');
+console.log('DB_HOST:', process.env.DB_HOST);
+console.log('DB_NAME:', process.env.DB_NAME);
+console.log('DB_USER:', process.env.DB_USER);
+
 const app = express();
 
 // Middleware global para capturar errores no manejados
@@ -60,21 +69,42 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Configuración de la conexión a PostgreSQL con mejor manejo de errores
-const pool = new Pool({
-  // Usar variables de entorno para producción
-  connectionString: process.env.DATABASE_URL,
-  user: process.env.DB_USER || 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'zarzify',
-  password: process.env.DB_PASSWORD || '1078754787',
-  port: process.env.DB_PORT || 5432,
-  // SSL para producción
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  // Configuraciones para estabilidad
-  max: 10, // Máximo 10 conexiones concurrentes
-  idleTimeoutMillis: 30000, // Cerrar conexiones inactivas después de 30s
-  connectionTimeoutMillis: 10000, // Timeout de conexión de 10s
+let poolConfig;
+
+if (process.env.DATABASE_URL) {
+  // Configuración para Railway/Heroku usando DATABASE_URL
+  console.log('✅ Usando DATABASE_URL para conexión');
+  poolConfig = {
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+  };
+} else {
+  // Configuración para desarrollo local
+  console.log('🏠 Usando configuración local para desarrollo');
+  poolConfig = {
+    user: process.env.DB_USER || 'postgres',
+    host: process.env.DB_HOST || 'localhost',
+    database: process.env.DB_NAME || 'zarzify',
+    password: process.env.DB_PASSWORD || '1078754787',
+    port: process.env.DB_PORT || 5432,
+    ssl: false,
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+  };
+}
+
+console.log('🔗 Configuración de base de datos:', {
+  ssl: poolConfig.ssl,
+  max: poolConfig.max,
+  hasConnectionString: !!poolConfig.connectionString,
+  host: poolConfig.host || 'from DATABASE_URL'
 });
+
+const pool = new Pool(poolConfig);
 
 // Verificar conexión con mejor manejo de errores
 pool.query('SELECT NOW()')
