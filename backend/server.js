@@ -1117,6 +1117,48 @@ app.get('/api/test', async (req, res) => {
   }
 });
 
+// Endpoint de debugging para verificar datos de usuario
+app.get('/api/debug/user/:uid', async (req, res) => {
+  const { uid } = req.params;
+  try {
+    console.log('🔍 DEBUG: Buscando datos para UID:', uid);
+    
+    // Buscar usuario por id (estructura nueva)
+    const userById = await pool.query('SELECT * FROM usuarios WHERE id = $1', [uid]);
+    console.log('🔍 Usuario por ID:', userById.rows);
+    
+    // Buscar usuario por google_id (estructura antigua)
+    const userByGoogleId = await pool.query('SELECT * FROM usuarios WHERE google_id = $1', [uid]);
+    console.log('🔍 Usuario por Google ID:', userByGoogleId.rows);
+    
+    // Buscar todos los usuarios para debugging
+    const allUsers = await pool.query('SELECT id, email, google_id, nombre FROM usuarios LIMIT 10');
+    console.log('🔍 Todos los usuarios:', allUsers.rows);
+    
+    // Buscar negocios por usuario_id (estructura nueva)
+    const businessesById = await pool.query('SELECT * FROM negocios WHERE usuario_id = $1', [uid]);
+    console.log('🔍 Negocios por user ID:', businessesById.rows);
+    
+    // Si hay usuario por google_id, buscar negocios con ese id
+    if (userByGoogleId.rows.length > 0) {
+      const businessesByGoogleUser = await pool.query('SELECT * FROM negocios WHERE usuario_id = $1', [userByGoogleId.rows[0].id]);
+      console.log('🔍 Negocios por Google user ID:', businessesByGoogleUser.rows);
+    }
+    
+    res.json({
+      uid: uid,
+      userById: userById.rows,
+      userByGoogleId: userByGoogleId.rows,
+      allUsers: allUsers.rows,
+      businessesById: businessesById.rows,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Error en debug:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Health check endpoint para Railway
 app.get('/api/health', async (req, res) => {
   try {
