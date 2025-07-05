@@ -280,15 +280,24 @@ function Login() {
     <Box
       sx={{
         minHeight: '100vh',
+        height: '100vh',
+        width: '100vw',
         display: 'flex',
         background: theme.palette.grey[50],
+        margin: 0,
+        padding: 0,
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
       }}
     >
-      <Grid container sx={{ minHeight: '100vh' }}>
+      <Grid container sx={{ minHeight: '100vh', width: '100%', margin: 0 }}>
         
         {/* Lado Izquierdo - Bienvenida */}
         {!isMobile && (
-          <Grid item xs={12} md={7} lg={8}>
+          <Grid item xs={12} md={7} lg={8} sx={{ padding: 0 }}>
             <Box
               sx={{
                 display: 'flex',
@@ -296,11 +305,13 @@ function Login() {
                 justifyContent: 'center',
                 alignItems: 'center',
                 minHeight: '100vh',
+                height: '100vh',
                 background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
                 position: 'relative',
                 overflow: 'hidden',
                 color: 'white',
                 px: 6,
+                width: '100%',
               }}
             >
               {/* Elementos gráficos de fondo */}
@@ -435,7 +446,7 @@ function Login() {
         )}
 
         {/* Lado Derecho - Formulario */}
-        <Grid item xs={12} md={5} lg={4}>
+        <Grid item xs={12} md={5} lg={4} sx={{ padding: 0 }}>
           <Box
             sx={{
               display: 'flex',
@@ -443,9 +454,11 @@ function Login() {
               justifyContent: 'center',
               alignItems: 'center',
               minHeight: '100vh',
+              height: '100vh',
               backgroundColor: theme.palette.background.paper,
               px: 4,
               py: 6,
+              width: '100%',
             }}
           >
             <Paper
