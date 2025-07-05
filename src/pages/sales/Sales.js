@@ -319,28 +319,42 @@ function Sales() {
   };
 
   const handleSubmit = async () => {
-    if (!currentBusiness) return;
+    if (!currentBusiness) {
+      setError('No hay negocio seleccionado');
+      return;
+    }
 
     if (saleData.productos.length === 0) {
       setError('Agrega al menos un producto a la venta');
       return;
     }
 
+    // Validar que la fecha no sea futura
+    const today = new Date();
+    today.setHours(23, 59, 59, 999); // Permitir hasta el final del día actual
+    if (saleData.fecha_venta > today) {
+      setError('La fecha de venta no puede ser mayor a la fecha actual');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
     try {
       const salePayload = {
         negocio_id: currentBusiness.id,
         cliente_id: saleData.cliente_id || null,
         metodo_pago: saleData.metodo_pago,
-        descuento: saleData.descuento_total,
+        descuento: saleData.descuento_total || 0,
         total: calculateTotal(),
         productos: saleData.productos,
-        fecha_venta: saleData.fecha_venta.toISOString(), // Incluir fecha personalizada
+        fecha_venta: saleData.fecha_venta.toISOString().split('T')[0], // Solo fecha, sin hora
       };
 
       if (editingSale) {
         await api.put(`/ventas/${editingSale.id}`, salePayload);
       } else {
-        await api.post('/ventas', salePayload);
+        await api.post('/api/ventas', salePayload);
       }
 
       await loadSales();
@@ -350,6 +364,8 @@ function Sales() {
     } catch (error) {
       console.error('Error al guardar venta:', error);
       setError(error.response?.data?.error || 'Error al guardar la venta');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -378,11 +394,11 @@ function Sales() {
 
   const columns = [
     {
-      field: 'created_at',
+      field: 'fecha_venta',
       headerName: 'Fecha',
       width: 120,
       renderCell: (params) => {
-        const date = new Date(params.row.created_at);
+        const date = new Date(params.row.fecha_venta || params.row.created_at);
         return date.toLocaleDateString();
       },
     },
@@ -425,6 +441,21 @@ function Sales() {
           color={params.row.estado === 'completada' ? 'success' : 'warning'}
           size="small"
         />
+      ),
+    },
+    {
+      field: 'editar',
+      headerName: 'Editar',
+      width: 80,
+      renderCell: (params) => (
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<EditIcon />}
+          onClick={() => handleOpenDialog(params.row)}
+        >
+          Editar
+        </Button>
       ),
     },
     {
@@ -487,18 +518,14 @@ function Sales() {
           <ShoppingCartIcon sx={{ mr: 1 }} />
           Ver productos
         </MenuItem>
-        <MenuItem onClick={() => {
-          handleOpenDialog(selectedSale);
-          handleCloseMenu();
-        }}>
-          <EditIcon sx={{ mr: 1 }} />
-          Editar
-        </MenuItem>
         <MenuItem onClick={() => handleOpenEditDate(selectedSale)}>
           <EditCalendarIcon sx={{ mr: 1 }} />
           Editar Fecha
         </MenuItem>
-        <MenuItem onClick={() => handleDelete(selectedSale?.id)}>
+        <MenuItem onClick={() => {
+          handleDelete(selectedSale.id);
+          handleCloseMenu();
+        }}>
           <DeleteIcon sx={{ mr: 1 }} />
           Eliminar
         </MenuItem>

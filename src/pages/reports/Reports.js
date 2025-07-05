@@ -168,61 +168,81 @@ function Reports() {
     }
 
     setLoading(true);
+    setError('');
+    
     try {
       // Cargar datos específicos para el tipo de reporte actual
       let currentData = null;
-      let lowStock = lowStockProducts;
+      let lowStock = [];
 
+      // Siempre cargar datos frescos para asegurar que tengamos la información más actualizada
       switch (reportType) {
         case 'sales':
-          if (salesData.length === 0) {
+          try {
             const response = await api.get(`/ventas/${currentBusiness.id}`);
             currentData = response.data;
-          } else {
-            currentData = salesData;
+          } catch (error) {
+            console.error('Error cargando datos de ventas:', error);
+            currentData = salesData; // Fallback a datos existentes
           }
           break;
         case 'inventory':
-          if (productsData.length === 0) {
+          try {
             const response = await api.get(`/productos/${currentBusiness.id}`);
             currentData = response.data;
-          } else {
-            currentData = productsData;
+          } catch (error) {
+            console.error('Error cargando datos de inventario:', error);
+            currentData = productsData; // Fallback a datos existentes
           }
           break;
         case 'customers':
-          if (clientsData.length === 0) {
+          try {
             const response = await api.get(`/clientes/${currentBusiness.id}`);
             currentData = response.data;
-          } else {
-            currentData = clientsData;
+          } catch (error) {
+            console.error('Error cargando datos de clientes:', error);
+            currentData = clientsData; // Fallback a datos existentes
           }
           break;
         case 'expenses':
-          if (expensesData.length === 0) {
+          try {
             const response = await api.get(`/egresos/${currentBusiness.id}`);
-            currentData = response.data.slice(0, 20);
-          } else {
-            currentData = expensesData;
+            currentData = response.data.slice(0, 50); // Limitar para PDF
+          } catch (error) {
+            console.error('Error cargando datos de gastos:', error);
+            currentData = expensesData; // Fallback a datos existentes
           }
           break;
         case 'dashboard':
-          currentData = dashboardData;
+          try {
+            const response = await api.get(`/dashboard/${currentBusiness.id}`);
+            currentData = response.data;
+          } catch (error) {
+            console.error('Error cargando datos del dashboard:', error);
+            currentData = dashboardData; // Fallback a datos existentes
+          }
           break;
+        default:
+          currentData = dashboardData;
       }
 
-      // Cargar productos con stock bajo si no están cargados
-      if (lowStock.length === 0) {
-        try {
-          const stockResponse = await api.get(`/productos/${currentBusiness.id}/low-stock`);
-          lowStock = stockResponse.data;
-        } catch (error) {
-          console.log('No se pudieron cargar productos con stock bajo');
-          lowStock = [];
-        }
+      // Cargar productos con stock bajo
+      try {
+        const stockResponse = await api.get(`/productos/${currentBusiness.id}/low-stock`);
+        lowStock = stockResponse.data;
+      } catch (error) {
+        console.log('No se pudieron cargar productos con stock bajo');
+        lowStock = lowStockProducts; // Fallback a datos existentes
       }
 
-      // Ahora generar el PDF con los datos cargados
+      // Verificar que tenemos datos para generar el PDF
+      if (!currentData && reportType !== 'dashboard') {
+        setError('No hay datos disponibles para generar el PDF');
+        setLoading(false);
+        return;
+      }
+
+      // Generar el PDF
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.width;
       const margin = 20;
@@ -243,7 +263,7 @@ function Reports() {
       let yPosition = 80;
 
       // Alertas de stock bajo (siempre mostrar si hay)
-      if (lowStock.length > 0) {
+      if (lowStock && lowStock.length > 0) {
         doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(255, 100, 100);
@@ -273,10 +293,10 @@ function Reports() {
 
           if (currentData && currentData.length > 0) {
             const tableData = currentData.slice(0, 50).map(sale => [
-              new Date(sale.created_at).toLocaleDateString(),
+              new Date(sale.fecha_venta || sale.created_at).toLocaleDateString(),
               sale.cliente_nombre || 'Cliente General',
-              `$${parseFloat(sale.total).toFixed(2)}`,
-              sale.metodo_pago
+              `$${parseFloat(sale.total || 0).toFixed(2)}`,
+              sale.metodo_pago || 'N/A'
             ]);
 
             doc.autoTable({
@@ -310,11 +330,11 @@ function Reports() {
 
           if (currentData && currentData.length > 0) {
             const tableData = currentData.map(product => [
-              product.nombre,
+              product.nombre || 'N/A',
               product.categoria_nombre || 'Sin categoría',
-              product.stock.toString(),
-              `$${parseFloat(product.precio_venta).toFixed(2)}`,
-              getStockStatusText(product.stock, product.stock_minimo)
+              (product.stock || 0).toString(),
+              `$${parseFloat(product.precio_venta || 0).toFixed(2)}`,
+              getStockStatusText(product.stock || 0, product.stock_minimo || 0)
             ]);
 
             doc.autoTable({
@@ -348,7 +368,7 @@ function Reports() {
 
           if (currentData && currentData.length > 0) {
             const tableData = currentData.map(client => [
-              client.nombre,
+              client.nombre || 'N/A',
               client.email || '-',
               client.telefono || '-',
               `$${parseFloat(client.credito_disponible || 0).toFixed(2)}`
@@ -386,10 +406,10 @@ function Reports() {
           if (currentData && currentData.length > 0) {
             const tableData = currentData.map(expense => [
               new Date(expense.fecha || expense.created_at).toLocaleDateString(),
-              expense.concepto,
-              expense.categoria,
-              `$${parseFloat(expense.monto).toFixed(2)}`,
-              expense.metodo_pago
+              expense.concepto || 'N/A',
+              expense.categoria || 'N/A',
+              `$${parseFloat(expense.monto || 0).toFixed(2)}`,
+              expense.metodo_pago || 'N/A'
             ]);
 
             doc.autoTable({
@@ -424,19 +444,19 @@ function Reports() {
           if (currentData) {
             doc.setFontSize(12);
             doc.setFont('helvetica', 'normal');
-            doc.text(`Total de Productos: ${currentData.totalProducts}`, margin, yPosition);
+            doc.text(`Total de Productos: ${currentData.totalProducts || 0}`, margin, yPosition);
             yPosition += 10;
-            doc.text(`Total de Ventas: ${currentData.totalSales}`, margin, yPosition);
+            doc.text(`Total de Ventas: ${currentData.totalSales || 0}`, margin, yPosition);
             yPosition += 10;
-            doc.text(`Total de Clientes: ${currentData.totalCustomers}`, margin, yPosition);
+            doc.text(`Total de Clientes: ${currentData.totalCustomers || 0}`, margin, yPosition);
             yPosition += 10;
-            doc.text(`Ingresos Totales: $${currentData.totalRevenue?.toFixed(2)}`, margin, yPosition);
+            doc.text(`Ingresos Totales: $${(currentData.totalRevenue || 0).toFixed(2)}`, margin, yPosition);
             yPosition += 10;
-            doc.text(`Valor de Inventario: $${currentData.inventoryValue?.toFixed(2)}`, margin, yPosition);
+            doc.text(`Valor de Inventario: $${(currentData.inventoryValue || 0).toFixed(2)}`, margin, yPosition);
             yPosition += 10;
-            doc.text(`Ganancia Neta: $${currentData.netProfit?.toFixed(2)}`, margin, yPosition);
+            doc.text(`Ganancia Neta: $${(currentData.netProfit || 0).toFixed(2)}`, margin, yPosition);
             yPosition += 10;
-            doc.text(`Margen de Ganancia: ${currentData.profitMargin?.toFixed(1)}%`, margin, yPosition);
+            doc.text(`Margen de Ganancia: ${(currentData.profitMargin || 0).toFixed(1)}%`, margin, yPosition);
           } else {
             doc.setFontSize(12);
             doc.setFont('helvetica', 'normal');
@@ -457,11 +477,12 @@ function Reports() {
       }
 
       // Guardar el PDF
-      doc.save(`reporte_${reportType}_${currentBusiness.nombre.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+      const fileName = `reporte_${reportType}_${currentBusiness.nombre.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(fileName);
       
     } catch (error) {
       console.error('Error al generar PDF:', error);
-      setError('Error al generar el PDF. Por favor, intenta de nuevo.');
+      setError(`Error al generar el PDF: ${error.message}`);
     } finally {
       setLoading(false);
     }

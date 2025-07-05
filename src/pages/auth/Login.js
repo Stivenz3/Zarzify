@@ -12,7 +12,6 @@ import {
   Button,
   Container,
   Typography,
-  Paper,
   Alert,
   Fade,
   useTheme,
@@ -34,6 +33,7 @@ import {
   Person as PersonIcon,
 } from '@mui/icons-material';
 import api from '../../config/axios';
+import logoZarzify from '../../logo zarzify.png';
 
 function TabPanel({ children, value, index, ...other }) {
   return (
@@ -250,24 +250,21 @@ function Login() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        padding: 0,
+        background: theme.palette.grey[100],
       }}
     >
-      <Container maxWidth="sm" sx={{ p: 0 }}>
+      <Container component="main" maxWidth="xs" sx={{ p: 0 }}>
         <Fade in timeout={1000}>
           <Box
             sx={{
-              padding: 4,
+              marginTop: 8,
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              borderRadius: 3,
-              background: 'rgba(255, 255, 255, 0.1)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)',
-              mx: 2,
+              padding: 4,
+              backgroundColor: theme.palette.background.paper,
+              borderRadius: 2,
+              boxShadow: 3,
             }}
           >
             <Box
@@ -278,19 +275,17 @@ function Login() {
                 flexDirection: 'column',
               }}
             >
-              <StoreIcon
-                sx={{
-                  fontSize: 48,
-                  color: 'white',
-                  mb: 2,
-                }}
+              <img 
+                src={logoZarzify} 
+                alt="Zarzify Logo" 
+                style={{ width: '48px', height: '48px', marginBottom: '16px' }}
               />
               <Typography
                 component="h1"
                 variant={isMobile ? 'h5' : 'h4'}
                 sx={{
                   fontWeight: 'bold',
-                  color: 'white',
+                  color: theme.palette.primary.main,
                   textAlign: 'center',
                 }}
               >
@@ -301,7 +296,7 @@ function Login() {
                 sx={{ 
                   mt: 1, 
                   textAlign: 'center',
-                  color: 'rgba(255, 255, 255, 0.8)'
+                  color: theme.palette.text.secondary
                 }}
               >
                 Sistema de Gestión de Inventario
@@ -315,11 +310,6 @@ function Login() {
                   mb: 3,
                   width: '100%',
                   borderRadius: 2,
-                  backgroundColor: 'rgba(244, 67, 54, 0.9)',
-                  color: 'white',
-                  '& .MuiAlert-icon': {
-                    color: 'white'
-                  }
                 }}
               >
                 {error}
@@ -334,17 +324,7 @@ function Login() {
                 variant="fullWidth"
                 sx={{ 
                   borderBottom: 1, 
-                  borderColor: 'rgba(255, 255, 255, 0.3)',
-                  '& .MuiTab-root': {
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    fontWeight: 'medium',
-                  },
-                  '& .Mui-selected': {
-                    color: 'white !important',
-                  },
-                  '& .MuiTabs-indicator': {
-                    backgroundColor: 'white',
-                  }
+                  borderColor: 'divider',
                 }}
               >
                 <Tab label="INICIAR SESIÓN" />
@@ -356,19 +336,16 @@ function Login() {
             <TabPanel value={tabValue} index={0}>
               <Box component="form" onSubmit={handleEmailSignIn} sx={{ width: '100%' }}>
                 <TextField
+                  margin="normal"
+                  required
                   fullWidth
                   type="email"
                   name="email"
                   label="Email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  sx={{ 
-                    mb: 2,
-                    '& .MuiOutlinedInput-root': {
-                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                      borderRadius: 2,
-                    }
-                  }}
+                  autoComplete="email"
+                  autoFocus
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -378,19 +355,15 @@ function Login() {
                   }}
                 />
                 <TextField
+                  margin="normal"
+                  required
                   fullWidth
                   type={showPassword ? 'text' : 'password'}
                   name="password"
                   label="Contraseña"
                   value={formData.password}
                   onChange={handleInputChange}
-                  sx={{ 
-                    mb: 3,
-                    '& .MuiOutlinedInput-root': {
-                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                      borderRadius: 2,
-                    }
-                  }}
+                  autoComplete="current-password"
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -414,23 +387,7 @@ function Login() {
                   fullWidth
                   variant="contained"
                   disabled={isLoading}
-                  sx={{ 
-                    py: 1.5, 
-                    mb: 2,
-                    borderRadius: 2,
-                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                    color: theme.palette.primary.main,
-                    fontWeight: 'bold',
-                    '&:hover': {
-                      backgroundColor: 'white',
-                      transform: 'translateY(-2px)',
-                      boxShadow: '0 8px 16px rgba(0, 0, 0, 0.2)',
-                    },
-                    '&:disabled': {
-                      backgroundColor: 'rgba(255, 255, 255, 0.5)',
-                      color: 'rgba(102, 126, 234, 0.7)',
-                    }
-                  }}
+                  sx={{ mt: 3, mb: 2 }}
                 >
                   {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
                 </Button>
@@ -441,18 +398,15 @@ function Login() {
             <TabPanel value={tabValue} index={1}>
               <Box component="form" onSubmit={handleEmailSignUp} sx={{ width: '100%' }}>
                 <TextField
+                  margin="normal"
+                  required
                   fullWidth
                   name="nombre"
                   label="Nombre completo"
                   value={formData.nombre}
                   onChange={handleInputChange}
-                  sx={{ 
-                    mb: 2,
-                    '& .MuiOutlinedInput-root': {
-                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                      borderRadius: 2,
-                    }
-                  }}
+                  autoComplete="name"
+                  autoFocus
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -462,19 +416,15 @@ function Login() {
                   }}
                 />
                 <TextField
+                  margin="normal"
+                  required
                   fullWidth
                   type="email"
                   name="email"
                   label="Email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  sx={{ 
-                    mb: 2,
-                    '& .MuiOutlinedInput-root': {
-                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                      borderRadius: 2,
-                    }
-                  }}
+                  autoComplete="email"
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -484,19 +434,15 @@ function Login() {
                   }}
                 />
                 <TextField
+                  margin="normal"
+                  required
                   fullWidth
                   type={showPassword ? 'text' : 'password'}
                   name="password"
                   label="Contraseña"
                   value={formData.password}
                   onChange={handleInputChange}
-                  sx={{ 
-                    mb: 2,
-                    '& .MuiOutlinedInput-root': {
-                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                      borderRadius: 2,
-                    }
-                  }}
+                  autoComplete="new-password"
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -516,19 +462,15 @@ function Login() {
                   }}
                 />
                 <TextField
+                  margin="normal"
+                  required
                   fullWidth
                   type={showPassword ? 'text' : 'password'}
                   name="confirmPassword"
                   label="Confirmar contraseña"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  sx={{ 
-                    mb: 3,
-                    '& .MuiOutlinedInput-root': {
-                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                      borderRadius: 2,
-                    }
-                  }}
+                  autoComplete="new-password"
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -542,23 +484,7 @@ function Login() {
                   fullWidth
                   variant="contained"
                   disabled={isLoading}
-                  sx={{ 
-                    py: 1.5, 
-                    mb: 2,
-                    borderRadius: 2,
-                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                    color: theme.palette.primary.main,
-                    fontWeight: 'bold',
-                    '&:hover': {
-                      backgroundColor: 'white',
-                      transform: 'translateY(-2px)',
-                      boxShadow: '0 8px 16px rgba(0, 0, 0, 0.2)',
-                    },
-                    '&:disabled': {
-                      backgroundColor: 'rgba(255, 255, 255, 0.5)',
-                      color: 'rgba(102, 126, 234, 0.7)',
-                    }
-                  }}
+                  sx={{ mt: 3, mb: 2 }}
                 >
                   {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}
                 </Button>
@@ -566,8 +492,8 @@ function Login() {
             </TabPanel>
 
             {/* Divider y Google */}
-            <Divider sx={{ width: '100%', my: 2, borderColor: 'rgba(255, 255, 255, 0.3)' }}>
-              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+            <Divider sx={{ width: '100%', my: 2 }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 o
               </Typography>
             </Divider>
@@ -580,23 +506,9 @@ function Login() {
               disabled={isLoading}
               sx={{
                 py: 1.5,
-                backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                color: '#757575',
-                borderRadius: 2,
-                '&:hover': {
-                  backgroundColor: 'white',
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 8px 16px rgba(0, 0, 0, 0.2)',
-                },
-                border: '1px solid rgba(255, 255, 255, 0.3)',
                 textTransform: 'none',
                 fontSize: '16px',
                 fontWeight: 500,
-                transition: 'all 0.3s ease',
-                '&:disabled': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.5)',
-                  color: 'rgba(117, 117, 117, 0.7)',
-                }
               }}
             >
               {isLoading ? 'Conectando...' : 'Continuar con Google'}
@@ -607,7 +519,7 @@ function Login() {
               sx={{ 
                 mt: 3, 
                 textAlign: 'center',
-                color: 'rgba(255, 255, 255, 0.7)'
+                color: 'text.secondary'
               }}
             >
               Al registrarte, aceptas nuestros términos y condiciones

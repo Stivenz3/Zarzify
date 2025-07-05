@@ -707,63 +707,51 @@ app.get('/api/ventas/:businessId', async (req, res) => {
 
 app.post('/api/ventas', async (req, res) => {
   const { 
+    negocio_id, 
     cliente_id, 
-    total, 
-    subtotal,
-    impuesto,
-    descuento, 
     metodo_pago, 
-    productos, 
-    negocio_id,
-    fecha_venta
+    descuento = 0, 
+    total, 
+    productos,
+    fecha_venta 
   } = req.body;
   
   const client = await pool.connect();
   
   try {
     await client.query('BEGIN');
-
-    // Insertar la venta usando nombres correctos de columnas
+    
+    // Insertar venta con fecha personalizada si se proporciona
     const ventaResult = await client.query(
-      `INSERT INTO ventas (
-        cliente_id, negocio_id, total, subtotal, impuesto, descuento, metodo_pago, fecha_venta
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
-      [cliente_id, negocio_id, total, subtotal || 0, impuesto || 0, descuento || 0, metodo_pago, fecha_venta || new Date()]
+      `INSERT INTO ventas (negocio_id, cliente_id, total, descuento, metodo_pago, fecha_venta) 
+       VALUES ($1, $2, $3, $4, $5, $6) 
+       RETURNING id`,
+      [negocio_id, cliente_id || null, total, descuento, metodo_pago, fecha_venta || new Date()]
     );
+    
     const ventaId = ventaResult.rows[0].id;
-
-    // Insertar los detalles de la venta usando el nombre correcto de tabla
+    
+    // Insertar productos de la venta
     for (const producto of productos) {
-      const precio = producto.precio || producto.precio_unitario;
-      const subtotalProducto = producto.cantidad * precio;
+      const subtotalProducto = producto.cantidad * producto.precio;
       
       await client.query(
-        `INSERT INTO detalle_ventas (
-          venta_id, producto_id, cantidad, precio_unitario, subtotal
-        ) VALUES ($1, $2, $3, $4, $5)`,
-        [
-          ventaId, 
-          producto.id, 
-          producto.cantidad, 
-          precio,
-          subtotalProducto
-        ]
+        `INSERT INTO detalle_ventas (venta_id, producto_id, cantidad, precio_unitario, subtotal) 
+         VALUES ($1, $2, $3, $4, $5)`,
+        [ventaId, producto.id, producto.cantidad, producto.precio, subtotalProducto]
       );
-
-      // Actualizar el stock
+      
+      // Actualizar stock del producto
       await client.query(
         'UPDATE productos SET stock = stock - $1 WHERE id = $2',
         [producto.cantidad, producto.id]
       );
     }
-
-    await client.query('COMMIT');
     
-    // Invalidar caché del dashboard después de venta exitosa
+    await client.query('COMMIT');
     invalidateDashboardCache(negocio_id, 'nueva venta');
     
-    res.status(201).json({ id: ventaId, message: 'Venta registrada con éxito' });
-    
+    res.json({ id: ventaId, message: 'Venta creada con éxito' });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Error al crear venta:', err);

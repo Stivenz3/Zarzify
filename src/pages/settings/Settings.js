@@ -32,16 +32,10 @@ function Settings() {
     },
     impuestos: {
       iva: 16,
-      ieps: 0,
     },
     moneda: {
       simbolo: '$',
       posicion: 'before',
-    },
-    impresion: {
-      formatoTicket: 'termica',
-      impresora: 'default',
-      copias: 1,
     },
   });
 
@@ -64,16 +58,10 @@ function Settings() {
           },
           impuestos: {
             iva: config.impuesto_ventas || 16,
-            ieps: 0, // no está en BD
           },
           moneda: {
             simbolo: config.simbolo_moneda || '$',
             posicion: 'before', // no está en BD
-          },
-          impresion: {
-            formatoTicket: 'termica', // no está en BD
-            impresora: 'default', // no está en BD
-            copias: 1, // no está en BD
           },
         });
       } catch (error) {
@@ -114,17 +102,6 @@ function Settings() {
       ...prev,
       moneda: {
         ...prev.moneda,
-        [name]: value,
-      },
-    }));
-  };
-
-  const handlePrintingChange = (event) => {
-    const { name, value } = event.target;
-    setSettings((prev) => ({
-      ...prev,
-      impresion: {
-        ...prev.impresion,
         [name]: value,
       },
     }));
@@ -223,28 +200,15 @@ function Settings() {
               <Typography variant="h6" gutterBottom>
                 Impuestos
               </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="IVA (%)"
-                    type="number"
-                    name="iva"
-                    value={settings.impuestos.iva}
-                    onChange={handleTaxChange}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="IEPS (%)"
-                    type="number"
-                    name="ieps"
-                    value={settings.impuestos.ieps}
-                    onChange={handleTaxChange}
-                  />
-                </Grid>
-              </Grid>
+              <TextField
+                fullWidth
+                label="IVA (%)"
+                type="number"
+                name="iva"
+                value={settings.impuestos.iva}
+                onChange={handleTaxChange}
+                sx={{ mb: 2 }}
+              />
             </CardContent>
           </Card>
         </Grid>
@@ -255,64 +219,14 @@ function Settings() {
               <Typography variant="h6" gutterBottom>
                 Moneda
               </Typography>
-              <Grid container spacing={2} sx={{ mb: 3 }}>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="Símbolo"
-                    name="simbolo"
-                    value={settings.moneda.simbolo}
-                    onChange={handleCurrencyChange}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Posición</InputLabel>
-                    <Select
-                      name="posicion"
-                      value={settings.moneda.posicion}
-                      onChange={handleCurrencyChange}
-                      label="Posición"
-                    >
-                      <MenuItem value="before">Antes del monto</MenuItem>
-                      <MenuItem value="after">Después del monto</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-              </Grid>
-
-              <Divider sx={{ my: 3 }} />
-
-              <Typography variant="h6" gutterBottom>
-                Impresión
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <FormControl fullWidth sx={{ mb: 2 }}>
-                    <InputLabel>Formato de Ticket</InputLabel>
-                    <Select
-                      name="formatoTicket"
-                      value={settings.impresion.formatoTicket}
-                      onChange={handlePrintingChange}
-                      label="Formato de Ticket"
-                    >
-                      <MenuItem value="termica">Impresora Térmica</MenuItem>
-                      <MenuItem value="carta">Tamaño Carta</MenuItem>
-                      <MenuItem value="media">Media Carta</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Copias por impresión"
-                    type="number"
-                    name="copias"
-                    value={settings.impresion.copias}
-                    onChange={handlePrintingChange}
-                  />
-                </Grid>
-              </Grid>
+              <TextField
+                fullWidth
+                label="Símbolo de moneda"
+                name="simbolo"
+                value={settings.moneda.simbolo}
+                onChange={handleCurrencyChange}
+                sx={{ mb: 2 }}
+              />
             </CardContent>
           </Card>
         </Grid>

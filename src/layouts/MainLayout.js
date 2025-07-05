@@ -39,6 +39,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { useApp } from '../context/AppContext';
 import BusinessSelector from '../components/business/BusinessSelector';
+import logoZarzify from '../logo zarzify.png';
 
 const drawerWidth = 240;
 
@@ -93,18 +94,16 @@ function MainLayout({ children }) {
 
   const drawer = (
     <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+      <Toolbar sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2 }}>
+        <img 
+          src={logoZarzify} 
+          alt="Zarzify Logo" 
+          style={{ width: '40px', height: '40px', marginBottom: '8px' }}
+        />
+        <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, textAlign: 'center' }}>
           Zarzify
         </Typography>
       </Toolbar>
-      <Divider />
-      
-      {/* Business Selector en sidebar para móviles y escritorio */}
-      <Box sx={{ p: 2 }}>
-        <BusinessSelector />
-      </Box>
-      
       <Divider />
       
       <List>
@@ -170,9 +169,16 @@ function MainLayout({ children }) {
             <MenuIcon />
           </IconButton>
           
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            Zarzify
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+            <img 
+              src={logoZarzify} 
+              alt="Zarzify Logo" 
+              style={{ width: '32px', height: '32px', marginRight: '12px' }}
+            />
+            <Typography variant="h6" noWrap component="div">
+              Zarzify
+            </Typography>
+          </Box>
 
           {/* Business Selector - Visible en desktop */}
           <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', mr: 2 }}>
