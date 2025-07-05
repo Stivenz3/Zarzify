@@ -251,282 +251,280 @@ function Login() {
         alignItems: 'center',
         justifyContent: 'center',
         background: theme.palette.grey[100],
+        padding: 2,
       }}
     >
-      <Container component="main" maxWidth="xs" sx={{ p: 0 }}>
-        <Fade in timeout={1000}>
-          <Box
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          padding: 4,
+          backgroundColor: theme.palette.background.paper,
+          borderRadius: 2,
+          boxShadow: 3,
+          width: '100%',
+          maxWidth: 400,
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            mb: 4,
+            flexDirection: 'column',
+          }}
+        >
+          <img 
+            src={logoZarzify} 
+            alt="Zarzify Logo" 
+            style={{ width: '48px', height: '48px', marginBottom: '16px' }}
+          />
+          <Typography
+            component="h1"
+            variant={isMobile ? 'h5' : 'h4'}
             sx={{
-              marginTop: 8,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              padding: 4,
-              backgroundColor: theme.palette.background.paper,
-              borderRadius: 2,
-              boxShadow: 3,
+              fontWeight: 'bold',
+              color: theme.palette.primary.main,
+              textAlign: 'center',
             }}
           >
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                mb: 4,
-                flexDirection: 'column',
-              }}
-            >
-              <img 
-                src={logoZarzify} 
-                alt="Zarzify Logo" 
-                style={{ width: '48px', height: '48px', marginBottom: '16px' }}
-              />
-              <Typography
-                component="h1"
-                variant={isMobile ? 'h5' : 'h4'}
-                sx={{
-                  fontWeight: 'bold',
-                  color: theme.palette.primary.main,
-                  textAlign: 'center',
-                }}
-              >
-                Zarzify
-              </Typography>
-              <Typography
-                variant="body1"
-                sx={{ 
-                  mt: 1, 
-                  textAlign: 'center',
-                  color: theme.palette.text.secondary
-                }}
-              >
-                Sistema de Gestión de Inventario
-              </Typography>
-            </Box>
+            Zarzify
+          </Typography>
+          <Typography
+            variant="body1"
+            sx={{ 
+              mt: 1, 
+              textAlign: 'center',
+              color: theme.palette.text.secondary
+            }}
+          >
+            Sistema de Gestión de Inventario
+          </Typography>
+        </Box>
 
-            {error && (
-              <Alert
-                severity="error"
-                sx={{
-                  mb: 3,
-                  width: '100%',
-                  borderRadius: 2,
-                }}
-              >
-                {error}
-              </Alert>
-            )}
+        {error && (
+          <Alert
+            severity="error"
+            sx={{
+              mb: 3,
+              width: '100%',
+              borderRadius: 2,
+            }}
+          >
+            {error}
+          </Alert>
+        )}
 
-            {/* Tabs de autenticación */}
-            <Box sx={{ width: '100%', mb: 2 }}>
-              <Tabs 
-                value={tabValue} 
-                onChange={handleTabChange} 
-                variant="fullWidth"
-                sx={{ 
-                  borderBottom: 1, 
-                  borderColor: 'divider',
-                }}
-              >
-                <Tab label="INICIAR SESIÓN" />
-                <Tab label="CREAR CUENTA" />
-              </Tabs>
-            </Box>
+        {/* Tabs de autenticación */}
+        <Box sx={{ width: '100%', mb: 2 }}>
+          <Tabs 
+            value={tabValue} 
+            onChange={handleTabChange} 
+            variant="fullWidth"
+            sx={{ 
+              borderBottom: 1, 
+              borderColor: 'divider',
+            }}
+          >
+            <Tab label="INICIAR SESIÓN" />
+            <Tab label="CREAR CUENTA" />
+          </Tabs>
+        </Box>
 
-            {/* Panel de Iniciar Sesión */}
-            <TabPanel value={tabValue} index={0}>
-              <Box component="form" onSubmit={handleEmailSignIn} sx={{ width: '100%' }}>
-                <TextField
-                  margin="normal"
-                  required
-                  fullWidth
-                  type="email"
-                  name="email"
-                  label="Email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  autoComplete="email"
-                  autoFocus
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <EmailIcon />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <TextField
-                  margin="normal"
-                  required
-                  fullWidth
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  label="Contraseña"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  autoComplete="current-password"
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LockIcon />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          onClick={() => setShowPassword(!showPassword)}
-                          edge="end"
-                        >
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                  disabled={isLoading}
-                  sx={{ mt: 3, mb: 2 }}
-                >
-                  {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
-                </Button>
-              </Box>
-            </TabPanel>
-
-            {/* Panel de Crear Cuenta */}
-            <TabPanel value={tabValue} index={1}>
-              <Box component="form" onSubmit={handleEmailSignUp} sx={{ width: '100%' }}>
-                <TextField
-                  margin="normal"
-                  required
-                  fullWidth
-                  name="nombre"
-                  label="Nombre completo"
-                  value={formData.nombre}
-                  onChange={handleInputChange}
-                  autoComplete="name"
-                  autoFocus
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <PersonIcon />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <TextField
-                  margin="normal"
-                  required
-                  fullWidth
-                  type="email"
-                  name="email"
-                  label="Email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  autoComplete="email"
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <EmailIcon />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <TextField
-                  margin="normal"
-                  required
-                  fullWidth
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  label="Contraseña"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  autoComplete="new-password"
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LockIcon />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          onClick={() => setShowPassword(!showPassword)}
-                          edge="end"
-                        >
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <TextField
-                  margin="normal"
-                  required
-                  fullWidth
-                  type={showPassword ? 'text' : 'password'}
-                  name="confirmPassword"
-                  label="Confirmar contraseña"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  autoComplete="new-password"
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LockIcon />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                  disabled={isLoading}
-                  sx={{ mt: 3, mb: 2 }}
-                >
-                  {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}
-                </Button>
-              </Box>
-            </TabPanel>
-
-            {/* Divider y Google */}
-            <Divider sx={{ width: '100%', my: 2 }}>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                o
-              </Typography>
-            </Divider>
-
-            <Button
+        {/* Panel de Iniciar Sesión */}
+        <TabPanel value={tabValue} index={0}>
+          <Box component="form" onSubmit={handleEmailSignIn} sx={{ width: '100%' }}>
+            <TextField
+              margin="normal"
+              required
               fullWidth
-              variant="outlined"
-              startIcon={<GoogleIcon />}
-              onClick={handleGoogleSignIn}
+              type="email"
+              name="email"
+              label="Email"
+              value={formData.email}
+              onChange={handleInputChange}
+              autoComplete="email"
+              autoFocus
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <EmailIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              type={showPassword ? 'text' : 'password'}
+              name="password"
+              label="Contraseña"
+              value={formData.password}
+              onChange={handleInputChange}
+              autoComplete="current-password"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LockIcon />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
               disabled={isLoading}
-              sx={{
-                py: 1.5,
-                textTransform: 'none',
-                fontSize: '16px',
-                fontWeight: 500,
-              }}
+              sx={{ mt: 3, mb: 2 }}
             >
-              {isLoading ? 'Conectando...' : 'Continuar con Google'}
+              {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
             </Button>
-
-            <Typography
-              variant="body2"
-              sx={{ 
-                mt: 3, 
-                textAlign: 'center',
-                color: 'text.secondary'
-              }}
-            >
-              Al registrarte, aceptas nuestros términos y condiciones
-            </Typography>
           </Box>
-        </Fade>
-      </Container>
+        </TabPanel>
+
+        {/* Panel de Crear Cuenta */}
+        <TabPanel value={tabValue} index={1}>
+          <Box component="form" onSubmit={handleEmailSignUp} sx={{ width: '100%' }}>
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              name="nombre"
+              label="Nombre completo"
+              value={formData.nombre}
+              onChange={handleInputChange}
+              autoComplete="name"
+              autoFocus
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PersonIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              type="email"
+              name="email"
+              label="Email"
+              value={formData.email}
+              onChange={handleInputChange}
+              autoComplete="email"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <EmailIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              type={showPassword ? 'text' : 'password'}
+              name="password"
+              label="Contraseña"
+              value={formData.password}
+              onChange={handleInputChange}
+              autoComplete="new-password"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LockIcon />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              type={showPassword ? 'text' : 'password'}
+              name="confirmPassword"
+              label="Confirmar contraseña"
+              value={formData.confirmPassword}
+              onChange={handleInputChange}
+              autoComplete="new-password"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LockIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              disabled={isLoading}
+              sx={{ mt: 3, mb: 2 }}
+            >
+              {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}
+            </Button>
+          </Box>
+        </TabPanel>
+
+        {/* Divider y Google */}
+        <Divider sx={{ width: '100%', my: 2 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            o
+          </Typography>
+        </Divider>
+
+        <Button
+          fullWidth
+          variant="outlined"
+          startIcon={<GoogleIcon />}
+          onClick={handleGoogleSignIn}
+          disabled={isLoading}
+          sx={{
+            py: 1.5,
+            textTransform: 'none',
+            fontSize: '16px',
+            fontWeight: 500,
+          }}
+        >
+          {isLoading ? 'Conectando...' : 'Continuar con Google'}
+        </Button>
+
+        <Typography
+          variant="body2"
+          sx={{ 
+            mt: 3, 
+            textAlign: 'center',
+            color: 'text.secondary'
+          }}
+        >
+          Al registrarte, aceptas nuestros términos y condiciones
+        </Typography>
+      </Box>
     </Box>
   );
 }

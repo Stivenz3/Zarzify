@@ -35,7 +35,6 @@ import {
   ShoppingCart as ShoppingCartIcon,
   Remove as RemoveIcon,
   Edit as EditIcon,
-  EditCalendar as EditCalendarIcon,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useApp } from '../../context/AppContext';
@@ -55,17 +54,12 @@ function Sales() {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedSale, setSelectedSale] = useState(null);
   
-  // Estados para edición de fecha
-  const [editDateDialog, setEditDateDialog] = useState(false);
-  const [editingDateSale, setEditingDateSale] = useState(null);
-  const [newSaleDate, setNewSaleDate] = useState(new Date());
-  
   const [saleData, setSaleData] = useState({
     cliente_id: '',
     metodo_pago: 'efectivo',
     descuento_total: 0,
     productos: [],
-    fecha_venta: new Date(), // Nueva propiedad para fecha personalizada
+    fecha_venta: new Date(), // Fecha personalizada
   });
 
   const [selectedProduct, setSelectedProduct] = useState('');
@@ -184,40 +178,6 @@ function Sales() {
       ...prev,
       [name]: value
     }));
-  };
-
-  // Funciones para edición de fecha
-  const handleOpenEditDate = (sale) => {
-    setEditingDateSale(sale);
-    setNewSaleDate(sale.fecha_venta ? new Date(sale.fecha_venta) : new Date(sale.created_at));
-    setEditDateDialog(true);
-    setAnchorEl(null);
-  };
-
-  const handleCloseEditDate = () => {
-    setEditDateDialog(false);
-    setEditingDateSale(null);
-    setError('');
-  };
-
-  const handleSaveDateEdit = async () => {
-    if (!editingDateSale || !newSaleDate) return;
-
-    try {
-      await api.put(`/ventas/${editingDateSale.id}/fecha`, {
-        fecha_venta: newSaleDate.toISOString()
-      });
-      
-      // Actualizar la lista de ventas
-      await loadSales();
-      markDashboardForRefresh();
-      
-      handleCloseEditDate();
-      setError('');
-    } catch (error) {
-      console.error('Error al actualizar fecha:', error);
-      setError('Error al actualizar la fecha de la venta');
-    }
   };
 
   const addProductToSale = () => {
@@ -351,8 +311,10 @@ function Sales() {
         fecha_venta: saleData.fecha_venta.toISOString().split('T')[0], // Solo fecha, sin hora
       };
 
+      console.log('Enviando datos de venta:', salePayload); // Debug
+
       if (editingSale) {
-        await api.put(`/ventas/${editingSale.id}`, salePayload);
+        await api.put(`/api/ventas/${editingSale.id}`, salePayload);
       } else {
         await api.post('/api/ventas', salePayload);
       }
@@ -363,6 +325,7 @@ function Sales() {
       setError('');
     } catch (error) {
       console.error('Error al guardar venta:', error);
+      console.error('Respuesta del servidor:', error.response?.data); // Debug
       setError(error.response?.data?.error || 'Error al guardar la venta');
     } finally {
       setLoading(false);
@@ -372,7 +335,7 @@ function Sales() {
   const handleDelete = async (saleId) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar esta venta?')) {
       try {
-        await api.delete(`/ventas/${saleId}`);
+        await api.delete(`/api/ventas/${saleId}`);
         await loadSales();
         markDashboardForRefresh();
       } catch (error) {
@@ -412,8 +375,8 @@ function Sales() {
     },
     {
       field: 'productos_info',
-      headerName: 'Productos',
-      width: 200,
+      headerName: 'Ver Productos',
+      width: 150,
       renderCell: (params) => (
         <Button
           size="small"
@@ -441,21 +404,6 @@ function Sales() {
           color={params.row.estado === 'completada' ? 'success' : 'warning'}
           size="small"
         />
-      ),
-    },
-    {
-      field: 'editar',
-      headerName: 'Editar',
-      width: 80,
-      renderCell: (params) => (
-        <Button
-          size="small"
-          variant="outlined"
-          startIcon={<EditIcon />}
-          onClick={() => handleOpenDialog(params.row)}
-        >
-          Editar
-        </Button>
       ),
     },
     {
@@ -512,15 +460,11 @@ function Sales() {
         onClose={handleCloseMenu}
       >
         <MenuItem onClick={() => {
-          handleViewDetails(selectedSale);
+          handleOpenDialog(selectedSale);
           handleCloseMenu();
         }}>
-          <ShoppingCartIcon sx={{ mr: 1 }} />
-          Ver productos
-        </MenuItem>
-        <MenuItem onClick={() => handleOpenEditDate(selectedSale)}>
-          <EditCalendarIcon sx={{ mr: 1 }} />
-          Editar Fecha
+          <EditIcon sx={{ mr: 1 }} />
+          Editar
         </MenuItem>
         <MenuItem onClick={() => {
           handleDelete(selectedSale.id);
@@ -531,7 +475,7 @@ function Sales() {
         </MenuItem>
       </Menu>
 
-      {/* Dialog para crear venta */}
+      {/* Dialog para crear/editar venta */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="lg" fullWidth>
         <DialogTitle>
           {editingSale ? 'Editar Venta' : 'Nueva Venta'}
@@ -720,7 +664,7 @@ function Sales() {
             disabled={loading || saleData.productos.length === 0}
             startIcon={<ShoppingCartIcon />}
           >
-            {loading ? 'Guardando...' : 'Procesar Venta'}
+            {loading ? 'Guardando...' : (editingSale ? 'Actualizar Venta' : 'Procesar Venta')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -795,28 +739,6 @@ function Sales() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setViewDetailsDialog(false)}>Cerrar</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Dialog para editar fecha de venta */}
-      <Dialog open={editDateDialog} onClose={handleCloseEditDate} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          Editar Fecha de Venta
-        </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <DatePicker
-                label="Fecha de Venta"
-                value={newSaleDate}
-                onChange={(newValue) => setNewSaleDate(newValue)}
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseEditDate}>Cancelar</Button>
-          <Button onClick={handleSaveDateEdit}>Guardar</Button>
         </DialogActions>
       </Dialog>
     </Box>

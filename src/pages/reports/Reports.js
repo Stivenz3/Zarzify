@@ -35,10 +35,27 @@ import {
   Assessment as AssessmentIcon,
   PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+} from 'recharts';
 import { useApp } from '../../context/AppContext';
 import api from '../../config/axios';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 function Reports() {
   const { currentBusiness } = useApp();
@@ -116,7 +133,22 @@ function Reports() {
   const fetchSalesData = async () => {
     try {
       const response = await api.get(`/ventas/${currentBusiness.id}`);
-      setSalesData(response.data.slice(0, 20)); // Últimas 20 ventas
+      const sales = response.data;
+      
+      // Procesar datos para gráficas
+      const salesByMonth = {};
+      sales.forEach(sale => {
+        const date = new Date(sale.fecha_venta || sale.created_at);
+        const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+        
+        if (!salesByMonth[monthKey]) {
+          salesByMonth[monthKey] = { mes: monthKey, ventas: 0, total: 0 };
+        }
+        salesByMonth[monthKey].ventas += 1;
+        salesByMonth[monthKey].total += parseFloat(sale.total || 0);
+      });
+      
+      setSalesData(Object.values(salesByMonth).slice(-6)); // Últimos 6 meses
     } catch (error) {
       throw error;
     }
@@ -125,7 +157,23 @@ function Reports() {
   const fetchInventoryData = async () => {
     try {
       const response = await api.get(`/productos/${currentBusiness.id}`);
-      setProductsData(response.data);
+      const products = response.data;
+      
+      // Procesar datos para gráficas
+      const stockLevels = {
+        'Stock Alto': products.filter(p => p.stock > p.stock_minimo * 2).length,
+        'Stock Normal': products.filter(p => p.stock > p.stock_minimo && p.stock <= p.stock_minimo * 2).length,
+        'Stock Bajo': products.filter(p => p.stock > 0 && p.stock <= p.stock_minimo).length,
+        'Agotado': products.filter(p => p.stock <= 0).length,
+      };
+      
+      const chartData = Object.entries(stockLevels).map(([name, value]) => ({
+        name,
+        value,
+        productos: value
+      }));
+      
+      setProductsData(chartData);
     } catch (error) {
       throw error;
     }
@@ -143,7 +191,25 @@ function Reports() {
   const fetchExpensesData = async () => {
     try {
       const response = await api.get(`/egresos/${currentBusiness.id}`);
-      setExpensesData(response.data.slice(0, 20)); // Últimos 20 gastos
+      const expenses = response.data;
+      
+      // Procesar datos para gráficas
+      const expensesByCategory = {};
+      expenses.forEach(expense => {
+        const category = expense.categoria || 'Sin categoría';
+        if (!expensesByCategory[category]) {
+          expensesByCategory[category] = 0;
+        }
+        expensesByCategory[category] += parseFloat(expense.monto || 0);
+      });
+      
+      const chartData = Object.entries(expensesByCategory).map(([name, value]) => ({
+        name,
+        value: value,
+        monto: value
+      }));
+      
+      setExpensesData(chartData);
     } catch (error) {
       throw error;
     }
@@ -299,7 +365,7 @@ function Reports() {
               sale.metodo_pago || 'N/A'
             ]);
 
-            doc.autoTable({
+            autoTable(doc, {
               head: [['Fecha', 'Cliente', 'Total', 'Método de Pago']],
               body: tableData,
               startY: yPosition,
@@ -337,7 +403,7 @@ function Reports() {
               getStockStatusText(product.stock || 0, product.stock_minimo || 0)
             ]);
 
-            doc.autoTable({
+            autoTable(doc, {
               head: [['Producto', 'Categoría', 'Stock', 'Precio', 'Estado']],
               body: tableData,
               startY: yPosition,
@@ -374,7 +440,7 @@ function Reports() {
               `$${parseFloat(client.credito_disponible || 0).toFixed(2)}`
             ]);
 
-            doc.autoTable({
+            autoTable(doc, {
               head: [['Nombre', 'Email', 'Teléfono', 'Crédito Disponible']],
               body: tableData,
               startY: yPosition,
@@ -412,7 +478,7 @@ function Reports() {
               expense.metodo_pago || 'N/A'
             ]);
 
-            doc.autoTable({
+            autoTable(doc, {
               head: [['Fecha', 'Concepto', 'Categoría', 'Monto', 'Método de Pago']],
               body: tableData,
               startY: yPosition,
@@ -487,6 +553,116 @@ function Reports() {
       setLoading(false);
     }
   };
+
+  const renderSalesReport = () => (
+    <Card>
+      <CardContent>
+        <Typography variant="h6" gutterBottom>Ventas por Mes</Typography>
+        <ResponsiveContainer width="100%" height={400}>
+          <BarChart data={salesData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="mes" />
+            <YAxis />
+            <Tooltip 
+              formatter={(value, name) => [
+                name === 'total' ? `$${value.toFixed(2)}` : value,
+                name === 'total' ? 'Total Vendido' : 'Número de Ventas'
+              ]}
+            />
+            <Legend />
+            <Bar dataKey="ventas" fill="#8884d8" name="Ventas" />
+            <Bar dataKey="total" fill="#82ca9d" name="Total $" />
+          </BarChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
+  );
+
+  const renderInventoryReport = () => (
+    <Card>
+      <CardContent>
+        <Typography variant="h6" gutterBottom>Estado del Inventario</Typography>
+        <ResponsiveContainer width="100%" height={400}>
+          <PieChart>
+            <Pie
+              data={productsData}
+              cx="50%"
+              cy="50%"
+              labelLine={false}
+              label={({ name, value }) => `${name}: ${value}`}
+              outerRadius={80}
+              fill="#8884d8"
+              dataKey="value"
+            >
+              {productsData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip />
+          </PieChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
+  );
+
+  const renderExpensesReport = () => (
+    <Card>
+      <CardContent>
+        <Typography variant="h6" gutterBottom>Gastos por Categoría</Typography>
+        <ResponsiveContainer width="100%" height={400}>
+          <PieChart>
+            <Pie
+              data={expensesData}
+              cx="50%"
+              cy="50%"
+              labelLine={false}
+              label={({ name, value }) => `${name}: $${value.toFixed(2)}`}
+              outerRadius={80}
+              fill="#8884d8"
+              dataKey="value"
+            >
+              {expensesData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip formatter={(value) => `$${value.toFixed(2)}`} />
+          </PieChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
+  );
+
+  const renderCustomersReport = () => (
+    <Card>
+      <CardContent>
+        <Typography variant="h6" gutterBottom>Lista de Clientes</Typography>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Nombre</TableCell>
+                <TableCell>Email</TableCell>
+                <TableCell>Teléfono</TableCell>
+                <TableCell>Crédito Disponible</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {clientsData.map((client) => (
+                <TableRow key={client.id}>
+                  <TableCell>{client.nombre}</TableCell>
+                  <TableCell>{client.email || '-'}</TableCell>
+                  <TableCell>{client.telefono || '-'}</TableCell>
+                  <TableCell>
+                    ${parseFloat(client.credito_disponible || 0).toFixed(2)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </CardContent>
+    </Card>
+  );
 
   const renderDashboardReport = () => {
     if (!dashboardData) return null;
@@ -632,179 +808,6 @@ function Reports() {
       </Grid>
     );
   };
-
-  const renderSalesReport = () => (
-    <Card>
-      <CardContent>
-        <Typography variant="h6" gutterBottom>Últimas Ventas</Typography>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Fecha</TableCell>
-                <TableCell>Cliente</TableCell>
-                <TableCell>Total</TableCell>
-                <TableCell>Método de Pago</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {salesData.map((sale) => (
-                <TableRow key={sale.id}>
-                  <TableCell>
-                    {new Date(sale.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>{sale.cliente_nombre || 'Cliente General'}</TableCell>
-                  <TableCell>${parseFloat(sale.total).toFixed(2)}</TableCell>
-                  <TableCell>
-                    <Chip size="small" label={sale.metodo_pago} />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </CardContent>
-    </Card>
-  );
-
-  const renderInventoryReport = () => {
-    const lowStockCount = productsData.filter(p => p.stock <= p.stock_minimo).length;
-    const outOfStockCount = productsData.filter(p => p.stock <= 0).length;
-
-    return (
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <Typography variant="h4" color="primary">{productsData.length}</Typography>
-              <Typography>Total Productos</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <Typography variant="h4" color="warning.main">{lowStockCount}</Typography>
-              <Typography>Stock Bajo</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <Typography variant="h4" color="error.main">{outOfStockCount}</Typography>
-              <Typography>Agotados</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>Productos por Stock</Typography>
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Producto</TableCell>
-                      <TableCell>Categoría</TableCell>
-                      <TableCell>Stock</TableCell>
-                      <TableCell>Precio</TableCell>
-                      <TableCell>Estado</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {productsData.slice(0, 10).map((product) => (
-                      <TableRow key={product.id}>
-                        <TableCell>{product.nombre}</TableCell>
-                        <TableCell>{product.categoria_nombre || 'Sin categoría'}</TableCell>
-                        <TableCell>{product.stock}</TableCell>
-                        <TableCell>${parseFloat(product.precio_venta).toFixed(2)}</TableCell>
-                        <TableCell>
-                          <Chip
-                            size="small"
-                            label={getStockStatusText(product.stock, product.stock_minimo)}
-                            color={getStockStatusColor(product.stock, product.stock_minimo)}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    );
-  };
-
-  const renderCustomersReport = () => (
-    <Card>
-      <CardContent>
-        <Typography variant="h6" gutterBottom>Lista de Clientes</Typography>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Nombre</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Teléfono</TableCell>
-                <TableCell>Crédito Disponible</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {clientsData.map((client) => (
-                <TableRow key={client.id}>
-                  <TableCell>{client.nombre}</TableCell>
-                  <TableCell>{client.email || '-'}</TableCell>
-                  <TableCell>{client.telefono || '-'}</TableCell>
-                  <TableCell>
-                    ${parseFloat(client.credito_disponible || 0).toFixed(2)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </CardContent>
-    </Card>
-  );
-
-  const renderExpensesReport = () => (
-    <Card>
-      <CardContent>
-        <Typography variant="h6" gutterBottom>Últimos Gastos</Typography>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Fecha</TableCell>
-                <TableCell>Concepto</TableCell>
-                <TableCell>Categoría</TableCell>
-                <TableCell>Monto</TableCell>
-                <TableCell>Método de Pago</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {expensesData.map((expense) => (
-                <TableRow key={expense.id}>
-                  <TableCell>
-                    {new Date(expense.fecha || expense.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>{expense.concepto}</TableCell>
-                  <TableCell>
-                    <Chip size="small" label={expense.categoria} />
-                  </TableCell>
-                  <TableCell>${parseFloat(expense.monto).toFixed(2)}</TableCell>
-                  <TableCell>{expense.metodo_pago}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </CardContent>
-    </Card>
-  );
 
   const renderReportContent = () => {
     switch (reportType) {
