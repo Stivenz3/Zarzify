@@ -80,7 +80,7 @@ function Sales() {
     if (!currentBusiness) return;
     setLoading(true);
     try {
-      const response = await api.get(`/api/ventas/${currentBusiness.id}`);
+      const response = await api.get(`/ventas/${currentBusiness.id}`);
       setSales(response.data);
     } catch (error) {
       console.error('Error al cargar ventas:', error);
@@ -93,7 +93,7 @@ function Sales() {
   const loadClients = async () => {
     if (!currentBusiness) return;
     try {
-      const response = await api.get(`/api/clientes/${currentBusiness.id}`);
+      const response = await api.get(`/clientes/${currentBusiness.id}`);
       setClients(response.data);
     } catch (error) {
       console.error('Error al cargar clientes:', error);
@@ -103,7 +103,7 @@ function Sales() {
   const loadProducts = async () => {
     if (!currentBusiness) return;
     try {
-      const response = await api.get(`/api/productos/${currentBusiness.id}`);
+      const response = await api.get(`/productos/${currentBusiness.id}`);
       setProducts(response.data);
     } catch (error) {
       console.error('Error al cargar productos:', error);
@@ -112,7 +112,7 @@ function Sales() {
 
   const loadSaleDetails = async (saleId) => {
     try {
-      const response = await api.get(`/api/ventas/${saleId}/details`);
+      const response = await api.get(`/ventas/${saleId}/details`);
       setSaleDetails(response.data);
     } catch (error) {
       console.error('Error al cargar detalles:', error);
@@ -152,7 +152,7 @@ function Sales() {
 
   const loadSaleProducts = async (saleId) => {
     try {
-      const response = await api.get(`/api/ventas/${saleId}/products`);
+      const response = await api.get(`/ventas/${saleId}/products`);
       // Asegurar que los productos tengan el formato correcto
       const productosFormateados = response.data.map(producto => ({
         ...producto,

@@ -144,7 +144,7 @@ function Reports() {
 
   const fetchSalesData = async () => {
     try {
-      const response = await api.get(`/api/ventas/${currentBusiness.id}`);
+      const response = await api.get(`/ventas/${currentBusiness.id}`);
       const sales = response.data;
       
       // Filtrar por rango de fechas
@@ -295,7 +295,7 @@ function Reports() {
       switch (reportType) {
         case 'sales':
           try {
-            const response = await api.get(`/api/ventas/${currentBusiness.id}`);
+            const response = await api.get(`/ventas/${currentBusiness.id}`);
             const allSales = response.data;
             currentData = allSales.filter(sale => {
               const saleDate = new Date(sale.fecha_venta || sale.created_at);
