@@ -321,9 +321,9 @@ function Sales() {
       console.log('Enviando datos de venta:', salePayload); // Debug
 
       if (editingSale) {
-        await api.put(`/api/ventas/${editingSale.id}`, salePayload);
+        await api.put(`/ventas/${editingSale.id}`, salePayload);
       } else {
-        await api.post('/api/ventas', salePayload);
+        await api.post('/ventas', salePayload);
       }
 
       await loadSales();
@@ -342,7 +342,7 @@ function Sales() {
   const handleDelete = async (saleId) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar esta venta?')) {
       try {
-        await api.delete(`/api/ventas/${saleId}`);
+        await api.delete(`/ventas/${saleId}`);
         await loadSales();
         markDashboardForRefresh();
       } catch (error) {
@@ -495,73 +495,80 @@ function Sales() {
           )}
           
           <Grid container spacing={3}>
-            {/* Información de la venta */}
-            <Grid item xs={12} md={4}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Información de la Venta
+            {/* Información de la venta - Mejor distribución */}
+            <Grid item xs={12}>
+              <Typography variant="h6" gutterBottom>
+                Información de la Venta
+              </Typography>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Cliente (Opcional)</InputLabel>
+                <Select
+                  name="cliente_id"
+                  value={saleData.cliente_id}
+                  onChange={handleInputChange}
+                  label="Cliente (Opcional)"
+                >
+                  <MenuItem value="">Cliente General</MenuItem>
+                  {clients.map((client) => (
+                    <MenuItem key={client.id} value={client.id}>
+                      {client.nombre}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Método de Pago</InputLabel>
+                <Select
+                  name="metodo_pago"
+                  value={saleData.metodo_pago}
+                  onChange={handleInputChange}
+                  label="Método de Pago"
+                >
+                  <MenuItem value="efectivo">Efectivo</MenuItem>
+                  <MenuItem value="tarjeta">Tarjeta</MenuItem>
+                  <MenuItem value="transferencia">Transferencia</MenuItem>
+                  <MenuItem value="credito">Crédito</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <DatePicker
+                label="Fecha de Venta"
+                value={saleData.fecha_venta}
+                onChange={(newValue) => 
+                  setSaleData(prev => ({ ...prev, fecha_venta: newValue }))
+                }
+                renderInput={(params) => (
+                  <TextField {...params} fullWidth />
+                )}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Descuento Total"
+                name="descuento_total"
+                type="number"
+                value={saleData.descuento_total}
+                onChange={handleInputChange}
+                inputProps={{ min: 0 }}
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <Card sx={{ bgcolor: 'primary.light', color: 'primary.contrastText' }}>
+                <CardContent sx={{ textAlign: 'center' }}>
+                  <Typography variant="h6">
+                    Total: ${calculateTotal().toFixed(2)}
                   </Typography>
-
-                  <FormControl fullWidth sx={{ mb: 2 }}>
-                    <InputLabel>Cliente (Opcional)</InputLabel>
-                    <Select
-                      name="cliente_id"
-                      value={saleData.cliente_id}
-                      onChange={handleInputChange}
-                      label="Cliente (Opcional)"
-                    >
-                      <MenuItem value="">Cliente General</MenuItem>
-                      {clients.map((client) => (
-                        <MenuItem key={client.id} value={client.id}>
-                          {client.nombre}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-
-                  <FormControl fullWidth sx={{ mb: 2 }}>
-                    <InputLabel>Método de Pago</InputLabel>
-                    <Select
-                      name="metodo_pago"
-                      value={saleData.metodo_pago}
-                      onChange={handleInputChange}
-                      label="Método de Pago"
-                    >
-                      <MenuItem value="efectivo">Efectivo</MenuItem>
-                      <MenuItem value="tarjeta">Tarjeta</MenuItem>
-                      <MenuItem value="transferencia">Transferencia</MenuItem>
-                      <MenuItem value="credito">Crédito</MenuItem>
-                    </Select>
-                  </FormControl>
-
-                  <DatePicker
-                    label="Fecha de Venta"
-                    value={saleData.fecha_venta}
-                    onChange={(newValue) => 
-                      setSaleData(prev => ({ ...prev, fecha_venta: newValue }))
-                    }
-                    renderInput={(params) => (
-                      <TextField {...params} fullWidth sx={{ mb: 2 }} />
-                    )}
-                  />
-
-                  <TextField
-                    fullWidth
-                    label="Descuento Total"
-                    name="descuento_total"
-                    type="number"
-                    value={saleData.descuento_total}
-                    onChange={handleInputChange}
-                    inputProps={{ min: 0 }}
-                    sx={{ mb: 2 }}
-                  />
-
-                  <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
-                    <Typography variant="h6" color="primary">
-                      Total: ${calculateTotal().toFixed(2)}
-                    </Typography>
-                  </Box>
                 </CardContent>
               </Card>
             </Grid>
