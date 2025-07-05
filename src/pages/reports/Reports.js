@@ -25,6 +25,7 @@ import {
   TableRow,
   Paper,
   LinearProgress,
+  TextField,
 } from '@mui/material';
 import {
   Warning as WarningIcon,
@@ -34,6 +35,7 @@ import {
   People as PeopleIcon,
   Assessment as AssessmentIcon,
   PictureAsPdf as PdfIcon,
+  DateRange as DateRangeIcon,
 } from '@mui/icons-material';
 import {
   BarChart,
@@ -50,12 +52,14 @@ import {
   LineChart,
   Line,
 } from 'recharts';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useApp } from '../../context/AppContext';
 import api from '../../config/axios';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import logoZarzify from '../../logo zarzify.png';
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82ca9d', '#ffc658'];
 
 function Reports() {
   const { currentBusiness } = useApp();
@@ -69,6 +73,14 @@ function Reports() {
   const [expensesData, setExpensesData] = useState([]);
   const [lowStockProducts, setLowStockProducts] = useState([]);
 
+  // Estados para rango de fechas
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - 1); // Por defecto último mes
+    return date;
+  });
+  const [endDate, setEndDate] = useState(new Date());
+
   const reportTypes = [
     { value: 'dashboard', label: 'Resumen General' },
     { value: 'sales', label: 'Reportes de Ventas' },
@@ -81,7 +93,7 @@ function Reports() {
     if (currentBusiness) {
       fetchReportData();
     }
-  }, [currentBusiness, reportType]);
+  }, [currentBusiness, reportType, startDate, endDate]);
 
   const fetchReportData = async () => {
     if (!currentBusiness) return;
@@ -132,23 +144,34 @@ function Reports() {
 
   const fetchSalesData = async () => {
     try {
-      const response = await api.get(`/ventas/${currentBusiness.id}`);
+      const response = await api.get(`/api/ventas/${currentBusiness.id}`);
       const sales = response.data;
       
-      // Procesar datos para gráficas
+      // Filtrar por rango de fechas
+      const filteredSales = sales.filter(sale => {
+        const saleDate = new Date(sale.fecha_venta || sale.created_at);
+        return saleDate >= startDate && saleDate <= endDate;
+      });
+      
+      // Procesar datos para gráfica lineal por mes
       const salesByMonth = {};
-      sales.forEach(sale => {
+      filteredSales.forEach(sale => {
         const date = new Date(sale.fecha_venta || sale.created_at);
         const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+        const monthName = date.toLocaleDateString('es-ES', { year: 'numeric', month: 'short' });
         
         if (!salesByMonth[monthKey]) {
-          salesByMonth[monthKey] = { mes: monthKey, ventas: 0, total: 0 };
+          salesByMonth[monthKey] = { mes: monthName, ventas: 0, total: 0 };
         }
         salesByMonth[monthKey].ventas += 1;
         salesByMonth[monthKey].total += parseFloat(sale.total || 0);
       });
       
-      setSalesData(Object.values(salesByMonth).slice(-6)); // Últimos 6 meses
+      const sortedData = Object.entries(salesByMonth)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([, data]) => data);
+      
+      setSalesData(sortedData);
     } catch (error) {
       throw error;
     }
@@ -156,22 +179,43 @@ function Reports() {
 
   const fetchInventoryData = async () => {
     try {
-      const response = await api.get(`/productos/${currentBusiness.id}`);
-      const products = response.data;
+      const [productsResponse, categoriesResponse] = await Promise.all([
+        api.get(`/productos/${currentBusiness.id}`),
+        api.get(`/categorias/${currentBusiness.id}`)
+      ]);
       
-      // Procesar datos para gráficas
-      const stockLevels = {
-        'Stock Alto': products.filter(p => p.stock > p.stock_minimo * 2).length,
-        'Stock Normal': products.filter(p => p.stock > p.stock_minimo && p.stock <= p.stock_minimo * 2).length,
-        'Stock Bajo': products.filter(p => p.stock > 0 && p.stock <= p.stock_minimo).length,
-        'Agotado': products.filter(p => p.stock <= 0).length,
-      };
+      const products = productsResponse.data;
+      const categories = categoriesResponse.data;
       
-      const chartData = Object.entries(stockLevels).map(([name, value]) => ({
-        name,
-        value,
-        productos: value
-      }));
+      // Procesar datos por categorías
+      const productsByCategory = {};
+      
+      // Inicializar todas las categorías
+      categories.forEach(category => {
+        productsByCategory[category.nombre] = { name: category.nombre, productos: 0, valor: 0 };
+      });
+      
+      // Agregar categoría para productos sin categoría
+      productsByCategory['Sin categoría'] = { name: 'Sin categoría', productos: 0, valor: 0 };
+      
+      // Contar productos por categoría
+      products.forEach(product => {
+        const categoryName = product.categoria_nombre || 'Sin categoría';
+        if (productsByCategory[categoryName]) {
+          productsByCategory[categoryName].productos += 1;
+          productsByCategory[categoryName].valor += (product.stock || 0) * (product.precio_venta || 0);
+        }
+      });
+      
+      // Convertir a array y filtrar categorías vacías
+      const chartData = Object.values(productsByCategory)
+        .filter(category => category.productos > 0)
+        .map(category => ({
+          name: category.name,
+          value: category.productos,
+          productos: category.productos,
+          valor: category.valor
+        }));
       
       setProductsData(chartData);
     } catch (error) {
@@ -193,9 +237,15 @@ function Reports() {
       const response = await api.get(`/egresos/${currentBusiness.id}`);
       const expenses = response.data;
       
+      // Filtrar por rango de fechas
+      const filteredExpenses = expenses.filter(expense => {
+        const expenseDate = new Date(expense.fecha || expense.created_at);
+        return expenseDate >= startDate && expenseDate <= endDate;
+      });
+      
       // Procesar datos para gráficas
       const expensesByCategory = {};
-      expenses.forEach(expense => {
+      filteredExpenses.forEach(expense => {
         const category = expense.categoria || 'Sin categoría';
         if (!expensesByCategory[category]) {
           expensesByCategory[category] = 0;
@@ -245,8 +295,12 @@ function Reports() {
       switch (reportType) {
         case 'sales':
           try {
-            const response = await api.get(`/ventas/${currentBusiness.id}`);
-            currentData = response.data;
+            const response = await api.get(`/api/ventas/${currentBusiness.id}`);
+            const allSales = response.data;
+            currentData = allSales.filter(sale => {
+              const saleDate = new Date(sale.fecha_venta || sale.created_at);
+              return saleDate >= startDate && saleDate <= endDate;
+            });
           } catch (error) {
             console.error('Error cargando datos de ventas:', error);
             currentData = salesData; // Fallback a datos existentes
@@ -273,7 +327,11 @@ function Reports() {
         case 'expenses':
           try {
             const response = await api.get(`/egresos/${currentBusiness.id}`);
-            currentData = response.data.slice(0, 50); // Limitar para PDF
+            const allExpenses = response.data;
+            currentData = allExpenses.filter(expense => {
+              const expenseDate = new Date(expense.fecha || expense.created_at);
+              return expenseDate >= startDate && expenseDate <= endDate;
+            }).slice(0, 50); // Limitar para PDF
           } catch (error) {
             console.error('Error cargando datos de gastos:', error);
             currentData = expensesData; // Fallback a datos existentes
@@ -313,238 +371,261 @@ function Reports() {
       const pageWidth = doc.internal.pageSize.width;
       const margin = 20;
 
-      // Encabezado del documento
-      doc.setFontSize(20);
-      doc.setFont('helvetica', 'bold');
-      doc.text('ZARZIFY', margin, 30);
-      
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Negocio: ${currentBusiness?.nombre}`, margin, 45);
-      
-      doc.setFontSize(12);
-      doc.text(`Reporte: ${reportTypes.find(type => type.value === reportType)?.label}`, margin, 55);
-      doc.text(`Fecha de generación: ${new Date().toLocaleDateString()}`, margin, 65);
+      // Cargar y agregar logo
+      try {
+        const logoImg = new Image();
+        logoImg.onload = function() {
+          // Agregar logo
+          doc.addImage(this, 'PNG', margin, 15, 20, 20);
+          
+          // Continuar con el resto del PDF
+          generatePDFContent();
+        };
+        logoImg.src = logoZarzify;
+      } catch (error) {
+        console.log('No se pudo cargar el logo, continuando sin él');
+        generatePDFContent();
+      }
 
-      let yPosition = 80;
-
-      // Alertas de stock bajo (siempre mostrar si hay)
-      if (lowStock && lowStock.length > 0) {
-        doc.setFontSize(14);
+      function generatePDFContent() {
+        // Encabezado del documento
+        doc.setFontSize(20);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(255, 100, 100);
-        doc.text('⚠ ALERTAS DE STOCK BAJO', margin, yPosition);
-        yPosition += 10;
+        doc.text('ZARZIFY', margin + 25, 30);
         
-        doc.setFontSize(10);
+        doc.setFontSize(14);
         doc.setFont('helvetica', 'normal');
+        doc.text(`Negocio: ${currentBusiness?.nombre}`, margin, 45);
+        
+        doc.setFontSize(12);
+        doc.text(`Reporte: ${reportTypes.find(type => type.value === reportType)?.label}`, margin, 55);
+        doc.text(`Fecha de generación: ${new Date().toLocaleDateString()}`, margin, 65);
+        
+        // Mostrar rango de fechas si no es dashboard
+        if (reportType !== 'dashboard') {
+          doc.text(`Período: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`, margin, 75);
+        }
+
+        let yPosition = reportType !== 'dashboard' ? 90 : 80;
+
+        // Alertas de stock bajo (siempre mostrar si hay)
+        if (lowStock && lowStock.length > 0) {
+          doc.setFontSize(14);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(255, 100, 100);
+          doc.text('⚠ ALERTAS DE STOCK BAJO', margin, yPosition);
+          yPosition += 10;
+          
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(0, 0, 0);
+          
+          lowStock.slice(0, 5).forEach(product => {
+            doc.text(`• ${product.nombre} - Stock: ${product.stock} (Mín: ${product.stock_minimo})`, margin + 5, yPosition);
+            yPosition += 8;
+          });
+          yPosition += 10;
+        }
+
+        // Contenido específico por tipo de reporte
         doc.setTextColor(0, 0, 0);
-        
-        lowStock.slice(0, 5).forEach(product => {
-          doc.text(`• ${product.nombre} - Stock: ${product.stock} (Mín: ${product.stock_minimo})`, margin + 5, yPosition);
-          yPosition += 8;
-        });
-        yPosition += 10;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+
+        switch (reportType) {
+          case 'sales':
+            doc.text('REPORTE DE VENTAS', margin, yPosition);
+            yPosition += 15;
+
+            if (currentData && currentData.length > 0) {
+              const tableData = currentData.slice(0, 50).map(sale => [
+                new Date(sale.fecha_venta || sale.created_at).toLocaleDateString(),
+                sale.cliente_nombre || 'Cliente General',
+                `$${parseFloat(sale.total || 0).toFixed(2)}`,
+                sale.metodo_pago || 'N/A'
+              ]);
+
+              autoTable(doc, {
+                head: [['Fecha', 'Cliente', 'Total', 'Método de Pago']],
+                body: tableData,
+                startY: yPosition,
+                styles: { 
+                  fontSize: 9,
+                  cellPadding: 4,
+                  overflow: 'linebreak',
+                  columnWidth: 'wrap'
+                },
+                headStyles: { 
+                  fillColor: [66, 139, 202],
+                  textColor: 255,
+                  fontStyle: 'bold'
+                },
+                alternateRowStyles: { fillColor: [245, 245, 245] },
+                margin: { left: margin, right: margin }
+              });
+            } else {
+              doc.setFontSize(12);
+              doc.setFont('helvetica', 'normal');
+              doc.text('No hay datos de ventas disponibles para el período seleccionado', margin, yPosition);
+            }
+            break;
+
+          case 'inventory':
+            doc.text('REPORTE DE INVENTARIO', margin, yPosition);
+            yPosition += 15;
+
+            if (currentData && currentData.length > 0) {
+              const tableData = currentData.map(product => [
+                product.nombre || 'N/A',
+                product.categoria_nombre || 'Sin categoría',
+                (product.stock || 0).toString(),
+                `$${parseFloat(product.precio_venta || 0).toFixed(2)}`,
+                getStockStatusText(product.stock || 0, product.stock_minimo || 0)
+              ]);
+
+              autoTable(doc, {
+                head: [['Producto', 'Categoría', 'Stock', 'Precio', 'Estado']],
+                body: tableData,
+                startY: yPosition,
+                styles: { 
+                  fontSize: 9,
+                  cellPadding: 4,
+                  overflow: 'linebreak',
+                  columnWidth: 'wrap'
+                },
+                headStyles: { 
+                  fillColor: [76, 175, 80],
+                  textColor: 255,
+                  fontStyle: 'bold'
+                },
+                alternateRowStyles: { fillColor: [245, 245, 245] },
+                margin: { left: margin, right: margin }
+              });
+            } else {
+              doc.setFontSize(12);
+              doc.setFont('helvetica', 'normal');
+              doc.text('No hay datos de inventario disponibles', margin, yPosition);
+            }
+            break;
+
+          case 'customers':
+            doc.text('REPORTE DE CLIENTES', margin, yPosition);
+            yPosition += 15;
+
+            if (currentData && currentData.length > 0) {
+              const tableData = currentData.map(client => [
+                client.nombre || 'N/A',
+                client.email || '-',
+                client.telefono || '-',
+                `$${parseFloat(client.credito_disponible || 0).toFixed(2)}`
+              ]);
+
+              autoTable(doc, {
+                head: [['Nombre', 'Email', 'Teléfono', 'Crédito Disponible']],
+                body: tableData,
+                startY: yPosition,
+                styles: { 
+                  fontSize: 9,
+                  cellPadding: 4,
+                  overflow: 'linebreak',
+                  columnWidth: 'wrap'
+                },
+                headStyles: { 
+                  fillColor: [156, 39, 176],
+                  textColor: 255,
+                  fontStyle: 'bold'
+                },
+                alternateRowStyles: { fillColor: [245, 245, 245] },
+                margin: { left: margin, right: margin }
+              });
+            } else {
+              doc.setFontSize(12);
+              doc.setFont('helvetica', 'normal');
+              doc.text('No hay datos de clientes disponibles', margin, yPosition);
+            }
+            break;
+
+          case 'expenses':
+            doc.text('REPORTE DE GASTOS', margin, yPosition);
+            yPosition += 15;
+
+            if (currentData && currentData.length > 0) {
+              const tableData = currentData.map(expense => [
+                new Date(expense.fecha || expense.created_at).toLocaleDateString(),
+                expense.concepto || 'N/A',
+                expense.categoria || 'N/A',
+                `$${parseFloat(expense.monto || 0).toFixed(2)}`,
+                expense.metodo_pago || 'N/A'
+              ]);
+
+              autoTable(doc, {
+                head: [['Fecha', 'Concepto', 'Categoría', 'Monto', 'Método de Pago']],
+                body: tableData,
+                startY: yPosition,
+                styles: { 
+                  fontSize: 9,
+                  cellPadding: 4,
+                  overflow: 'linebreak',
+                  columnWidth: 'wrap'
+                },
+                headStyles: { 
+                  fillColor: [255, 152, 0],
+                  textColor: 255,
+                  fontStyle: 'bold'
+                },
+                alternateRowStyles: { fillColor: [245, 245, 245] },
+                margin: { left: margin, right: margin }
+              });
+            } else {
+              doc.setFontSize(12);
+              doc.setFont('helvetica', 'normal');
+              doc.text('No hay datos de gastos disponibles para el período seleccionado', margin, yPosition);
+            }
+            break;
+
+          case 'dashboard':
+            doc.text('RESUMEN GENERAL', margin, yPosition);
+            yPosition += 15;
+
+            if (currentData) {
+              doc.setFontSize(12);
+              doc.setFont('helvetica', 'normal');
+              doc.text(`Total de Productos: ${currentData.totalProducts || 0}`, margin, yPosition);
+              yPosition += 10;
+              doc.text(`Total de Ventas: ${currentData.totalSales || 0}`, margin, yPosition);
+              yPosition += 10;
+              doc.text(`Total de Clientes: ${currentData.totalCustomers || 0}`, margin, yPosition);
+              yPosition += 10;
+              doc.text(`Ingresos Totales: $${(currentData.totalRevenue || 0).toFixed(2)}`, margin, yPosition);
+              yPosition += 10;
+              doc.text(`Valor de Inventario: $${(currentData.inventoryValue || 0).toFixed(2)}`, margin, yPosition);
+              yPosition += 10;
+              doc.text(`Ganancia Neta: $${(currentData.netProfit || 0).toFixed(2)}`, margin, yPosition);
+              yPosition += 10;
+              doc.text(`Margen de Ganancia: ${(currentData.profitMargin || 0).toFixed(1)}%`, margin, yPosition);
+            } else {
+              doc.setFontSize(12);
+              doc.setFont('helvetica', 'normal');
+              doc.text('No hay datos del dashboard disponibles', margin, yPosition);
+            }
+            break;
+        }
+
+        // Pie de página
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+          doc.setPage(i);
+          doc.setFontSize(8);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(128, 128, 128);
+          doc.text(`Página ${i} de ${pageCount}`, pageWidth - margin - 30, doc.internal.pageSize.height - 10);
+          doc.text(`Generado por Zarzify - ${new Date().toLocaleString()}`, margin, doc.internal.pageSize.height - 10);
+        }
+
+        // Guardar el PDF
+        const fileName = `reporte_${reportType}_${currentBusiness.nombre.replace(/\s+/g, '_')}_${startDate.toISOString().split('T')[0]}_${endDate.toISOString().split('T')[0]}.pdf`;
+        doc.save(fileName);
       }
-
-      // Contenido específico por tipo de reporte
-      doc.setTextColor(0, 0, 0);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-
-      switch (reportType) {
-        case 'sales':
-          doc.text('REPORTE DE VENTAS', margin, yPosition);
-          yPosition += 15;
-
-          if (currentData && currentData.length > 0) {
-            const tableData = currentData.slice(0, 50).map(sale => [
-              new Date(sale.fecha_venta || sale.created_at).toLocaleDateString(),
-              sale.cliente_nombre || 'Cliente General',
-              `$${parseFloat(sale.total || 0).toFixed(2)}`,
-              sale.metodo_pago || 'N/A'
-            ]);
-
-            autoTable(doc, {
-              head: [['Fecha', 'Cliente', 'Total', 'Método de Pago']],
-              body: tableData,
-              startY: yPosition,
-              styles: { 
-                fontSize: 9,
-                cellPadding: 4,
-                overflow: 'linebreak',
-                columnWidth: 'wrap'
-              },
-              headStyles: { 
-                fillColor: [66, 139, 202],
-                textColor: 255,
-                fontStyle: 'bold'
-              },
-              alternateRowStyles: { fillColor: [245, 245, 245] },
-              margin: { left: margin, right: margin }
-            });
-          } else {
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'normal');
-            doc.text('No hay datos de ventas disponibles', margin, yPosition);
-          }
-          break;
-
-        case 'inventory':
-          doc.text('REPORTE DE INVENTARIO', margin, yPosition);
-          yPosition += 15;
-
-          if (currentData && currentData.length > 0) {
-            const tableData = currentData.map(product => [
-              product.nombre || 'N/A',
-              product.categoria_nombre || 'Sin categoría',
-              (product.stock || 0).toString(),
-              `$${parseFloat(product.precio_venta || 0).toFixed(2)}`,
-              getStockStatusText(product.stock || 0, product.stock_minimo || 0)
-            ]);
-
-            autoTable(doc, {
-              head: [['Producto', 'Categoría', 'Stock', 'Precio', 'Estado']],
-              body: tableData,
-              startY: yPosition,
-              styles: { 
-                fontSize: 9,
-                cellPadding: 4,
-                overflow: 'linebreak',
-                columnWidth: 'wrap'
-              },
-              headStyles: { 
-                fillColor: [76, 175, 80],
-                textColor: 255,
-                fontStyle: 'bold'
-              },
-              alternateRowStyles: { fillColor: [245, 245, 245] },
-              margin: { left: margin, right: margin }
-            });
-          } else {
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'normal');
-            doc.text('No hay datos de inventario disponibles', margin, yPosition);
-          }
-          break;
-
-        case 'customers':
-          doc.text('REPORTE DE CLIENTES', margin, yPosition);
-          yPosition += 15;
-
-          if (currentData && currentData.length > 0) {
-            const tableData = currentData.map(client => [
-              client.nombre || 'N/A',
-              client.email || '-',
-              client.telefono || '-',
-              `$${parseFloat(client.credito_disponible || 0).toFixed(2)}`
-            ]);
-
-            autoTable(doc, {
-              head: [['Nombre', 'Email', 'Teléfono', 'Crédito Disponible']],
-              body: tableData,
-              startY: yPosition,
-              styles: { 
-                fontSize: 9,
-                cellPadding: 4,
-                overflow: 'linebreak',
-                columnWidth: 'wrap'
-              },
-              headStyles: { 
-                fillColor: [156, 39, 176],
-                textColor: 255,
-                fontStyle: 'bold'
-              },
-              alternateRowStyles: { fillColor: [245, 245, 245] },
-              margin: { left: margin, right: margin }
-            });
-          } else {
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'normal');
-            doc.text('No hay datos de clientes disponibles', margin, yPosition);
-          }
-          break;
-
-        case 'expenses':
-          doc.text('REPORTE DE GASTOS', margin, yPosition);
-          yPosition += 15;
-
-          if (currentData && currentData.length > 0) {
-            const tableData = currentData.map(expense => [
-              new Date(expense.fecha || expense.created_at).toLocaleDateString(),
-              expense.concepto || 'N/A',
-              expense.categoria || 'N/A',
-              `$${parseFloat(expense.monto || 0).toFixed(2)}`,
-              expense.metodo_pago || 'N/A'
-            ]);
-
-            autoTable(doc, {
-              head: [['Fecha', 'Concepto', 'Categoría', 'Monto', 'Método de Pago']],
-              body: tableData,
-              startY: yPosition,
-              styles: { 
-                fontSize: 9,
-                cellPadding: 4,
-                overflow: 'linebreak',
-                columnWidth: 'wrap'
-              },
-              headStyles: { 
-                fillColor: [255, 152, 0],
-                textColor: 255,
-                fontStyle: 'bold'
-              },
-              alternateRowStyles: { fillColor: [245, 245, 245] },
-              margin: { left: margin, right: margin }
-            });
-          } else {
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'normal');
-            doc.text('No hay datos de gastos disponibles', margin, yPosition);
-          }
-          break;
-
-        case 'dashboard':
-          doc.text('RESUMEN GENERAL', margin, yPosition);
-          yPosition += 15;
-
-          if (currentData) {
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'normal');
-            doc.text(`Total de Productos: ${currentData.totalProducts || 0}`, margin, yPosition);
-            yPosition += 10;
-            doc.text(`Total de Ventas: ${currentData.totalSales || 0}`, margin, yPosition);
-            yPosition += 10;
-            doc.text(`Total de Clientes: ${currentData.totalCustomers || 0}`, margin, yPosition);
-            yPosition += 10;
-            doc.text(`Ingresos Totales: $${(currentData.totalRevenue || 0).toFixed(2)}`, margin, yPosition);
-            yPosition += 10;
-            doc.text(`Valor de Inventario: $${(currentData.inventoryValue || 0).toFixed(2)}`, margin, yPosition);
-            yPosition += 10;
-            doc.text(`Ganancia Neta: $${(currentData.netProfit || 0).toFixed(2)}`, margin, yPosition);
-            yPosition += 10;
-            doc.text(`Margen de Ganancia: ${(currentData.profitMargin || 0).toFixed(1)}%`, margin, yPosition);
-          } else {
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'normal');
-            doc.text('No hay datos del dashboard disponibles', margin, yPosition);
-          }
-          break;
-      }
-
-      // Pie de página
-      const pageCount = doc.internal.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(128, 128, 128);
-        doc.text(`Página ${i} de ${pageCount}`, pageWidth - margin - 30, doc.internal.pageSize.height - 10);
-        doc.text(`Generado por Zarzify - ${new Date().toLocaleString()}`, margin, doc.internal.pageSize.height - 10);
-      }
-
-      // Guardar el PDF
-      const fileName = `reporte_${reportType}_${currentBusiness.nombre.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-      doc.save(fileName);
       
     } catch (error) {
       console.error('Error al generar PDF:', error);
@@ -557,9 +638,9 @@ function Reports() {
   const renderSalesReport = () => (
     <Card>
       <CardContent>
-        <Typography variant="h6" gutterBottom>Ventas por Mes</Typography>
+        <Typography variant="h6" gutterBottom>Tendencia de Ventas</Typography>
         <ResponsiveContainer width="100%" height={400}>
-          <BarChart data={salesData}>
+          <LineChart data={salesData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="mes" />
             <YAxis />
@@ -570,9 +651,9 @@ function Reports() {
               ]}
             />
             <Legend />
-            <Bar dataKey="ventas" fill="#8884d8" name="Ventas" />
-            <Bar dataKey="total" fill="#82ca9d" name="Total $" />
-          </BarChart>
+            <Line type="monotone" dataKey="ventas" stroke="#8884d8" name="Cantidad de Ventas" strokeWidth={2} />
+            <Line type="monotone" dataKey="total" stroke="#82ca9d" name="Total $" strokeWidth={2} />
+          </LineChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>
@@ -581,7 +662,7 @@ function Reports() {
   const renderInventoryReport = () => (
     <Card>
       <CardContent>
-        <Typography variant="h6" gutterBottom>Estado del Inventario</Typography>
+        <Typography variant="h6" gutterBottom>Distribución de Productos por Categoría</Typography>
         <ResponsiveContainer width="100%" height={400}>
           <PieChart>
             <Pie
@@ -590,7 +671,7 @@ function Reports() {
               cy="50%"
               labelLine={false}
               label={({ name, value }) => `${name}: ${value}`}
-              outerRadius={80}
+              outerRadius={120}
               fill="#8884d8"
               dataKey="value"
             >
@@ -598,7 +679,7 @@ function Reports() {
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip />
+            <Tooltip formatter={(value, name, props) => [`${value} productos`, 'Cantidad']} />
           </PieChart>
         </ResponsiveContainer>
       </CardContent>
@@ -856,22 +937,65 @@ function Reports() {
       </Box>
 
       {/* Selector de tipo de reporte */}
-      <Box sx={{ mb: 3 }}>
-        <FormControl sx={{ minWidth: 200 }}>
-          <InputLabel>Tipo de Reporte</InputLabel>
-          <Select
-            value={reportType}
-            label="Tipo de Reporte"
-            onChange={(e) => setReportType(e.target.value)}
-          >
-            {reportTypes.map((type) => (
-              <MenuItem key={type.value} value={type.value}>
-                {type.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Box>
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid item xs={12} md={4}>
+          <FormControl fullWidth>
+            <InputLabel>Tipo de Reporte</InputLabel>
+            <Select
+              value={reportType}
+              label="Tipo de Reporte"
+              onChange={(e) => setReportType(e.target.value)}
+            >
+              {reportTypes.map((type) => (
+                <MenuItem key={type.value} value={type.value}>
+                  {type.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+
+        {/* Selectores de fecha - Solo para reportes que no sean dashboard */}
+        {reportType !== 'dashboard' && reportType !== 'inventory' && (
+          <>
+            <Grid item xs={12} md={4}>
+              <DatePicker
+                label="Fecha Inicio"
+                value={startDate}
+                onChange={(newValue) => setStartDate(newValue || new Date())}
+                renderInput={(params) => <TextField {...params} fullWidth />}
+                maxDate={endDate}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <DatePicker
+                label="Fecha Fin"
+                value={endDate}
+                onChange={(newValue) => setEndDate(newValue || new Date())}
+                renderInput={(params) => <TextField {...params} fullWidth />}
+                minDate={startDate}
+                maxDate={new Date()}
+              />
+            </Grid>
+          </>
+        )}
+
+        {/* Indicador de rango de fechas */}
+        {reportType !== 'dashboard' && reportType !== 'inventory' && (
+          <Grid item xs={12}>
+            <Card sx={{ bgcolor: 'info.light', color: 'info.contrastText' }}>
+              <CardContent sx={{ py: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <DateRangeIcon />
+                  <Typography variant="body2">
+                    Mostrando datos del {startDate.toLocaleDateString()} al {endDate.toLocaleDateString()}
+                  </Typography>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
+      </Grid>
 
       {/* Error */}
       {error && (

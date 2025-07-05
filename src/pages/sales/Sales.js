@@ -80,7 +80,7 @@ function Sales() {
     if (!currentBusiness) return;
     setLoading(true);
     try {
-      const response = await api.get(`/ventas/${currentBusiness.id}`);
+      const response = await api.get(`/api/ventas/${currentBusiness.id}`);
       setSales(response.data);
     } catch (error) {
       console.error('Error al cargar ventas:', error);
@@ -93,7 +93,7 @@ function Sales() {
   const loadClients = async () => {
     if (!currentBusiness) return;
     try {
-      const response = await api.get(`/clientes/${currentBusiness.id}`);
+      const response = await api.get(`/api/clientes/${currentBusiness.id}`);
       setClients(response.data);
     } catch (error) {
       console.error('Error al cargar clientes:', error);
@@ -103,7 +103,7 @@ function Sales() {
   const loadProducts = async () => {
     if (!currentBusiness) return;
     try {
-      const response = await api.get(`/productos/${currentBusiness.id}`);
+      const response = await api.get(`/api/productos/${currentBusiness.id}`);
       setProducts(response.data);
     } catch (error) {
       console.error('Error al cargar productos:', error);
@@ -112,7 +112,7 @@ function Sales() {
 
   const loadSaleDetails = async (saleId) => {
     try {
-      const response = await api.get(`/ventas/${saleId}/details`);
+      const response = await api.get(`/api/ventas/${saleId}/details`);
       setSaleDetails(response.data);
     } catch (error) {
       console.error('Error al cargar detalles:', error);
@@ -152,10 +152,17 @@ function Sales() {
 
   const loadSaleProducts = async (saleId) => {
     try {
-      const response = await api.get(`/ventas/${saleId}/products`);
+      const response = await api.get(`/api/ventas/${saleId}/products`);
+      // Asegurar que los productos tengan el formato correcto
+      const productosFormateados = response.data.map(producto => ({
+        ...producto,
+        precio: producto.precio || producto.precio_unitario || 0,
+        subtotal: (producto.cantidad || 0) * (producto.precio || producto.precio_unitario || 0)
+      }));
+      
       setSaleData(prev => ({
         ...prev,
-        productos: response.data
+        productos: productosFormateados
       }));
     } catch (error) {
       console.error('Error al cargar productos de venta:', error);
@@ -715,14 +722,20 @@ function Sales() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {saleDetails.productos?.map((product, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{product.nombre}</TableCell>
-                        <TableCell align="center">{product.cantidad}</TableCell>
-                        <TableCell align="right">${parseFloat(product.precio || 0).toFixed(2)}</TableCell>
-                        <TableCell align="right">${(product.cantidad * product.precio).toFixed(2)}</TableCell>
-                      </TableRow>
-                    )) || (
+                    {saleDetails.productos?.map((product, index) => {
+                      const precio = parseFloat(product.precio_unitario || product.precio || 0);
+                      const cantidad = parseInt(product.cantidad || 0);
+                      const subtotal = cantidad * precio;
+                      
+                      return (
+                        <TableRow key={index}>
+                          <TableCell>{product.nombre}</TableCell>
+                          <TableCell align="center">{cantidad}</TableCell>
+                          <TableCell align="right">${precio.toFixed(2)}</TableCell>
+                          <TableCell align="right">${subtotal.toFixed(2)}</TableCell>
+                        </TableRow>
+                      );
+                    }) || (
                       <TableRow>
                         <TableCell colSpan={4} align="center">
                           <Typography color="text.secondary">
