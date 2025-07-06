@@ -257,10 +257,14 @@ function Login() {
         left: 0,
         right: 0,
         bottom: 0,
+        margin: 0,
+        padding: 0,
+        overflow: 'hidden',
         backgroundImage: `url(${fondoLogin})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
+        backgroundAttachment: 'fixed',
         '&::before': {
           content: '""',
           position: 'absolute',
@@ -268,8 +272,8 @@ function Login() {
           left: 0,
           right: 0,
           bottom: 0,
-          backdropFilter: 'blur(8px)',
-          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+          backdropFilter: 'blur(6px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.4)',
           zIndex: 1,
         },
       }}
@@ -280,17 +284,18 @@ function Login() {
           position: 'relative',
           zIndex: 2,
           width: '100%',
-          maxWidth: 420,
+          maxWidth: 400,
           mx: 2,
           background: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(20px)',
+          backdropFilter: 'blur(15px)',
           borderRadius: 3,
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          maxHeight: '85vh',
-          overflow: 'hidden',
+          border: '1px solid rgba(255, 255, 255, 0.3)',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+          maxHeight: '90vh',
+          overflowY: 'auto',
         }}
       >
-        <CardContent sx={{ p: 4 }}>
+        <CardContent sx={{ p: 3 }}>
           {/* Logo y título */}
           <Box sx={{ textAlign: 'center', mb: 3 }}>
             <img 
@@ -323,7 +328,7 @@ function Login() {
             <Alert
               severity="error"
               sx={{
-                mb: 3,
+                mb: 2,
                 borderRadius: 2,
                 fontSize: '0.875rem',
               }}
@@ -382,7 +387,7 @@ function Login() {
                 autoComplete="email"
                 autoFocus
                 size="small"
-                sx={{ mb: 2 }}
+                sx={{ mb: 1.5 }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
