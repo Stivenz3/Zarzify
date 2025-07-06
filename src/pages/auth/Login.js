@@ -10,10 +10,8 @@ import { auth, googleProvider } from '../../config/firebase';
 import {
   Box,
   Button,
-  Container,
   Typography,
   Alert,
-  Fade,
   useTheme,
   useMediaQuery,
   TextField,
@@ -22,28 +20,20 @@ import {
   Divider,
   InputAdornment,
   IconButton,
-  Grid,
   Card,
   CardContent,
-  Paper,
 } from '@mui/material';
 import { 
   Google as GoogleIcon, 
-  Store as StoreIcon, 
   Email as EmailIcon,
   Lock as LockIcon,
   Visibility,
   VisibilityOff,
   Person as PersonIcon,
-  Inventory as InventoryIcon,
-  TrendingUp as TrendingUpIcon,
-  Assessment as AssessmentIcon,
-  Speed as SpeedIcon,
-  Security as SecurityIcon,
-  Cloud as CloudIcon,
 } from '@mui/icons-material';
 import api from '../../config/axios';
 import logoZarzify from '../../logo zarzify.png';
+import fondoLogin from '../../FONDO LOGIN.png';
 
 function TabPanel({ children, value, index, ...other }) {
   return (
@@ -55,7 +45,7 @@ function TabPanel({ children, value, index, ...other }) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ pt: 3 }}>
+        <Box sx={{ pt: 2 }}>
           {children}
         </Box>
       )}
@@ -70,7 +60,7 @@ function Login() {
   const [tabValue, setTabValue] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Estados para el formulario
   const [formData, setFormData] = useState({
@@ -253,29 +243,6 @@ function Login() {
     }
   };
 
-  const features = [
-    {
-      icon: <InventoryIcon sx={{ fontSize: 30 }} />,
-      title: 'Gestión de Inventario',
-      description: 'Control total de tu stock con alertas automáticas'
-    },
-    {
-      icon: <TrendingUpIcon sx={{ fontSize: 30 }} />,
-      title: 'Análisis de Ventas',
-      description: 'Reportes detallados y gráficas interactivas'
-    },
-    {
-      icon: <AssessmentIcon sx={{ fontSize: 30 }} />,
-      title: 'Reportes Inteligentes',
-      description: 'Exporta tus datos a PDF con un solo clic'
-    },
-    {
-      icon: <SecurityIcon sx={{ fontSize: 30 }} />,
-      title: 'Seguridad Garantizada',
-      description: 'Tus datos protegidos con autenticación segura'
-    }
-  ];
-
   return (
     <Box
       sx={{
@@ -283,517 +250,362 @@ function Login() {
         height: '100vh',
         width: '100vw',
         display: 'flex',
-        background: theme.palette.grey[50],
-        margin: 0,
-        padding: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
         position: 'fixed',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
+        backgroundImage: `url(${fondoLogin})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backdropFilter: 'blur(8px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+          zIndex: 1,
+        },
       }}
     >
-      <Grid container sx={{ minHeight: '100vh', width: '100%', margin: 0 }}>
-        
-        {/* Lado Izquierdo - Bienvenida */}
-        {!isMobile && (
-          <Grid item xs={12} md={7} lg={8} sx={{ padding: 0 }}>
-            <Box
+      <Card
+        elevation={24}
+        sx={{
+          position: 'relative',
+          zIndex: 2,
+          width: '100%',
+          maxWidth: 420,
+          mx: 2,
+          background: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(20px)',
+          borderRadius: 3,
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          maxHeight: '85vh',
+          overflow: 'hidden',
+        }}
+      >
+        <CardContent sx={{ p: 4 }}>
+          {/* Logo y título */}
+          <Box sx={{ textAlign: 'center', mb: 3 }}>
+            <img 
+              src={logoZarzify} 
+              alt="Zarzify Logo" 
+              style={{ width: '60px', height: '60px', marginBottom: '16px' }}
+            />
+            <Typography
+              variant="h4"
               sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center',
-                minHeight: '100vh',
-                height: '100vh',
-                background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-                position: 'relative',
-                overflow: 'hidden',
-                color: 'white',
-                px: 6,
-                width: '100%',
+                fontWeight: 'bold',
+                color: theme.palette.primary.main,
+                mb: 1,
               }}
             >
-              {/* Elementos gráficos de fondo */}
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: '10%',
-                  left: '10%',
-                  width: '200px',
-                  height: '200px',
-                  borderRadius: '50%',
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  filter: 'blur(1px)',
-                }}
-              />
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: '60%',
-                  right: '15%',
-                  width: '150px',
-                  height: '150px',
-                  borderRadius: '20px',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  transform: 'rotate(45deg)',
-                }}
-              />
-              <Box
-                sx={{
-                  position: 'absolute',
-                  bottom: '20%',
-                  left: '20%',
-                  width: '100px',
-                  height: '100px',
-                  borderRadius: '50%',
-                  background: 'rgba(255, 255, 255, 0.12)',
-                }}
-              />
-              
-              {/* Contenido principal */}
-              <Box sx={{ position: 'relative', zIndex: 1, textAlign: 'center', maxWidth: '600px' }}>
-                
-                {/* Logo y título */}
-                <Box sx={{ mb: 6 }}>
-                  <img 
-                    src={logoZarzify} 
-                    alt="Zarzify Logo" 
-                    style={{ width: '80px', height: '80px', marginBottom: '24px' }}
-                  />
-                  <Typography
-                    variant="h2"
-                    sx={{
-                      fontWeight: 'bold',
-                      fontSize: { xs: '2.5rem', md: '3.5rem' },
-                      mb: 2,
-                      textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
-                    }}
-                  >
-                    ¡Bienvenido a Zarzify!
-                  </Typography>
-                  <Typography
-                    variant="h5"
-                    sx={{
-                      fontWeight: 400,
-                      opacity: 0.9,
-                      fontSize: { xs: '1.2rem', md: '1.5rem' },
-                      mb: 4,
-                    }}
-                  >
-                    La plataforma todo-en-uno para gestionar tu negocio
-                  </Typography>
-                </Box>
-
-                {/* Tarjetas de funcionalidades */}
-                <Grid container spacing={3} sx={{ mb: 4 }}>
-                  {features.map((feature, index) => (
-                    <Grid item xs={12} sm={6} key={index}>
-                      <Card
-                        sx={{
-                          background: 'rgba(255, 255, 255, 0.15)',
-                          backdropFilter: 'blur(10px)',
-                          border: '1px solid rgba(255, 255, 255, 0.2)',
-                          color: 'white',
-                          transition: 'all 0.3s ease',
-                          '&:hover': {
-                            transform: 'translateY(-5px)',
-                            background: 'rgba(255, 255, 255, 0.2)',
-                          }
-                        }}
-                      >
-                        <CardContent sx={{ textAlign: 'center', p: 3 }}>
-                          <Box sx={{ color: 'white', mb: 2 }}>
-                            {feature.icon}
-                          </Box>
-                          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
-                            {feature.title}
-                          </Typography>
-                          <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                            {feature.description}
-                          </Typography>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
-
-                {/* Estadísticas rápidas */}
-                <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4, mt: 4 }}>
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-                      <SpeedIcon sx={{ verticalAlign: 'middle', mr: 1 }} />
-                      Rápido
-                    </Typography>
-                    <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                      Configuración en 5 minutos
-                    </Typography>
-                  </Box>
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-                      <CloudIcon sx={{ verticalAlign: 'middle', mr: 1 }} />
-                      En la Nube
-                    </Typography>
-                    <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                      Accede desde cualquier lugar
-                    </Typography>
-                  </Box>
-                </Box>
-
-              </Box>
-            </Box>
-          </Grid>
-        )}
-
-        {/* Lado Derecho - Formulario */}
-        <Grid item xs={12} md={5} lg={4} sx={{ padding: 0 }}>
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-              minHeight: '100vh',
-              height: '100vh',
-              backgroundColor: theme.palette.background.paper,
-              px: 4,
-              py: 6,
-              width: '100%',
-            }}
-          >
-            <Paper
-              elevation={isMobile ? 0 : 3}
-              sx={{
-                p: 4,
-                width: '100%',
-                maxWidth: 400,
-                backgroundColor: isMobile ? 'transparent' : theme.palette.background.paper,
+              Zarzify
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{ 
+                color: theme.palette.text.secondary,
+                fontSize: '0.9rem',
               }}
             >
-              
-              {/* Logo para móviles */}
-              {isMobile && (
-                <Box sx={{ textAlign: 'center', mb: 4 }}>
-                  <img 
-                    src={logoZarzify} 
-                    alt="Zarzify Logo" 
-                    style={{ width: '60px', height: '60px', marginBottom: '16px' }}
-                  />
-                  <Typography
-                    variant="h4"
-                    sx={{
-                      fontWeight: 'bold',
-                      color: theme.palette.primary.main,
-                      mb: 1,
-                    }}
-                  >
-                    Zarzify
-                  </Typography>
-                  <Typography
-                    variant="body1"
-                    sx={{ color: theme.palette.text.secondary }}
-                  >
-                    Sistema de Gestión de Inventario
-                  </Typography>
-                </Box>
-              )}
+              Sistema de Gestión de Inventario
+            </Typography>
+          </Box>
 
-              {/* Título de sección */}
-              <Typography
-                variant="h5"
-                sx={{
-                  fontWeight: 'bold',
-                  color: theme.palette.text.primary,
-                  mb: 1,
-                  textAlign: 'center',
-                }}
-              >
-                Iniciar Sesión
-              </Typography>
-              
-              <Typography
-                variant="body2"
-                sx={{
-                  color: theme.palette.text.secondary,
-                  textAlign: 'center',
-                  mb: 3,
-                }}
-              >
-                Ingresa a tu cuenta para continuar
-              </Typography>
+          {error && (
+            <Alert
+              severity="error"
+              sx={{
+                mb: 3,
+                borderRadius: 2,
+                fontSize: '0.875rem',
+              }}
+            >
+              {error}
+            </Alert>
+          )}
 
-              {error && (
-                <Alert
-                  severity="error"
-                  sx={{
-                    mb: 3,
-                    borderRadius: 2,
-                  }}
-                >
-                  {error}
-                </Alert>
-              )}
-
-              {/* Tabs de autenticación */}
-              <Box sx={{ width: '100%', mb: 3 }}>
-                <Tabs 
-                  value={tabValue} 
-                  onChange={handleTabChange} 
-                  variant="fullWidth"
-                  sx={{ 
-                    borderBottom: 1, 
-                    borderColor: 'divider',
-                    '& .MuiTabs-indicator': {
-                      backgroundColor: theme.palette.primary.main,
-                      height: 3,
-                      borderRadius: '3px 3px 0 0',
-                    },
-                  }}
-                >
-                  <Tab 
-                    label="Iniciar Sesión" 
-                    sx={{ 
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      fontSize: '0.9rem',
-                    }}
-                  />
-                  <Tab 
-                    label="Crear Cuenta" 
-                    sx={{ 
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      fontSize: '0.9rem',
-                    }}
-                  />
-                </Tabs>
-              </Box>
-
-              {/* Panel de Iniciar Sesión */}
-              <TabPanel value={tabValue} index={0}>
-                <Box component="form" onSubmit={handleEmailSignIn} sx={{ width: '100%' }}>
-                  <TextField
-                    margin="normal"
-                    required
-                    fullWidth
-                    type="email"
-                    name="email"
-                    label="Email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    autoComplete="email"
-                    autoFocus
-                    sx={{ mb: 2 }}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <EmailIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                  <TextField
-                    margin="normal"
-                    required
-                    fullWidth
-                    type={showPassword ? 'text' : 'password'}
-                    name="password"
-                    label="Contraseña"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    autoComplete="current-password"
-                    sx={{ mb: 3 }}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <LockIcon color="action" />
-                        </InputAdornment>
-                      ),
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            onClick={() => setShowPassword(!showPassword)}
-                            edge="end"
-                          >
-                            {showPassword ? <VisibilityOff /> : <Visibility />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                  <Button
-                    type="submit"
-                    fullWidth
-                    variant="contained"
-                    disabled={isLoading}
-                    sx={{ 
-                      mb: 2, 
-                      py: 1.5,
-                      fontSize: '1rem',
-                      fontWeight: 600,
-                      textTransform: 'none',
-                    }}
-                  >
-                    {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
-                  </Button>
-                </Box>
-              </TabPanel>
-
-              {/* Panel de Crear Cuenta */}
-              <TabPanel value={tabValue} index={1}>
-                <Box component="form" onSubmit={handleEmailSignUp} sx={{ width: '100%' }}>
-                  <TextField
-                    margin="normal"
-                    required
-                    fullWidth
-                    name="nombre"
-                    label="Nombre completo"
-                    value={formData.nombre}
-                    onChange={handleInputChange}
-                    autoComplete="name"
-                    autoFocus
-                    sx={{ mb: 2 }}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <PersonIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                  <TextField
-                    margin="normal"
-                    required
-                    fullWidth
-                    type="email"
-                    name="email"
-                    label="Email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    autoComplete="email"
-                    sx={{ mb: 2 }}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <EmailIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                  <TextField
-                    margin="normal"
-                    required
-                    fullWidth
-                    type={showPassword ? 'text' : 'password'}
-                    name="password"
-                    label="Contraseña"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    autoComplete="new-password"
-                    sx={{ mb: 2 }}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <LockIcon color="action" />
-                        </InputAdornment>
-                      ),
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            onClick={() => setShowPassword(!showPassword)}
-                            edge="end"
-                          >
-                            {showPassword ? <VisibilityOff /> : <Visibility />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                  <TextField
-                    margin="normal"
-                    required
-                    fullWidth
-                    type={showPassword ? 'text' : 'password'}
-                    name="confirmPassword"
-                    label="Confirmar contraseña"
-                    value={formData.confirmPassword}
-                    onChange={handleInputChange}
-                    autoComplete="new-password"
-                    sx={{ mb: 3 }}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <LockIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                  <Button
-                    type="submit"
-                    fullWidth
-                    variant="contained"
-                    disabled={isLoading}
-                    sx={{ 
-                      mb: 2, 
-                      py: 1.5,
-                      fontSize: '1rem',
-                      fontWeight: 600,
-                      textTransform: 'none',
-                    }}
-                  >
-                    {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}
-                  </Button>
-                </Box>
-              </TabPanel>
-
-              {/* Divider y Google */}
-              <Divider sx={{ width: '100%', my: 3 }}>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  o
-                </Typography>
-              </Divider>
-
-              <Button
-                fullWidth
-                variant="outlined"
-                startIcon={<GoogleIcon />}
-                onClick={handleGoogleSignIn}
-                disabled={isLoading}
-                sx={{
-                  py: 1.5,
+          {/* Tabs de autenticación */}
+          <Box sx={{ width: '100%', mb: 2 }}>
+            <Tabs 
+              value={tabValue} 
+              onChange={handleTabChange} 
+              variant="fullWidth"
+              sx={{ 
+                borderBottom: 1, 
+                borderColor: 'divider',
+                '& .MuiTabs-indicator': {
+                  backgroundColor: theme.palette.primary.main,
+                  height: 3,
+                  borderRadius: '3px 3px 0 0',
+                },
+              }}
+            >
+              <Tab 
+                label="Iniciar Sesión" 
+                sx={{ 
                   textTransform: 'none',
-                  fontSize: '1rem',
-                  fontWeight: 500,
-                  borderColor: theme.palette.divider,
-                  color: theme.palette.text.primary,
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                }}
+              />
+              <Tab 
+                label="Crear Cuenta" 
+                sx={{ 
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                }}
+              />
+            </Tabs>
+          </Box>
+
+          {/* Panel de Iniciar Sesión */}
+          <TabPanel value={tabValue} index={0}>
+            <Box component="form" onSubmit={handleEmailSignIn} sx={{ width: '100%' }}>
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                type="email"
+                name="email"
+                label="Email"
+                value={formData.email}
+                onChange={handleInputChange}
+                autoComplete="email"
+                autoFocus
+                size="small"
+                sx={{ mb: 2 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <EmailIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                label="Contraseña"
+                value={formData.password}
+                onChange={handleInputChange}
+                autoComplete="current-password"
+                size="small"
+                sx={{ mb: 2 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockIcon color="action" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                        size="small"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                disabled={isLoading}
+                sx={{ 
+                  mb: 2, 
+                  py: 1.2,
+                  fontSize: '0.95rem',
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
                   '&:hover': {
-                    borderColor: theme.palette.primary.main,
-                    backgroundColor: theme.palette.primary.main + '08',
+                    background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.secondary.dark} 100%)`,
                   },
                 }}
               >
-                {isLoading ? 'Conectando...' : 'Continuar con Google'}
+                {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
               </Button>
+            </Box>
+          </TabPanel>
 
-              <Typography
-                variant="body2"
+          {/* Panel de Crear Cuenta */}
+          <TabPanel value={tabValue} index={1}>
+            <Box component="form" onSubmit={handleEmailSignUp} sx={{ width: '100%' }}>
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                name="nombre"
+                label="Nombre completo"
+                value={formData.nombre}
+                onChange={handleInputChange}
+                autoComplete="name"
+                autoFocus
+                size="small"
+                sx={{ mb: 1.5 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <PersonIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                type="email"
+                name="email"
+                label="Email"
+                value={formData.email}
+                onChange={handleInputChange}
+                autoComplete="email"
+                size="small"
+                sx={{ mb: 1.5 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <EmailIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                label="Contraseña"
+                value={formData.password}
+                onChange={handleInputChange}
+                autoComplete="new-password"
+                size="small"
+                sx={{ mb: 1.5 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockIcon color="action" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                        size="small"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                type={showPassword ? 'text' : 'password'}
+                name="confirmPassword"
+                label="Confirmar contraseña"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                autoComplete="new-password"
+                size="small"
+                sx={{ mb: 2 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                disabled={isLoading}
                 sx={{ 
-                  mt: 4, 
-                  textAlign: 'center',
-                  color: 'text.secondary',
-                  lineHeight: 1.6,
+                  mb: 2, 
+                  py: 1.2,
+                  fontSize: '0.95rem',
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+                  '&:hover': {
+                    background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.secondary.dark} 100%)`,
+                  },
                 }}
               >
-                Al registrarte, aceptas nuestros{' '}
-                <Typography component="span" color="primary" sx={{ fontWeight: 600 }}>
-                  términos y condiciones
-                </Typography>
-              </Typography>
+                {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}
+              </Button>
+            </Box>
+          </TabPanel>
 
-            </Paper>
-          </Box>
-        </Grid>
-      </Grid>
+          {/* Divider y Google */}
+          <Divider sx={{ width: '100%', my: 2 }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
+              o
+            </Typography>
+          </Divider>
+
+          <Button
+            fullWidth
+            variant="outlined"
+            startIcon={<GoogleIcon />}
+            onClick={handleGoogleSignIn}
+            disabled={isLoading}
+            sx={{
+              py: 1.2,
+              textTransform: 'none',
+              fontSize: '0.95rem',
+              fontWeight: 500,
+              borderColor: theme.palette.divider,
+              color: theme.palette.text.primary,
+              '&:hover': {
+                borderColor: theme.palette.primary.main,
+                backgroundColor: theme.palette.primary.main + '08',
+              },
+            }}
+          >
+            {isLoading ? 'Conectando...' : 'Continuar con Google'}
+          </Button>
+
+          <Typography
+            variant="body2"
+            sx={{ 
+              mt: 2, 
+              textAlign: 'center',
+              color: 'text.secondary',
+              fontSize: '0.75rem',
+              lineHeight: 1.4,
+            }}
+          >
+            Al registrarte, aceptas nuestros{' '}
+            <Typography component="span" color="primary" sx={{ fontWeight: 600 }}>
+              términos y condiciones
+            </Typography>
+          </Typography>
+        </CardContent>
+      </Card>
     </Box>
   );
 }
