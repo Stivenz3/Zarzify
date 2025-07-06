@@ -272,6 +272,9 @@ function Login() {
           backdropFilter: 'blur(10px)',
           zIndex: 1,
         },
+        '& *': {
+          boxSizing: 'border-box',
+        },
       }}
     >
       <Card
@@ -287,9 +290,10 @@ function Login() {
           borderRadius: 4,
           border: '1px solid rgba(255, 255, 255, 0.2)',
           boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+          overflow: 'hidden',
         }}
       >
-        <CardContent sx={{ p: 3 }}>
+        <CardContent sx={{ p: 3, overflow: 'hidden' }}>
           {/* Logo y título */}
           <Box sx={{ textAlign: 'center', mb: 2 }}>
             <img 
