@@ -45,7 +45,7 @@ function TabPanel({ children, value, index, ...other }) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ pt: 2 }}>
+        <Box sx={{ pt: 1 }}>
           {children}
         </Box>
       )}
@@ -246,20 +246,17 @@ function Login() {
   return (
     <Box
       sx={{
-        minHeight: '100vh',
-        height: '100vh',
-        width: '100vw',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
         position: 'fixed',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        margin: 0,
-        padding: 0,
+        width: '100vw',
+        height: '100vh',
         overflow: 'hidden',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         backgroundImage: `url(${fondoLogin})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
@@ -271,43 +268,41 @@ function Login() {
           left: 0,
           right: 0,
           bottom: 0,
-          backdropFilter: 'blur(8px)',
-          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          backdropFilter: 'blur(10px)',
           zIndex: 1,
         },
       }}
     >
       <Card
-        elevation={24}
+        elevation={20}
         sx={{
           position: 'relative',
           zIndex: 2,
           width: '100%',
-          maxWidth: 380,
+          maxWidth: 400,
           mx: 2,
-          background: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(20px)',
-          borderRadius: 3,
-          border: '1px solid rgba(255, 255, 255, 0.3)',
-          boxShadow: '0 25px 50px rgba(0,0,0,0.15)',
-          maxHeight: '75vh',
-          overflow: 'hidden',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(15px)',
+          borderRadius: 4,
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
         }}
       >
-        <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <CardContent sx={{ p: 3 }}>
           {/* Logo y título */}
           <Box sx={{ textAlign: 'center', mb: 2 }}>
             <img 
               src={logoZarzify} 
               alt="Zarzify Logo" 
-              style={{ width: '50px', height: '50px', marginBottom: '12px' }}
+              style={{ width: '60px', height: '60px', marginBottom: '16px' }}
             />
             <Typography
-              variant="h5"
+              variant="h4"
               sx={{
                 fontWeight: 'bold',
                 color: theme.palette.primary.main,
-                mb: 0.5,
+                mb: 1,
               }}
             >
               Zarzify
@@ -316,7 +311,7 @@ function Login() {
               variant="body2"
               sx={{ 
                 color: theme.palette.text.secondary,
-                fontSize: '0.8rem',
+                fontSize: '0.9rem',
               }}
             >
               Sistema de Gestión de Inventario
@@ -329,8 +324,7 @@ function Login() {
               sx={{
                 mb: 2,
                 borderRadius: 2,
-                fontSize: '0.8rem',
-                py: 0.5,
+                fontSize: '0.875rem',
               }}
             >
               {error}
@@ -348,10 +342,8 @@ function Login() {
                 borderColor: 'divider',
                 '& .MuiTabs-indicator': {
                   backgroundColor: theme.palette.primary.main,
-                  height: 2,
-                },
-                '& .MuiTab-root': {
-                  minHeight: 40,
+                  height: 3,
+                  borderRadius: '3px 3px 0 0',
                 },
               }}
             >
@@ -360,7 +352,7 @@ function Login() {
                 sx={{ 
                   textTransform: 'none',
                   fontWeight: 600,
-                  fontSize: '0.8rem',
+                  fontSize: '0.875rem',
                 }}
               />
               <Tab 
@@ -368,251 +360,249 @@ function Login() {
                 sx={{ 
                   textTransform: 'none',
                   fontWeight: 600,
-                  fontSize: '0.8rem',
+                  fontSize: '0.875rem',
                 }}
               />
             </Tabs>
           </Box>
 
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            {/* Panel de Iniciar Sesión */}
-            <TabPanel value={tabValue} index={0}>
-              <Box component="form" onSubmit={handleEmailSignIn} sx={{ width: '100%' }}>
-                <TextField
-                  margin="normal"
-                  required
-                  fullWidth
-                  type="email"
-                  name="email"
-                  label="Email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  autoComplete="email"
-                  autoFocus
-                  size="small"
-                  sx={{ mb: 1.5 }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <EmailIcon color="action" fontSize="small" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <TextField
-                  margin="normal"
-                  required
-                  fullWidth
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  label="Contraseña"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  autoComplete="current-password"
-                  size="small"
-                  sx={{ mb: 2 }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LockIcon color="action" fontSize="small" />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          onClick={() => setShowPassword(!showPassword)}
-                          edge="end"
-                          size="small"
-                        >
-                          {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                  disabled={isLoading}
-                  sx={{ 
-                    mb: 2, 
-                    py: 1,
-                    fontSize: '0.9rem',
-                    fontWeight: 600,
-                    textTransform: 'none',
-                    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
-                    '&:hover': {
-                      background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.secondary.dark} 100%)`,
-                    },
-                  }}
-                >
-                  {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
-                </Button>
-              </Box>
-            </TabPanel>
+          {/* Panel de Iniciar Sesión */}
+          <TabPanel value={tabValue} index={0}>
+            <Box component="form" onSubmit={handleEmailSignIn} sx={{ width: '100%' }}>
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                type="email"
+                name="email"
+                label="Email"
+                value={formData.email}
+                onChange={handleInputChange}
+                autoComplete="email"
+                autoFocus
+                size="small"
+                sx={{ mb: 2 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <EmailIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                label="Contraseña"
+                value={formData.password}
+                onChange={handleInputChange}
+                autoComplete="current-password"
+                size="small"
+                sx={{ mb: 2 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockIcon color="action" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                        size="small"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                disabled={isLoading}
+                sx={{ 
+                  mb: 2, 
+                  py: 1.5,
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+                  '&:hover': {
+                    background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.secondary.dark} 100%)`,
+                  },
+                }}
+              >
+                {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+              </Button>
+            </Box>
+          </TabPanel>
 
-            {/* Panel de Crear Cuenta */}
-            <TabPanel value={tabValue} index={1}>
-              <Box component="form" onSubmit={handleEmailSignUp} sx={{ width: '100%' }}>
-                <TextField
-                  margin="normal"
-                  required
-                  fullWidth
-                  name="nombre"
-                  label="Nombre completo"
-                  value={formData.nombre}
-                  onChange={handleInputChange}
-                  autoComplete="name"
-                  autoFocus
-                  size="small"
-                  sx={{ mb: 1 }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <PersonIcon color="action" fontSize="small" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <TextField
-                  margin="normal"
-                  required
-                  fullWidth
-                  type="email"
-                  name="email"
-                  label="Email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  autoComplete="email"
-                  size="small"
-                  sx={{ mb: 1 }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <EmailIcon color="action" fontSize="small" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <TextField
-                  margin="normal"
-                  required
-                  fullWidth
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  label="Contraseña"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  autoComplete="new-password"
-                  size="small"
-                  sx={{ mb: 1 }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LockIcon color="action" fontSize="small" />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          onClick={() => setShowPassword(!showPassword)}
-                          edge="end"
-                          size="small"
-                        >
-                          {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <TextField
-                  margin="normal"
-                  required
-                  fullWidth
-                  type={showPassword ? 'text' : 'password'}
-                  name="confirmPassword"
-                  label="Confirmar contraseña"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  autoComplete="new-password"
-                  size="small"
-                  sx={{ mb: 2 }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LockIcon color="action" fontSize="small" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                  disabled={isLoading}
-                  sx={{ 
-                    mb: 2, 
-                    py: 1,
-                    fontSize: '0.9rem',
-                    fontWeight: 600,
-                    textTransform: 'none',
-                    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
-                    '&:hover': {
-                      background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.secondary.dark} 100%)`,
-                    },
-                  }}
-                >
-                  {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}
-                </Button>
-              </Box>
-            </TabPanel>
+          {/* Panel de Crear Cuenta */}
+          <TabPanel value={tabValue} index={1}>
+            <Box component="form" onSubmit={handleEmailSignUp} sx={{ width: '100%' }}>
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                name="nombre"
+                label="Nombre completo"
+                value={formData.nombre}
+                onChange={handleInputChange}
+                autoComplete="name"
+                autoFocus
+                size="small"
+                sx={{ mb: 1.5 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <PersonIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                type="email"
+                name="email"
+                label="Email"
+                value={formData.email}
+                onChange={handleInputChange}
+                autoComplete="email"
+                size="small"
+                sx={{ mb: 1.5 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <EmailIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                label="Contraseña"
+                value={formData.password}
+                onChange={handleInputChange}
+                autoComplete="new-password"
+                size="small"
+                sx={{ mb: 1.5 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockIcon color="action" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                        size="small"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                type={showPassword ? 'text' : 'password'}
+                name="confirmPassword"
+                label="Confirmar contraseña"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                autoComplete="new-password"
+                size="small"
+                sx={{ mb: 2 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                disabled={isLoading}
+                sx={{ 
+                  mb: 2, 
+                  py: 1.5,
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+                  '&:hover': {
+                    background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.secondary.dark} 100%)`,
+                  },
+                }}
+              >
+                {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}
+              </Button>
+            </Box>
+          </TabPanel>
 
-            {/* Divider y Google */}
-            <Divider sx={{ width: '100%', my: 1.5 }}>
-              <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
-                o
-              </Typography>
-            </Divider>
-
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<GoogleIcon fontSize="small" />}
-              onClick={handleGoogleSignIn}
-              disabled={isLoading}
-              sx={{
-                py: 1,
-                textTransform: 'none',
-                fontSize: '0.9rem',
-                fontWeight: 500,
-                borderColor: theme.palette.divider,
-                color: theme.palette.text.primary,
-                '&:hover': {
-                  borderColor: theme.palette.primary.main,
-                  backgroundColor: theme.palette.primary.main + '08',
-                },
-              }}
-            >
-              {isLoading ? 'Conectando...' : 'Continuar con Google'}
-            </Button>
-
-            <Typography
-              variant="body2"
-              sx={{ 
-                mt: 1.5, 
-                textAlign: 'center',
-                color: 'text.secondary',
-                fontSize: '0.7rem',
-                lineHeight: 1.3,
-              }}
-            >
-              Al registrarte, aceptas nuestros{' '}
-              <Typography component="span" color="primary" sx={{ fontWeight: 600 }}>
-                términos y condiciones
-              </Typography>
+          {/* Divider y Google */}
+          <Divider sx={{ width: '100%', my: 2 }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              o
             </Typography>
-          </Box>
+          </Divider>
+
+          <Button
+            fullWidth
+            variant="outlined"
+            startIcon={<GoogleIcon />}
+            onClick={handleGoogleSignIn}
+            disabled={isLoading}
+            sx={{
+              py: 1.5,
+              textTransform: 'none',
+              fontSize: '1rem',
+              fontWeight: 500,
+              borderColor: theme.palette.divider,
+              color: theme.palette.text.primary,
+              '&:hover': {
+                borderColor: theme.palette.primary.main,
+                backgroundColor: theme.palette.primary.main + '08',
+              },
+            }}
+          >
+            {isLoading ? 'Conectando...' : 'Continuar con Google'}
+          </Button>
+
+          <Typography
+            variant="body2"
+            sx={{ 
+              mt: 2, 
+              textAlign: 'center',
+              color: 'text.secondary',
+              fontSize: '0.75rem',
+              lineHeight: 1.4,
+            }}
+          >
+            Al registrarte, aceptas nuestros{' '}
+            <Typography component="span" color="primary" sx={{ fontWeight: 600 }}>
+              términos y condiciones
+            </Typography>
+          </Typography>
         </CardContent>
       </Card>
     </Box>
