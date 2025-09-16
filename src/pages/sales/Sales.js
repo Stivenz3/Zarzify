@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -27,6 +27,7 @@ import {
   Paper,
   Chip,
   Divider,
+  Autocomplete,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -35,12 +36,16 @@ import {
   ShoppingCart as ShoppingCartIcon,
   Remove as RemoveIcon,
   Edit as EditIcon,
+  Receipt as ReceiptIcon,
 } from '@mui/icons-material';
+import GlassmorphismDialog from '../../components/common/GlassmorphismDialog';
+import { CancelButton, PrimaryButton } from '../../components/common/GlassmorphismButton';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useApp } from '../../context/AppContext';
 import { useDashboard } from '../../context/DashboardContext';
 import api from '../../config/axios';
 import DataTable from '../../components/common/DataTable';
+import CurrencyDisplay from '../../components/common/CurrencyDisplay';
 
 function Sales() {
   const { currentBusiness } = useApp();
@@ -60,6 +65,7 @@ function Sales() {
     descuento_total: 0,
     productos: [],
     fecha_venta: new Date(), // Fecha personalizada
+    estado: 'completada', // Estado de la venta
   });
 
   const [selectedProduct, setSelectedProduct] = useState('');
@@ -67,6 +73,18 @@ function Sales() {
   const [editingSale, setEditingSale] = useState(null);
   const [viewDetailsDialog, setViewDetailsDialog] = useState(false);
   const [saleDetails, setSaleDetails] = useState(null);
+  const [selectedClientCredit, setSelectedClientCredit] = useState(0);
+
+  // Estados para filtros
+  const [filters, setFilters] = useState({
+    priceOrder: null, // null = sin filtro, 'desc' = mayor a menor, 'asc' = menor a mayor
+    dateOrder: null,  // null = sin filtro, 'desc' = recientes primero, 'asc' = antiguas primero
+    estado: '',
+    metodoPago: ''
+  });
+
+  // Ref para el campo de búsqueda de productos
+  const productSearchRef = useRef(null);
 
   useEffect(() => {
     if (currentBusiness) {
@@ -130,7 +148,8 @@ function Sales() {
         metodo_pago: sale.metodo_pago || 'efectivo',
         descuento_total: sale.descuento || 0,
         productos: [], // Se cargarán los productos desde la BD
-        fecha_venta: sale.fecha_venta ? new Date(sale.fecha_venta) : new Date(sale.created_at),
+        fecha_venta: new Date(sale.created_at), // Usar created_at ya que no existe fecha_venta en la tabla
+        estado: sale.estado || 'completada',
       });
       // Cargar productos de la venta para edición
       loadSaleProducts(sale.id);
@@ -142,6 +161,7 @@ function Sales() {
         descuento_total: 0,
         productos: [],
         fecha_venta: new Date(),
+        estado: 'completada',
       });
     }
     setSelectedProduct('');
@@ -185,6 +205,15 @@ function Sales() {
       ...prev,
       [name]: value
     }));
+    
+    // Si se selecciona un cliente, actualizar su crédito disponible
+    if (name === 'cliente_id' && value) {
+      const selectedClient = clients.find(client => client.id === value);
+      const creditoDisponible = parseFloat(selectedClient?.credito_disponible) || 0;
+      setSelectedClientCredit(creditoDisponible);
+    } else if (name === 'cliente_id' && !value) {
+      setSelectedClientCredit(0);
+    }
   };
 
   const addProductToSale = () => {
@@ -248,6 +277,16 @@ function Sales() {
     setSelectedProduct('');
     setProductQuantity(1);
     setError('');
+    
+    // Enfocar el campo de búsqueda para agregar más productos rápidamente
+    setTimeout(() => {
+      if (productSearchRef.current) {
+        const input = productSearchRef.current.querySelector('input');
+        if (input) {
+          input.focus();
+        }
+      }
+    }, 100);
   };
 
   const removeProductFromSale = (productId) => {
@@ -286,13 +325,22 @@ function Sales() {
   };
 
   const handleSubmit = async () => {
+    console.log('🚀 handleSubmit llamado'); // Debug
+    console.log('📊 Estado actual:', {
+      currentBusiness: currentBusiness?.id,
+      productos: saleData.productos.length,
+      productosData: saleData.productos
+    }); // Debug
+    
     if (!currentBusiness) {
       setError('No hay negocio seleccionado');
+      console.error('❌ No hay negocio seleccionado');
       return;
     }
 
     if (saleData.productos.length === 0) {
       setError('Agrega al menos un producto a la venta');
+      console.error('❌ No hay productos en la venta');
       return;
     }
 
@@ -301,42 +349,137 @@ function Sales() {
     today.setHours(23, 59, 59, 999); // Permitir hasta el final del día actual
     if (saleData.fecha_venta > today) {
       setError('La fecha de venta no puede ser mayor a la fecha actual');
+      console.error('❌ Fecha de venta futura');
       return;
     }
 
+    // Validar crédito disponible si el método de pago es crédito
+    if (saleData.metodo_pago === 'credito') {
+      if (!saleData.cliente_id) {
+        setError('Debe seleccionar un cliente para pagar con crédito');
+        console.error('❌ No hay cliente seleccionado para pago con crédito');
+        return;
+      }
+      
+      const total = calculateTotal();
+      const creditoDisponible = parseFloat(selectedClientCredit) || 0;
+      
+      if (creditoDisponible < total) {
+        const deficit = total - creditoDisponible;
+        setError(
+          `El crédito disponible no es suficiente para esta venta.\n\n`
+        );
+        console.error('❌ Crédito insuficiente');
+        return;
+      }
+    }
+
+    console.log('✅ Todas las validaciones pasaron, enviando al servidor...');
     setLoading(true);
     setError('');
 
     try {
+      const total = calculateTotal();
+      console.log('💰 Total calculado:', total);
+      
       const salePayload = {
         negocio_id: currentBusiness.id,
         cliente_id: saleData.cliente_id || null,
         metodo_pago: saleData.metodo_pago,
         descuento: saleData.descuento_total || 0,
-        total: calculateTotal(),
+        total: total,
         productos: saleData.productos,
         fecha_venta: saleData.fecha_venta.toISOString().split('T')[0], // Solo fecha, sin hora
+        estado: saleData.estado,
       };
 
-      console.log('Enviando datos de venta:', salePayload); // Debug
+      console.log('📤 Enviando datos de venta:', salePayload); // Debug
 
+      let response;
       if (editingSale) {
-        await api.put(`/ventas/${editingSale.id}`, salePayload);
+        console.log('✏️ Actualizando venta existente:', editingSale.id);
+        response = await api.put(`/ventas/${editingSale.id}`, salePayload);
       } else {
-        await api.post('/ventas', salePayload);
+        console.log('🆕 Creando nueva venta');
+        response = await api.post('/ventas', salePayload);
       }
 
+      console.log('✅ Respuesta del servidor:', response.data);
+      console.log('🔄 Recargando ventas...');
       await loadSales();
-      markDashboardForRefresh();
+      console.log('📊 Actualizando dashboard...');
+      markDashboardForRefresh(editingSale ? 'venta_editada' : 'venta_nueva');
+      console.log('🚪 Cerrando diálogo...');
       handleCloseDialog();
       setError('');
+      console.log('✅ Venta procesada exitosamente');
     } catch (error) {
-      console.error('Error al guardar venta:', error);
-      console.error('Respuesta del servidor:', error.response?.data); // Debug
+      console.error('❌ Error al guardar venta:', error);
+      console.error('🔍 Respuesta del servidor:', error.response?.data); // Debug
+      console.error('🔍 Status code:', error.response?.status); // Debug
+      console.error('🔍 Error completo:', error); // Debug
       setError(error.response?.data?.error || 'Error al guardar la venta');
     } finally {
       setLoading(false);
+      console.log('🏁 handleSubmit finalizado');
     }
+  };
+
+  // Función para filtrar y ordenar ventas
+  const getFilteredSales = () => {
+    let filteredSales = sales.filter(sale => {
+      // Filtro por estado
+      if (filters.estado && sale.estado !== filters.estado) {
+        return false;
+      }
+      
+      // Filtro por método de pago
+      if (filters.metodoPago && sale.metodo_pago !== filters.metodoPago) {
+        return false;
+      }
+      
+      return true;
+    });
+
+    // Si no hay filtros de ordenamiento activos, ordenar por fecha (más reciente arriba)
+    if (filters.priceOrder === null && filters.dateOrder === null) {
+      filteredSales.sort((a, b) => {
+        const dateA = new Date(a.created_at);
+        const dateB = new Date(b.created_at);
+        return dateB - dateA; // Más reciente arriba
+      });
+      return filteredSales;
+    }
+
+    // Ordenar por precio si está activo
+    if (filters.priceOrder !== null) {
+      filteredSales.sort((a, b) => {
+        const priceA = parseFloat(a.total) || 0;
+        const priceB = parseFloat(b.total) || 0;
+        
+        if (filters.priceOrder === 'desc') {
+          return priceB - priceA; // Mayor a menor
+        } else {
+          return priceA - priceB; // Menor a mayor
+        }
+      });
+    }
+
+    // Ordenar por fecha si está activo (puede sobrescribir el orden de precio)
+    if (filters.dateOrder !== null) {
+      filteredSales.sort((a, b) => {
+        const dateA = new Date(a.created_at);
+        const dateB = new Date(b.created_at);
+        
+        if (filters.dateOrder === 'desc') {
+          return dateB - dateA; // Recientes primero
+        } else {
+          return dateA - dateB; // Antiguas primero
+        }
+      });
+    }
+
+    return filteredSales;
   };
 
   const handleDelete = async (saleId) => {
@@ -368,7 +511,7 @@ function Sales() {
       headerName: 'Fecha',
       width: 120,
       renderCell: (params) => {
-        const date = new Date(params.row.fecha_venta || params.row.created_at);
+        const date = new Date(params.row.created_at); // Usar solo created_at
         return date.toLocaleDateString();
       },
     },
@@ -397,21 +540,46 @@ function Sales() {
     {
       field: 'total',
       headerName: 'Total',
-      width: 120,
-      renderCell: (params) => `$${parseFloat(params.row.total || 0).toFixed(2)}`,
+      width: 160,
+      renderCell: (params) => (
+        <CurrencyDisplay 
+          amount={params.row.total}
+          variant="body2"
+          sx={{ fontWeight: 'bold' }}
+        />
+      ),
     },
     { field: 'metodo_pago', headerName: 'Método de Pago', width: 140 },
     {
       field: 'estado',
       headerName: 'Estado',
       width: 120,
-      renderCell: (params) => (
-        <Chip
-          label={params.row.estado || 'completada'}
-          color={params.row.estado === 'completada' ? 'success' : 'warning'}
-          size="small"
-        />
-      ),
+      renderCell: (params) => {
+        const estado = params.row.estado || 'completada';
+        const getChipProps = (estado) => {
+          switch (estado) {
+            case 'pendiente':
+              return { label: 'Pendiente', color: 'warning' };
+            case 'en_proceso':
+              return { label: 'En Proceso', color: 'info' };
+            case 'completada':
+              return { label: 'Completada', color: 'success' };
+            case 'cancelada':
+              return { label: 'Cancelada', color: 'error' };
+            default:
+              return { label: 'Completada', color: 'success' };
+          }
+        };
+        
+        const chipProps = getChipProps(estado);
+        return (
+          <Chip
+            label={chipProps.label}
+            color={chipProps.color}
+            size="small"
+          />
+        );
+      },
     },
     {
       field: 'actions',
@@ -454,10 +622,84 @@ function Sales() {
       </Box>
 
       <DataTable
-        rows={sales}
+        rows={getFilteredSales()}
         columns={columns}
         loading={loading}
         getRowId={(row) => row.id}
+        extraFilters={
+          <>
+            <Button
+              variant={filters.priceOrder === 'desc' ? 'contained' : 'outlined'}
+              size="small"
+              onClick={() => setFilters(prev => ({ ...prev, priceOrder: prev.priceOrder === 'desc' ? null : 'desc' }))}
+              sx={{ minWidth: 'auto', px: 1.5 }}
+            >
+             ^ Mayor $
+            </Button>
+            <Button
+              variant={filters.priceOrder === 'asc' ? 'contained' : 'outlined'}
+              size="small"
+              onClick={() => setFilters(prev => ({ ...prev, priceOrder: prev.priceOrder === 'asc' ? null : 'asc' }))}
+              sx={{ minWidth: 'auto', px: 1.5 }}
+            >
+              v Menor $
+            </Button>
+            <Button
+              variant={filters.dateOrder === 'desc' ? 'contained' : 'outlined'}
+              size="small"
+              onClick={() => setFilters(prev => ({ ...prev, dateOrder: prev.dateOrder === 'desc' ? null : 'desc' }))}
+              sx={{ minWidth: 'auto', px: 1.5 }}
+            >
+              Recientes
+            </Button>
+            <Button
+              variant={filters.dateOrder === 'asc' ? 'contained' : 'outlined'}
+              size="small"
+              onClick={() => setFilters(prev => ({ ...prev, dateOrder: prev.dateOrder === 'asc' ? null : 'asc' }))}
+              sx={{ minWidth: 'auto', px: 1.5 }}
+            >
+             Antiguas
+            </Button>
+            <FormControl size="small" sx={{ minWidth: 90 }}>
+              <InputLabel>Estado</InputLabel>
+              <Select
+                value={filters.estado}
+                onChange={(e) => setFilters(prev => ({ ...prev, estado: e.target.value }))}
+                label="Estado"
+              >
+                <MenuItem value="">Todos</MenuItem>
+                <MenuItem value="pendiente">Pendiente</MenuItem>
+                <MenuItem value="en_proceso">En Proceso</MenuItem>
+                <MenuItem value="completada">Completada</MenuItem>
+                <MenuItem value="cancelada">Cancelada</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControl size="small" sx={{ minWidth: 100 }}>
+              <InputLabel>Pago</InputLabel>
+              <Select
+                value={filters.metodoPago}
+                onChange={(e) => setFilters(prev => ({ ...prev, metodoPago: e.target.value }))}
+                label="Pago"
+              >
+                <MenuItem value="">Todos</MenuItem>
+                <MenuItem value="efectivo">Efectivo</MenuItem>
+                <MenuItem value="tarjeta">Tarjeta</MenuItem>
+                <MenuItem value="transferencia">Transfer.</MenuItem>
+                <MenuItem value="credito">Crédito</MenuItem>
+              </Select>
+            </FormControl>
+            {(filters.priceOrder !== null || filters.dateOrder !== null || filters.estado || filters.metodoPago) && (
+              <Button
+                variant="text"
+                size="small"
+                onClick={() => setFilters({ priceOrder: null, dateOrder: null, estado: '', metodoPago: '' })}
+                sx={{ minWidth: 'auto', px: 1, color: 'text.secondary' }}
+              >
+                ✕ Limpiar Todo
+              </Button>
+            )}
+          </>
+        }
       />
 
       {/* Menú de acciones */}
@@ -483,11 +725,35 @@ function Sales() {
       </Menu>
 
       {/* Dialog para crear/editar venta */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="lg" fullWidth>
-        <DialogTitle>
-          {editingSale ? 'Editar Venta' : 'Nueva Venta'}
-        </DialogTitle>
-        <DialogContent>
+      <GlassmorphismDialog
+        open={openDialog}
+        onClose={handleCloseDialog}
+        title={editingSale ? 'Editar Venta' : 'Nueva Venta'}
+        subtitle={editingSale ? 'Modifica los datos de la venta' : 'Registra una nueva venta para tu negocio'}
+        icon={ReceiptIcon}
+        maxWidth="lg"
+        actions={
+          <>
+            <CancelButton onClick={handleCloseDialog} disabled={loading}>
+              Cancelar
+            </CancelButton>
+            <PrimaryButton
+              onClick={() => {
+                console.log('🔘 Botón Procesar Venta presionado');
+                console.log('🔧 Estado del botón:', {
+                  loading,
+                  productosLength: saleData.productos.length,
+                  disabled: loading || saleData.productos.length === 0
+                });
+                handleSubmit();
+              }}
+              disabled={loading || saleData.productos.length === 0}
+            >
+              {loading ? 'Guardando...' : (editingSale ? 'Actualizar Venta' : 'Procesar Venta')}
+            </PrimaryButton>
+          </>
+        }
+      >
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
@@ -519,6 +785,11 @@ function Sales() {
                   ))}
                 </Select>
               </FormControl>
+              {saleData.cliente_id && (
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                   Crédito disponible: ${parseFloat(selectedClientCredit || 0).toFixed(2)}
+                </Typography>
+              )}
             </Grid>
 
             <Grid item xs={12} md={6}>
@@ -534,6 +805,23 @@ function Sales() {
                   <MenuItem value="tarjeta">Tarjeta</MenuItem>
                   <MenuItem value="transferencia">Transferencia</MenuItem>
                   <MenuItem value="credito">Crédito</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Estado de la Venta</InputLabel>
+                <Select
+                  name="estado"
+                  value={saleData.estado}
+                  onChange={handleInputChange}
+                  label="Estado de la Venta"
+                >
+                  <MenuItem value="pendiente">Pendiente</MenuItem>
+                  <MenuItem value="en_proceso">En Proceso</MenuItem>
+                  <MenuItem value="completada">Completada</MenuItem>
+                  <MenuItem value="cancelada">Cancelada</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -576,26 +864,59 @@ function Sales() {
             {/* Agregar productos */}
             <Grid item xs={12}>
               <Divider sx={{ my: 2 }} />
-              <Typography variant="h6" gutterBottom>
-                Productos
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography variant="h6" gutterBottom>
+                  Productos
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                </Typography>
+              </Box>
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Seleccionar Producto</InputLabel>
-                <Select
-                  value={selectedProduct}
-                  onChange={(e) => setSelectedProduct(e.target.value)}
-                  label="Seleccionar Producto"
-                >
-                  {products.map((product) => (
-                    <MenuItem key={product.id} value={product.id}>
-                      {product.nombre} - ${parseFloat(product.precio_venta || 0).toFixed(2)} (Stock: {product.stock})
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <Autocomplete
+                options={products}
+                getOptionLabel={(option) => 
+                  `${option.nombre} - $${parseFloat(option.precio_venta || 0).toFixed(2)} (Stock: ${option.stock})`
+                }
+                value={products.find(p => p.id === selectedProduct) || null}
+                onChange={(event, newValue) => {
+                  setSelectedProduct(newValue ? newValue.id : '');
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Buscar producto"
+                    placeholder="Escribe para buscar..."
+                    fullWidth
+                  />
+                )}
+                ref={productSearchRef}
+                renderOption={(props, option) => (
+                  <Box component="li" {...props}>
+                    <Box sx={{ flexGrow: 1 }}>
+                      <Typography variant="body1" component="div">
+                        {option.nombre}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        ${parseFloat(option.precio_venta || 0).toFixed(2)} • Stock: {option.stock}
+                        {option.categoria_nombre && ` • ${option.categoria_nombre}`}
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
+                filterOptions={(options, { inputValue }) => {
+                  const filtered = options.filter((option) =>
+                    option.nombre.toLowerCase().includes(inputValue.toLowerCase()) ||
+                    (option.categoria_nombre && option.categoria_nombre.toLowerCase().includes(inputValue.toLowerCase()))
+                  );
+                  return filtered;
+                }}
+                noOptionsText="No se encontraron productos"
+                clearOnBlur={false}
+                selectOnFocus
+                handleHomeEndKeys
+              />
             </Grid>
             <Grid item xs={12} md={4}>
               <TextField
@@ -604,6 +925,12 @@ function Sales() {
                 type="number"
                 value={productQuantity}
                 onChange={(e) => setProductQuantity(parseInt(e.target.value) || 1)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addProductToSale();
+                  }
+                }}
                 inputProps={{ min: 1 }}
               />
             </Grid>
@@ -613,6 +940,7 @@ function Sales() {
                 variant="outlined"
                 onClick={addProductToSale}
                 sx={{ height: '56px' }}
+                disabled={!selectedProduct}
               >
                 Agregar
               </Button>
@@ -647,10 +975,14 @@ function Sales() {
                             />
                           </TableCell>
                           <TableCell align="right">
-                            ${parseFloat(product.precio).toFixed(2)}
+                            <CurrencyDisplay amount={product.precio} variant="body2" />
                           </TableCell>
                           <TableCell align="right">
-                            ${(product.cantidad * product.precio).toFixed(2)}
+                            <CurrencyDisplay 
+                              amount={product.cantidad * product.precio} 
+                              variant="body2" 
+                              sx={{ fontWeight: 'bold' }}
+                            />
                           </TableCell>
                           <TableCell align="center">
                             <IconButton
@@ -669,98 +1001,98 @@ function Sales() {
               </Grid>
             )}
           </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancelar</Button>
-          <Button
-            onClick={handleSubmit}
-            variant="contained"
-            disabled={loading || saleData.productos.length === 0}
-            startIcon={<ShoppingCartIcon />}
-          >
-            {loading ? 'Guardando...' : (editingSale ? 'Actualizar Venta' : 'Procesar Venta')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      </GlassmorphismDialog>
 
       {/* Dialog para ver detalles de venta */}
-      <Dialog open={viewDetailsDialog} onClose={() => setViewDetailsDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          Detalles de Venta
-        </DialogTitle>
-        <DialogContent>
-          {saleDetails && (
-            <Box sx={{ mt: 2 }}>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Typography variant="subtitle1">
-                    <strong>Cliente:</strong> {saleDetails.cliente_nombre || 'Cliente General'}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="subtitle1">
-                    <strong>Fecha:</strong> {new Date(saleDetails.created_at).toLocaleDateString()}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="subtitle1">
-                    <strong>Método de Pago:</strong> {saleDetails.metodo_pago}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="subtitle1">
-                    <strong>Total:</strong> ${parseFloat(saleDetails.total || 0).toFixed(2)}
-                  </Typography>
-                </Grid>
+      <GlassmorphismDialog
+        open={viewDetailsDialog}
+        onClose={() => setViewDetailsDialog(false)}
+        title="Detalles de Venta"
+        subtitle="Información completa de la venta seleccionada"
+        icon={ReceiptIcon}
+        maxWidth="md"
+        actions={
+          <CancelButton onClick={() => setViewDetailsDialog(false)}>
+            Cerrar
+          </CancelButton>
+        }
+      >
+        {saleDetails && (
+          <Box sx={{ mt: 2 }}>
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <Typography variant="subtitle1">
+                  <strong>Cliente:</strong> {saleDetails.cliente_nombre || 'Cliente General'}
+                </Typography>
               </Grid>
+              <Grid item xs={6}>
+                <Typography variant="subtitle1">
+                  <strong>Fecha:</strong> {new Date(saleDetails.created_at).toLocaleDateString()}
+                </Typography>
+              </Grid>
+              <Grid item xs={6}>
+                <Typography variant="subtitle1">
+                  <strong>Método de Pago:</strong> {saleDetails.metodo_pago}
+                </Typography>
+              </Grid>
+              <Grid item xs={6}>
+                <Typography variant="subtitle1">
+                  <strong>Total:</strong> ${parseFloat(saleDetails.total || 0).toFixed(2)}
+                </Typography>
+              </Grid>
+            </Grid>
 
-              <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>
-                Productos Vendidos
-              </Typography>
-              
-              <TableContainer component={Paper}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Producto</TableCell>
-                      <TableCell align="center">Cantidad</TableCell>
-                      <TableCell align="right">Precio Unit.</TableCell>
-                      <TableCell align="right">Subtotal</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {saleDetails.productos?.map((product, index) => {
-                      const precio = parseFloat(product.precio_unitario || product.precio || 0);
-                      const cantidad = parseInt(product.cantidad || 0);
-                      const subtotal = cantidad * precio;
-                      
-                      return (
-                        <TableRow key={index}>
-                          <TableCell>{product.nombre}</TableCell>
-                          <TableCell align="center">{cantidad}</TableCell>
-                          <TableCell align="right">${precio.toFixed(2)}</TableCell>
-                          <TableCell align="right">${subtotal.toFixed(2)}</TableCell>
-                        </TableRow>
-                      );
-                    }) || (
-                      <TableRow>
-                        <TableCell colSpan={4} align="center">
-                          <Typography color="text.secondary">
-                            No se pudieron cargar los detalles de productos
-                          </Typography>
+            <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>
+              Productos Vendidos
+            </Typography>
+            
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Producto</TableCell>
+                    <TableCell align="center">Cantidad</TableCell>
+                    <TableCell align="right">Precio Unit.</TableCell>
+                    <TableCell align="right">Subtotal</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {saleDetails.productos?.map((product, index) => {
+                    const precio = parseFloat(product.precio_unitario || product.precio || 0);
+                    const cantidad = parseInt(product.cantidad || 0);
+                    const subtotal = cantidad * precio;
+                    
+                    return (
+                      <TableRow key={index}>
+                        <TableCell>{product.nombre}</TableCell>
+                        <TableCell align="center">{cantidad}</TableCell>
+                        <TableCell align="right">
+                          <CurrencyDisplay amount={precio} variant="body2" />
+                        </TableCell>
+                        <TableCell align="right">
+                          <CurrencyDisplay 
+                            amount={subtotal} 
+                            variant="body2" 
+                            sx={{ fontWeight: 'bold' }}
+                          />
                         </TableCell>
                       </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setViewDetailsDialog(false)}>Cerrar</Button>
-        </DialogActions>
-      </Dialog>
+                    );
+                  }) || (
+                    <TableRow>
+                      <TableCell colSpan={4} align="center">
+                        <Typography color="text.secondary">
+                          No se pudieron cargar los detalles de productos
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
+        )}
+      </GlassmorphismDialog>
     </Box>
   );
 }

@@ -1,0 +1,93 @@
+/* Transiciones suaves para el cambio de tema */
+
+/* Transición para elementos principales */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease !important;
+}
+
+/* Transiciones específicas para componentes de Material-UI */
+.MuiPaper-root,
+.MuiCard-root,
+.MuiAppBar-root,
+.MuiDrawer-paper,
+.MuiDialog-paper,
+.MuiMenu-paper {
+  transition: background-color 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+/* Transiciones para campos de texto */
+.MuiTextField-root,
+.MuiSelect-root,
+.MuiOutlinedInput-root {
+  transition: border-color 0.3s ease !important;
+}
+
+/* Transiciones para botones */
+.MuiButton-root,
+.MuiIconButton-root {
+  transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease !important;
+}
+
+/* Transiciones para las tablas de datos */
+.MuiDataGrid-root,
+.MuiDataGrid-cell,
+.MuiDataGrid-columnHeaders,
+.MuiDataGrid-row {
+  transition: background-color 0.3s ease, border-color 0.3s ease !important;
+}
+
+/* Efecto especial para el toggle del tema */
+.theme-toggle-animation {
+  animation: themeToggleBounce 0.6s ease-in-out;
+}
+
+@keyframes themeToggleBounce {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2) rotate(180deg); }
+  100% { transform: scale(1) rotate(360deg); }
+}
+
+/* Animación de fade para el cambio de tema completo */
+.theme-transition {
+  animation: themeTransition 0.5s ease-in-out;
+}
+
+@keyframes themeTransition {
+  0% { opacity: 0.95; }
+  50% { opacity: 0.8; }
+  100% { opacity: 1; }
+}
+
+/* Scrollbar personalizado para modo oscuro */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track, #f1f1f1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb, #c1c1c1);
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover, #a8a8a8);
+}
+
+/* Variables CSS para scrollbar en modo oscuro */
+[data-theme="dark"] {
+  --scrollbar-track: #2d2d2d;
+  --scrollbar-thumb: #555;
+  --scrollbar-thumb-hover: #777;
+}
+
+[data-theme="light"] {
+  --scrollbar-track: #f1f1f1;
+  --scrollbar-thumb: #c1c1c1;
+  --scrollbar-thumb-hover: #a8a8a8;
+}

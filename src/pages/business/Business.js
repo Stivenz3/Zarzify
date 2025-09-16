@@ -33,9 +33,6 @@ function Business() {
     nombre: '',
     direccion: '',
     telefono: '',
-    email: '',
-    rfc: '',
-    descripcion: '',
   });
 
   const handleOpenDialog = (business = null) => {
@@ -48,9 +45,6 @@ function Business() {
         nombre: '',
         direccion: '',
         telefono: '',
-        email: '',
-        rfc: '',
-        descripcion: '',
       });
     }
     setOpenDialog(true);
@@ -163,16 +157,6 @@ function Business() {
                 <Typography variant="body2">
                   Teléfono: {business.telefono}
                 </Typography>
-                {business.email && (
-                  <Typography variant="body2">
-                    Email: {business.email}
-                  </Typography>
-                )}
-                {business.rfc && (
-                  <Typography variant="body2">
-                    RFC: {business.rfc}
-                  </Typography>
-                )}
               </CardContent>
               <CardActions>
                 <IconButton
@@ -230,36 +214,6 @@ function Business() {
                 label="Teléfono"
                 name="telefono"
                 value={formData.telefono}
-                onChange={handleInputChange}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleInputChange}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="RFC"
-                name="rfc"
-                value={formData.rfc}
-                onChange={handleInputChange}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                multiline
-                rows={3}
-                label="Descripción"
-                name="descripcion"
-                value={formData.descripcion}
                 onChange={handleInputChange}
               />
             </Grid>

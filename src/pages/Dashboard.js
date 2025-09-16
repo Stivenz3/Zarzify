@@ -9,6 +9,8 @@ import {
   Alert,
   IconButton,
   Tooltip,
+  ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material';
 import {
   InventoryOutlined,
@@ -32,6 +34,8 @@ import {
 import { useApp } from '../context/AppContext';
 import { useDashboard } from '../context/DashboardContext';
 import api from '../config/axios';
+import { useTheme } from '@mui/material/styles';
+import CurrencyDisplay from '../components/common/CurrencyDisplay';
 
 // Registrar los componentes necesarios para Chart.js
 ChartJS.register(
@@ -45,8 +49,13 @@ ChartJS.register(
 );
 
 function Dashboard() {
-  const { currentBusiness } = useApp();
+  const { currentBusiness, darkMode } = useApp();
   const { needsRefresh, markDashboardAsRefreshed, refreshDashboard } = useDashboard();
+  const theme = useTheme();
+  
+  // Debug: mostrar información de la divisa actual
+  console.log('Dashboard - currentBusiness:', currentBusiness);
+  console.log('Dashboard - divisa actual:', currentBusiness?.divisa);
   const [stats, setStats] = useState({
     totalProducts: 0,
     totalSales: 0,
@@ -65,6 +74,8 @@ function Dashboard() {
     labels: [],
     datasets: [],
   });
+  
+  const [chartPeriod, setChartPeriod] = useState('monthly'); // 'weekly', 'monthly', 'yearly'
 
   // Cargar datos cuando cambia el negocio actual
   useEffect(() => {
@@ -88,7 +99,7 @@ function Dashboard() {
       });
       setLastUpdate(null);
     }
-  }, [currentBusiness]);
+  }, [currentBusiness, chartPeriod]);
 
   // Escuchar cambios que requieren actualización del dashboard
   useEffect(() => {
@@ -106,7 +117,7 @@ function Dashboard() {
     setError('');
     try {
       console.log('📊 Obteniendo datos del dashboard para:', currentBusiness.nombre);
-      const response = await api.get(`/dashboard/${currentBusiness.id}`);
+      const response = await api.get(`/dashboard/${currentBusiness.id}?period=${chartPeriod}`);
       const data = response.data;
       
       setStats({
@@ -131,16 +142,28 @@ function Dashboard() {
           {
             label: 'Ingresos',
             data: ingresos.length > 0 ? ingresos : [0],
-            borderColor: 'rgb(75, 192, 192)',
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            tension: 0.1,
+            borderColor: darkMode ? '#55efc4' : 'rgb(75, 192, 192)',
+            backgroundColor: darkMode ? 'rgba(85, 239, 196, 0.2)' : 'rgba(75, 192, 192, 0.2)',
+            tension: 0.4,
+            borderWidth: 3,
+            pointBackgroundColor: darkMode ? '#00b894' : 'rgb(75, 192, 192)',
+            pointBorderColor: darkMode ? '#ffffff' : 'rgb(75, 192, 192)',
+            pointBorderWidth: 2,
+            pointRadius: 6,
+            pointHoverRadius: 8,
           },
           {
             label: 'Egresos',
             data: egresos.length > 0 ? egresos : [0],
-            borderColor: 'rgb(255, 99, 132)',
-            backgroundColor: 'rgba(255, 99, 132, 0.2)',
-            tension: 0.1,
+            borderColor: darkMode ? '#ff7675' : 'rgb(255, 99, 132)',
+            backgroundColor: darkMode ? 'rgba(255, 118, 117, 0.2)' : 'rgba(255, 99, 132, 0.2)',
+            tension: 0.4,
+            borderWidth: 3,
+            pointBackgroundColor: darkMode ? '#e17055' : 'rgb(255, 99, 132)',
+            pointBorderColor: darkMode ? '#ffffff' : 'rgb(255, 99, 132)',
+            pointBorderWidth: 2,
+            pointRadius: 6,
+            pointHoverRadius: 8,
           },
         ],
       });
@@ -160,21 +183,15 @@ function Dashboard() {
     fetchDashboardData();
   };
 
-  const StatCard = ({ title, value, icon: Icon, color }) => (
-    <Card sx={{ height: '100%' }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Icon sx={{ fontSize: 40, color }} />
-          <Typography variant="h6" sx={{ ml: 2 }}>
-            {title}
-          </Typography>
-        </Box>
-        <Typography variant="h4">
-          {title === 'Ingresos' ? `$${Number(value).toFixed(2)}` : value}
-        </Typography>
-      </CardContent>
-    </Card>
-  );
+  // Función para obtener el tamaño de fuente basado en la longitud del número
+  const getResponsiveFontSize = (value) => {
+    const str = String(value);
+    if (str.length > 15) return { fontSize: '1.5rem', lineHeight: 1.2 }; // Muy largo
+    if (str.length > 12) return { fontSize: '1.7rem', lineHeight: 1.3 }; // Largo
+    if (str.length > 9) return { fontSize: '1.9rem', lineHeight: 1.4 };  // Medio
+    return { fontSize: '2.125rem', lineHeight: 1.2 }; // Normal (h4)
+  };
+
 
   // Mostrar mensaje cuando no hay negocio seleccionado
   if (!currentBusiness) {
@@ -211,7 +228,6 @@ function Dashboard() {
                 Última actualización: {lastUpdate.toLocaleTimeString()}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                Se actualiza automáticamente al realizar cambios
               </Typography>
             </Box>
           )}
@@ -236,107 +252,230 @@ function Dashboard() {
 
       <Grid container spacing={3}>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Productos"
-            value={stats.totalProducts}
-            icon={InventoryOutlined}
-            color="#1976d2"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Ventas"
-            value={stats.totalSales}
-            icon={ShoppingCartOutlined}
-            color="#2e7d32"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Clientes"
-            value={stats.totalCustomers}
-            icon={PeopleOutlined}
-            color="#ed6c02"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%', bgcolor: 'secondary.light' }}>
-            <CardContent>
+          <Card sx={{ 
+            height: 160, 
+            bgcolor: theme.palette.dashboard.products.light,
+            background: `linear-gradient(135deg, ${theme.palette.dashboard.products.light} 0%, ${theme.palette.dashboard.products.main} 100%)`,
+            boxShadow: darkMode ? '0 8px 32px rgba(108, 92, 231, 0.3)' : '0 4px 20px rgba(25, 118, 210, 0.15)',
+          }}>
+            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <InventoryOutlined sx={{ fontSize: 40, color: 'secondary.dark' }} />
-                <Typography variant="h6" sx={{ ml: 2, color: 'secondary.dark' }}>
+                <InventoryOutlined sx={{ fontSize: 40, color: theme.palette.dashboard.products.dark }} />
+                <Typography variant="h6" sx={{ ml: 2, color: theme.palette.dashboard.products.dark }}>
+                  Productos
+                </Typography>
+              </Box>
+              <Typography 
+                variant="h4" 
+                sx={{ 
+                  color: theme.palette.dashboard.products.dark,
+                  textAlign: 'center',
+                  ...getResponsiveFontSize(stats.totalProducts)
+                }}
+              >
+                {stats.totalProducts}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ 
+            height: 160, 
+            bgcolor: theme.palette.dashboard.sales.light,
+            background: `linear-gradient(135deg, ${theme.palette.dashboard.sales.light} 0%, ${theme.palette.dashboard.sales.main} 100%)`,
+            boxShadow: darkMode ? '0 8px 32px rgba(0, 184, 148, 0.3)' : '0 4px 20px rgba(46, 125, 50, 0.15)',
+          }}>
+            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <ShoppingCartOutlined sx={{ fontSize: 40, color: theme.palette.dashboard.sales.dark }} />
+                <Typography variant="h6" sx={{ ml: 2, color: theme.palette.dashboard.sales.dark }}>
+                  Ventas
+                </Typography>
+              </Box>
+              <Typography 
+                variant="h4" 
+                sx={{ 
+                  color: theme.palette.dashboard.sales.dark,
+                  textAlign: 'center',
+                  ...getResponsiveFontSize(stats.totalSales)
+                }}
+              >
+                {stats.totalSales}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ 
+            height: 160, 
+            bgcolor: theme.palette.dashboard.clients.light,
+            background: `linear-gradient(135deg, ${theme.palette.dashboard.clients.light} 0%, ${theme.palette.dashboard.clients.main} 100%)`,
+            boxShadow: darkMode ? '0 8px 32px rgba(253, 203, 110, 0.3)' : '0 4px 20px rgba(237, 108, 2, 0.15)',
+          }}>
+            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <PeopleOutlined sx={{ fontSize: 40, color: theme.palette.dashboard.clients.dark }} />
+                <Typography variant="h6" sx={{ ml: 2, color: theme.palette.dashboard.clients.dark }}>
+                  Clientes
+                </Typography>
+              </Box>
+              <Typography 
+                variant="h4" 
+                sx={{ 
+                  color: theme.palette.dashboard.clients.dark,
+                  textAlign: 'center',
+                  ...getResponsiveFontSize(stats.totalCustomers)
+                }}
+              >
+                {stats.totalCustomers}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ 
+            height: 160, 
+            bgcolor: theme.palette.dashboard.inventory.light,
+            background: `linear-gradient(135deg, ${theme.palette.dashboard.inventory.light} 0%, ${theme.palette.dashboard.inventory.main} 100%)`,
+            boxShadow: darkMode ? '0 8px 32px rgba(253, 121, 168, 0.3)' : '0 4px 20px rgba(156, 39, 176, 0.15)',
+          }}>
+            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <InventoryOutlined sx={{ fontSize: 40, color: theme.palette.dashboard.inventory.dark }} />
+                <Typography variant="h6" sx={{ ml: 2, color: theme.palette.dashboard.inventory.dark }}>
                   Valor Inventario
                 </Typography>
               </Box>
-              <Typography variant="h4" sx={{ color: 'secondary.dark' }}>
-                ${Number(stats.inventoryValue).toLocaleString('es-ES', { minimumFractionDigits: 2 })}
-              </Typography>
+              <CurrencyDisplay
+                amount={stats.inventoryValue}
+                variant="h4"
+                sx={{ 
+                  color: theme.palette.dashboard.inventory.dark,
+                  textAlign: 'center',
+                  ...getResponsiveFontSize(`$ ${Number(stats.inventoryValue).toLocaleString()} USD`)
+                }}
+              />
             </CardContent>
           </Card>
         </Grid>
         
         {/* Segunda fila de métricas financieras */}
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%', bgcolor: 'success.light' }}>
-            <CardContent>
+          <Card sx={{ 
+            height: 160, 
+            bgcolor: theme.palette.dashboard.revenue.light,
+            background: `linear-gradient(135deg, ${theme.palette.dashboard.revenue.light} 0%, ${theme.palette.dashboard.revenue.main} 100%)`,
+            boxShadow: darkMode ? '0 8px 32px rgba(85, 239, 196, 0.3)' : '0 4px 20px rgba(76, 175, 80, 0.15)',
+          }}>
+            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <AttachMoneyOutlined sx={{ fontSize: 40, color: 'success.dark' }} />
-                <Typography variant="h6" sx={{ ml: 2, color: 'success.dark' }}>
+                <AttachMoneyOutlined sx={{ fontSize: 40, color: theme.palette.dashboard.revenue.dark }} />
+                <Typography variant="h6" sx={{ ml: 2, color: theme.palette.dashboard.revenue.dark }}>
                   Ingresos
                 </Typography>
               </Box>
-              <Typography variant="h4" sx={{ color: 'success.dark' }}>
-                ${Number(stats.totalRevenue).toLocaleString('es-ES', { minimumFractionDigits: 2 })}
-              </Typography>
+              <CurrencyDisplay
+                amount={stats.totalRevenue}
+                variant="h4"
+                sx={{ 
+                  color: theme.palette.dashboard.revenue.dark,
+                  textAlign: 'center',
+                  ...getResponsiveFontSize(`$ ${Number(stats.totalRevenue).toLocaleString()} USD`)
+                }}
+              />
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%', bgcolor: 'error.light' }}>
-            <CardContent>
+          <Card sx={{ 
+            height: 160, 
+            bgcolor: theme.palette.dashboard.expenses.light,
+            background: `linear-gradient(135deg, ${theme.palette.dashboard.expenses.light} 0%, ${theme.palette.dashboard.expenses.main} 100%)`,
+            boxShadow: darkMode ? '0 8px 32px rgba(231, 25, 25, 0.3)' : '0 4px 20px rgba(244, 67, 54, 0.15)',
+          }}>
+            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <AttachMoneyOutlined sx={{ fontSize: 40, color: 'error.dark' }} />
-                <Typography variant="h6" sx={{ ml: 2, color: 'error.dark' }}>
+                <AttachMoneyOutlined sx={{ fontSize: 40, color: theme.palette.dashboard.expenses.dark }} />
+                <Typography variant="h6" sx={{ ml: 2, color: theme.palette.dashboard.expenses.dark }}>
                   Egresos
                 </Typography>
               </Box>
-              <Typography variant="h4" sx={{ color: 'error.dark' }}>
-                ${Number(stats.totalExpenses).toLocaleString('es-ES', { minimumFractionDigits: 2 })}
-              </Typography>
+              <CurrencyDisplay
+                amount={stats.totalExpenses}
+                variant="h4"
+                sx={{ 
+                  color: theme.palette.dashboard.expenses.dark,
+                  textAlign: 'center',
+                  ...getResponsiveFontSize(`$ ${Number(stats.totalExpenses).toLocaleString()} USD`)
+                }}
+              />
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%', bgcolor: stats.netProfit >= 0 ? 'success.light' : 'error.light' }}>
-            <CardContent>
+          <Card sx={{ 
+            height: 160, 
+            bgcolor: stats.netProfit >= 0 ? theme.palette.dashboard.revenue.light : theme.palette.dashboard.expenses.light,
+            background: stats.netProfit >= 0 
+              ? `linear-gradient(135deg, ${theme.palette.dashboard.revenue.light} 0%, ${theme.palette.dashboard.revenue.main} 100%)`
+              : `linear-gradient(135deg, ${theme.palette.dashboard.expenses.light} 0%, ${theme.palette.dashboard.expenses.main} 100%)`,
+            boxShadow: stats.netProfit >= 0 
+              ? (darkMode ? '0 8px 32px rgba(85, 239, 196, 0.3)' : '0 4px 20px rgba(76, 175, 80, 0.15)')
+              : (darkMode ? '0 8px 32px rgba(255, 118, 117, 0.3)' : '0 4px 20px rgba(244, 67, 54, 0.15)'),
+          }}>
+            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <AttachMoneyOutlined sx={{ fontSize: 40, color: stats.netProfit >= 0 ? 'success.dark' : 'error.dark' }} />
-                <Typography variant="h6" sx={{ ml: 2, color: stats.netProfit >= 0 ? 'success.dark' : 'error.dark' }}>
+                <AttachMoneyOutlined sx={{ 
+                  fontSize: 40, 
+                  color: stats.netProfit >= 0 ? theme.palette.dashboard.revenue.dark : theme.palette.dashboard.expenses.dark 
+                }} />
+                <Typography variant="h6" sx={{ 
+                  ml: 2, 
+                  color: stats.netProfit >= 0 ? theme.palette.dashboard.revenue.dark : theme.palette.dashboard.expenses.dark 
+                }}>
                   Ganancia Neta
                 </Typography>
               </Box>
-              <Typography variant="h4" sx={{ color: stats.netProfit >= 0 ? 'success.dark' : 'error.dark' }}>
-                ${Number(stats.netProfit).toLocaleString('es-ES', { minimumFractionDigits: 2 })}
-              </Typography>
+              <CurrencyDisplay
+                amount={stats.netProfit}
+                variant="h4"
+                sx={{ 
+                  color: stats.netProfit >= 0 ? theme.palette.dashboard.revenue.dark : theme.palette.dashboard.expenses.dark,
+                  textAlign: 'center',
+                  ...getResponsiveFontSize(`$ ${Number(stats.netProfit).toLocaleString()} USD`)
+                }}
+              />
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%', bgcolor: 'info.light' }}>
-            <CardContent>
+          <Card sx={{ 
+            height: 160, 
+            bgcolor: theme.palette.dashboard.profit.light,
+            background: `linear-gradient(135deg, ${theme.palette.dashboard.profit.light} 0%, ${theme.palette.dashboard.profit.main} 100%)`,
+            boxShadow: darkMode ? '0 8px 32px rgba(116, 185, 255, 0.3)' : '0 4px 20px rgba(33, 150, 243, 0.15)',
+          }}>
+            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <AttachMoneyOutlined sx={{ fontSize: 40, color: 'info.dark' }} />
-                <Typography variant="h6" sx={{ ml: 2, color: 'info.dark' }}>
+                <AttachMoneyOutlined sx={{ fontSize: 40, color: theme.palette.dashboard.profit.dark }} />
+                <Typography variant="h6" sx={{ ml: 2, color: theme.palette.dashboard.profit.dark }}>
                   Margen de Ganancia
                 </Typography>
               </Box>
-              <Typography variant="h4" sx={{ color: 'info.dark' }}>
+              <Typography 
+                variant="h4" 
+                sx={{ 
+                  color: theme.palette.dashboard.profit.dark,
+                  textAlign: 'center',
+                  ...getResponsiveFontSize(`${Number(stats.profitMargin).toFixed(1)}%`)
+                }}
+              >
                 {Number(stats.profitMargin).toFixed(1)}%
               </Typography>
-              <Typography variant="body2" sx={{ color: 'info.dark', mt: 1 }}>
-                {stats.profitMargin >= 20 ? '🎯 Excelente' : 
-                 stats.profitMargin >= 10 ? '✅ Bueno' : 
-                 stats.profitMargin >= 0 ? '⚠️ Bajo' : '❌ Pérdidas'}
+              <Typography variant="body2" sx={{ color: theme.palette.dashboard.profit.dark, mt: 1 }}>
+                {stats.profitMargin >= 20 ? ' Excelente' : 
+                 stats.profitMargin >= 10 ? ' Bueno' : 
+                 stats.profitMargin >= 0 ? ' Bajo' : ' Pérdidas'}
               </Typography>
             </CardContent>
           </Card>
@@ -344,9 +483,38 @@ function Dashboard() {
 
         <Grid item xs={12}>
           <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              Ingresos vs Egresos Mensuales
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6">
+                Ingresos vs Egresos {chartPeriod === 'weekly' ? 'por Día de la Semana' : chartPeriod === 'monthly' ? 'Mensuales' : 'Anuales'}
+              </Typography>
+              <ToggleButtonGroup
+                value={chartPeriod}
+                exclusive
+                onChange={(event, newPeriod) => {
+                  if (newPeriod !== null) {
+                    setChartPeriod(newPeriod);
+                  }
+                }}
+                size="small"
+                sx={{
+                  '& .MuiToggleButton-root': {
+                    px: 2,
+                    py: 0.5,
+                    fontSize: '0.875rem',
+                  }
+                }}
+              >
+                <ToggleButton value="weekly">
+                  Semanal
+                </ToggleButton>
+                <ToggleButton value="monthly">
+                  Mensual
+                </ToggleButton>
+                <ToggleButton value="yearly">
+                  Anual
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
             <Box sx={{ height: 300 }}>
               {chartsData.labels.length > 0 ? (
                 <Line
@@ -357,11 +525,65 @@ function Dashboard() {
                     plugins: {
                       legend: {
                         position: 'top',
+                        labels: {
+                          color: darkMode ? '#ffffff' : '#000000',
+                          font: {
+                            size: 14,
+                            weight: 'bold',
+                          },
+                          padding: 20,
+                          usePointStyle: true,
+                          pointStyle: 'circle',
+                        },
+                      },
+                      tooltip: {
+                        backgroundColor: darkMode ? 'rgba(30, 30, 30, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+                        titleColor: darkMode ? '#ffffff' : '#000000',
+                        bodyColor: darkMode ? '#ffffff' : '#000000',
+                        borderColor: darkMode ? '#555' : '#e0e0e0',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        displayColors: true,
                       },
                     },
                     scales: {
+                      x: {
+                        beginAtZero: true,
+                        grid: {
+                          color: darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                          borderColor: darkMode ? '#555' : '#e0e0e0',
+                        },
+                        ticks: {
+                          color: darkMode ? '#b3b3b3' : '#666666',
+                          font: {
+                            size: 12,
+                          },
+                        },
+                      },
                       y: {
                         beginAtZero: true,
+                        grid: {
+                          color: darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                          borderColor: darkMode ? '#555' : '#e0e0e0',
+                        },
+                        ticks: {
+                          color: darkMode ? '#b3b3b3' : '#666666',
+                          font: {
+                            size: 12,
+                          },
+                          callback: function(value) {
+                            return '$' + new Intl.NumberFormat('es-ES').format(value);
+                          },
+                        },
+                      },
+                    },
+                    interaction: {
+                      intersect: false,
+                      mode: 'index',
+                    },
+                    elements: {
+                      point: {
+                        hoverBorderWidth: 3,
                       },
                     },
                   }}

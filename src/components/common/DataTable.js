@@ -21,6 +21,7 @@ function DataTable({
   loading = false,
   getRowId,
   pageSize = 10,
+  extraFilters = null, // Nuevo prop para filtros adicionales
 }) {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(pageSize);
@@ -60,17 +61,24 @@ function DataTable({
 
   return (
     <Box>
-      {/* Barra de búsqueda */}
-      <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-        <SearchIcon sx={{ mr: 1, color: 'action.active' }} />
-        <TextField
-          variant="outlined"
-          size="small"
-          placeholder="Buscar..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          fullWidth
-        />
+      {/* Barra de búsqueda y filtros */}
+      <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+          <SearchIcon sx={{ mr: 1, color: 'action.active' }} />
+          <TextField
+            variant="outlined"
+            size="small"
+            placeholder="Buscar..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            fullWidth
+          />
+        </Box>
+        {extraFilters && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {extraFilters}
+          </Box>
+        )}
       </Box>
 
       {/* Tabla */}
@@ -84,7 +92,10 @@ function DataTable({
                   align={column.align || 'left'}
                   style={{ minWidth: column.width }}
                   sx={{ 
-                    backgroundColor: '#f5f5f5',
+                    backgroundColor: (theme) => 
+                      theme.palette.mode === 'dark' ? '#1e1e1e' : '#f5f5f5',
+                    color: (theme) => 
+                      theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
                     fontWeight: 'bold',
                   }}
                 >
@@ -140,7 +151,8 @@ function DataTable({
             `${from}–${to} de ${count !== -1 ? count : `más de ${to}`}`
           }
           sx={{
-            borderTop: '1px solid #e0e0e0',
+            borderTop: (theme) => 
+              `1px solid ${theme.palette.mode === 'dark' ? '#444' : '#e0e0e0'}`,
           }}
         />
       </TableContainer>

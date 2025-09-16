@@ -15,7 +15,12 @@ import {
   Grid,
   Alert,
 } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
+import { 
+  Add as AddIcon, 
+  Inventory as InventoryIcon 
+} from '@mui/icons-material';
+import GlassmorphismDialog from '../../components/common/GlassmorphismDialog';
+import { CancelButton, PrimaryButton } from '../../components/common/GlassmorphismButton';
 import DataTable from '../../components/common/DataTable';
 import api from '../../config/axios';
 
@@ -171,117 +176,141 @@ function Products() {
         searchFields={['nombre', 'codigo_barras']}
       />
 
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {selectedProduct ? 'Editar Producto' : 'Nuevo Producto'}
-        </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Nombre"
-                name="nombre"
-                value={formData.nombre}
-                onChange={handleInputChange}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Código de Barras"
-                name="codigo_barras"
-                value={formData.codigo_barras}
-                onChange={handleInputChange}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                multiline
-                rows={3}
-                label="Descripción"
-                name="descripcion"
-                value={formData.descripcion}
-                onChange={handleInputChange}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Precio de Venta"
-                name="precio_venta"
-                value={formData.precio_venta}
-                onChange={handleInputChange}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Precio de Compra"
-                name="precio_compra"
-                value={formData.precio_compra}
-                onChange={handleInputChange}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Stock"
-                name="stock"
-                value={formData.stock}
-                onChange={handleInputChange}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Stock Mínimo"
-                name="stock_minimo"
-                value={formData.stock_minimo}
-                onChange={handleInputChange}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Categoría</InputLabel>
-                <Select
-                  name="categoria_id"
-                  value={formData.categoria_id}
-                  onChange={handleInputChange}
-                  label="Categoría"
-                >
-                  {categories.map((category) => (
-                    <MenuItem key={category.id} value={category.id}>
-                      {category.nombre}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Impuesto (%)"
-                name="impuesto"
-                value={formData.impuesto}
-                onChange={handleInputChange}
-              />
-            </Grid>
+      <GlassmorphismDialog
+        open={openDialog}
+        onClose={handleCloseDialog}
+        title={selectedProduct ? 'Editar Producto' : 'Nuevo Producto'}
+        subtitle={selectedProduct ? 'Modifica los datos del producto' : 'Agrega un nuevo producto al inventario'}
+        icon={InventoryIcon}
+        maxWidth="md"
+        actions={
+          <>
+            <CancelButton onClick={handleCloseDialog}>
+              Cancelar
+            </CancelButton>
+            <PrimaryButton
+              onClick={handleSubmit}
+              disabled={!formData.nombre.trim()}
+            >
+              {selectedProduct ? 'Actualizar' : 'Crear'}
+            </PrimaryButton>
+          </>
+        }
+      >
+        <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="Nombre *"
+              name="nombre"
+              value={formData.nombre}
+              onChange={handleInputChange}
+              required
+              error={Boolean(!formData.nombre.trim() && error)}
+              helperText={!formData.nombre.trim() && error ? 'El nombre es requerido' : ''}
+            />
           </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancelar</Button>
-          <Button onClick={handleSubmit} variant="contained">
-            {selectedProduct ? 'Actualizar' : 'Crear'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="Código de Barras"
+              name="codigo_barras"
+              value={formData.codigo_barras}
+              onChange={handleInputChange}
+              placeholder="123456789012"
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Descripción"
+              name="descripcion"
+              value={formData.descripcion}
+              onChange={handleInputChange}
+              placeholder="Descripción detallada del producto"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              type="number"
+              label="Precio de Venta"
+              name="precio_venta"
+              value={formData.precio_venta}
+              onChange={handleInputChange}
+              inputProps={{ step: "0.01", min: "0" }}
+              placeholder="0.00"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              type="number"
+              label="Precio de Compra"
+              name="precio_compra"
+              value={formData.precio_compra}
+              onChange={handleInputChange}
+              inputProps={{ step: "0.01", min: "0" }}
+              placeholder="0.00"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              type="number"
+              label="Stock"
+              name="stock"
+              value={formData.stock}
+              onChange={handleInputChange}
+              inputProps={{ min: "0" }}
+              placeholder="0"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              type="number"
+              label="Stock Mínimo"
+              name="stock_minimo"
+              value={formData.stock_minimo}
+              onChange={handleInputChange}
+              inputProps={{ min: "0" }}
+              placeholder="0"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth>
+              <InputLabel>Categoría</InputLabel>
+              <Select
+                name="categoria_id"
+                value={formData.categoria_id}
+                onChange={handleInputChange}
+                label="Categoría"
+              >
+                {categories.map((category) => (
+                  <MenuItem key={category.id} value={category.id}>
+                    {category.nombre}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              type="number"
+              label="Impuesto (%)"
+              name="impuesto"
+              value={formData.impuesto}
+              onChange={handleInputChange}
+              inputProps={{ step: "0.01", min: "0", max: "100" }}
+              placeholder="0.00"
+            />
+          </Grid>
+        </Grid>
+      </GlassmorphismDialog>
     </Box>
   );
 }

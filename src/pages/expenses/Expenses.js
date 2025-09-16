@@ -17,6 +17,7 @@ import {
   Grid,
   Menu,
   Chip,
+  Paper,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -25,10 +26,14 @@ import {
   MoreVert as MoreVertIcon,
   MoneyOff as ExpenseIcon,
 } from '@mui/icons-material';
+import GlassmorphismDialog from '../../components/common/GlassmorphismDialog';
+import { CancelButton, PrimaryButton } from '../../components/common/GlassmorphismButton';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useApp } from '../../context/AppContext';
 import { useDashboard } from '../../context/DashboardContext';
 import api from '../../config/axios';
 import DataTable from '../../components/common/DataTable';
+import CurrencyDisplay from '../../components/common/CurrencyDisplay';
 
 function Expenses() {
   const { currentBusiness } = useApp();
@@ -61,6 +66,13 @@ function Expenses() {
     { value: 'mantenimiento', label: 'Mantenimiento' },
     { value: 'otros', label: 'Otros' },
   ];
+
+  // Estados para filtros
+  const [filters, setFilters] = useState({
+    amountOrder: null, // null = sin filtro, 'desc' = mayor a menor, 'asc' = menor a mayor
+    dateOrder: null,   // null = sin filtro, 'desc' = recientes primero, 'asc' = antiguas primero
+    categoria: ''
+  });
 
   useEffect(() => {
     if (currentBusiness) {
@@ -178,6 +190,58 @@ function Expenses() {
     }
   };
 
+  // Función para filtrar y ordenar gastos
+  const getFilteredExpenses = () => {
+    let filteredExpenses = expenses.filter(expense => {
+      // Filtro por categoría
+      if (filters.categoria && expense.categoria !== filters.categoria) {
+        return false;
+      }
+      
+      return true;
+    });
+
+    // Si no hay filtros de ordenamiento activos, ordenar por fecha (más reciente arriba)
+    if (filters.amountOrder === null && filters.dateOrder === null) {
+      filteredExpenses.sort((a, b) => {
+        const dateA = new Date(a.created_at || a.fecha);
+        const dateB = new Date(b.created_at || b.fecha);
+        return dateB - dateA; // Más reciente arriba
+      });
+      return filteredExpenses;
+    }
+
+    // Ordenar por monto si está activo
+    if (filters.amountOrder !== null) {
+      filteredExpenses.sort((a, b) => {
+        const amountA = parseFloat(a.monto) || 0;
+        const amountB = parseFloat(b.monto) || 0;
+        
+        if (filters.amountOrder === 'desc') {
+          return amountB - amountA; // Mayor a menor
+        } else {
+          return amountA - amountB; // Menor a mayor
+        }
+      });
+    }
+
+    // Ordenar por fecha si está activo (puede sobrescribir el orden de monto)
+    if (filters.dateOrder !== null) {
+      filteredExpenses.sort((a, b) => {
+        const dateA = new Date(a.created_at || a.fecha);
+        const dateB = new Date(b.created_at || b.fecha);
+        
+        if (filters.dateOrder === 'desc') {
+          return dateB - dateA; // Recientes primero
+        } else {
+          return dateA - dateB; // Antiguas primero
+        }
+      });
+    }
+
+    return filteredExpenses;
+  };
+
   const handleDelete = async (expenseId) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar este egreso?')) {
       try {
@@ -246,8 +310,14 @@ function Expenses() {
     {
       field: 'monto',
       headerName: 'Monto',
-      width: 120,
-      renderCell: (params) => `$${parseFloat(params.row.monto || 0).toFixed(2)}`,
+      width: 160,
+      renderCell: (params) => (
+        <CurrencyDisplay 
+          amount={params.row.monto}
+          variant="body2"
+          sx={{ fontWeight: 'bold', color: 'error.main' }}
+        />
+      ),
     },
     { field: 'metodo_pago', headerName: 'Método de Pago', width: 140 },
     { field: 'empleado_nombre', headerName: 'Empleado', width: 150 },
@@ -292,10 +362,71 @@ function Expenses() {
       </Box>
 
       <DataTable
-        rows={expenses}
+        rows={getFilteredExpenses()}
         columns={columns}
         loading={loading}
         getRowId={(row) => row.id}
+        extraFilters={
+          <>
+            <Button
+              variant={filters.amountOrder === 'desc' ? 'contained' : 'outlined'}
+              size="small"
+              onClick={() => setFilters(prev => ({ ...prev, amountOrder: prev.amountOrder === 'desc' ? null : 'desc' }))}
+              sx={{ minWidth: 'auto', px: 1.5 }}
+            >
+              ^ Mayor $
+            </Button>
+            <Button
+              variant={filters.amountOrder === 'asc' ? 'contained' : 'outlined'}
+              size="small"
+              onClick={() => setFilters(prev => ({ ...prev, amountOrder: prev.amountOrder === 'asc' ? null : 'asc' }))}
+              sx={{ minWidth: 'auto', px: 1.5 }}
+            >
+              v Menor $
+            </Button>
+            <Button
+              variant={filters.dateOrder === 'desc' ? 'contained' : 'outlined'}
+              size="small"
+              onClick={() => setFilters(prev => ({ ...prev, dateOrder: prev.dateOrder === 'desc' ? null : 'desc' }))}
+              sx={{ minWidth: 'auto', px: 1.5 }}
+            >
+              Recientes
+            </Button>
+            <Button
+              variant={filters.dateOrder === 'asc' ? 'contained' : 'outlined'}
+              size="small"
+              onClick={() => setFilters(prev => ({ ...prev, dateOrder: prev.dateOrder === 'asc' ? null : 'asc' }))}
+              sx={{ minWidth: 'auto', px: 1.5 }}
+            >
+              Antiguos
+            </Button>
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>Categoría</InputLabel>
+              <Select
+                value={filters.categoria}
+                onChange={(e) => setFilters(prev => ({ ...prev, categoria: e.target.value }))}
+                label="Categoría"
+              >
+                <MenuItem value="">Todas</MenuItem>
+                {categorias.map((cat) => (
+                  <MenuItem key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            {(filters.amountOrder !== null || filters.dateOrder !== null || filters.categoria) && (
+              <Button
+                variant="text"
+                size="small"
+                onClick={() => setFilters({ amountOrder: null, dateOrder: null, categoria: '' })}
+                sx={{ minWidth: 'auto', px: 1, color: 'text.secondary' }}
+              >
+                ✕ Limpiar Todo
+              </Button>
+            )}
+          </>
+        }
       />
 
       {/* Menú de acciones */}
@@ -318,129 +449,138 @@ function Expenses() {
       </Menu>
 
       {/* Dialog para crear/editar egreso */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {editingExpense ? 'Editar Egreso' : 'Nuevo Egreso'}
-        </DialogTitle>
-        <DialogContent>
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-          
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Concepto *"
-                name="concepto"
-                value={expenseData.concepto}
-                onChange={handleInputChange}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth required>
-                <InputLabel>Categoría *</InputLabel>
-                <Select
-                  name="categoria"
-                  value={expenseData.categoria}
-                  onChange={handleInputChange}
-                  label="Categoría *"
-                >
-                  {categorias.map((cat) => (
-                    <MenuItem key={cat.value} value={cat.value}>
-                      {cat.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Monto *"
-                name="monto"
-                type="number"
-                value={expenseData.monto}
-                onChange={handleInputChange}
-                inputProps={{ step: "0.01", min: "0" }}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Método de Pago</InputLabel>
-                <Select
-                  name="metodo_pago"
-                  value={expenseData.metodo_pago}
-                  onChange={handleInputChange}
-                  label="Método de Pago"
-                >
-                  <MenuItem value="efectivo">Efectivo</MenuItem>
-                  <MenuItem value="tarjeta">Tarjeta</MenuItem>
-                  <MenuItem value="transferencia">Transferencia</MenuItem>
-                  <MenuItem value="cheque">Cheque</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Fecha de Pago"
-                name="fecha_pago"
-                type="date"
-                value={expenseData.fecha_pago}
-                onChange={handleInputChange}
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Empleado (opcional)</InputLabel>
-                <Select
-                  name="empleado_id"
-                  value={expenseData.empleado_id}
-                  onChange={handleInputChange}
-                  label="Empleado (opcional)"
-                >
-                  <MenuItem value="">
-                    <em>Ninguno</em>
-                  </MenuItem>
-                  {employees.map((employee) => (
-                    <MenuItem key={employee.id} value={employee.id}>
-                      {employee.nombre}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Descripción"
-                name="descripcion"
-                value={expenseData.descripcion}
-                onChange={handleInputChange}
-                multiline
-                rows={3}
-              />
-            </Grid>
+      <GlassmorphismDialog
+        open={openDialog}
+        onClose={handleCloseDialog}
+        title={editingExpense ? 'Editar Egreso' : 'Nuevo Egreso'}
+        subtitle={editingExpense ? 'Modifica los datos del egreso' : 'Registra un nuevo gasto o egreso para tu negocio'}
+        icon={ExpenseIcon}
+        maxWidth="md"
+        actions={
+          <>
+            <CancelButton onClick={handleCloseDialog} disabled={loading}>
+              Cancelar
+            </CancelButton>
+            <PrimaryButton
+              onClick={handleSubmit}
+              disabled={loading || !expenseData.concepto.trim() || !expenseData.monto || !expenseData.categoria}
+            >
+              {loading ? 'Guardando...' : (editingExpense ? 'Actualizar' : 'Crear')}
+            </PrimaryButton>
+          </>
+        }
+      >
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+        
+        <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Concepto *"
+              name="concepto"
+              value={expenseData.concepto}
+              onChange={handleInputChange}
+              required
+              error={Boolean(!expenseData.concepto.trim() && error)}
+              helperText={!expenseData.concepto.trim() && error ? 'El concepto es requerido' : ''}
+            />
           </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancelar</Button>
-          <Button
-            onClick={handleSubmit}
-            variant="contained"
-            disabled={loading}
-            startIcon={<ExpenseIcon />}
-          >
-            {loading ? 'Guardando...' : editingExpense ? 'Actualizar' : 'Crear'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth required error={Boolean(!expenseData.categoria && error)}>
+              <InputLabel>Categoría *</InputLabel>
+              <Select
+                name="categoria"
+                value={expenseData.categoria}
+                onChange={handleInputChange}
+                label="Categoría *"
+              >
+                {categorias.map((cat) => (
+                  <MenuItem key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Monto *"
+              name="monto"
+              type="number"
+              value={expenseData.monto}
+              onChange={handleInputChange}
+              inputProps={{ step: "0.01", min: "0" }}
+              required
+              error={Boolean(!expenseData.monto && error)}
+              helperText={!expenseData.monto && error ? 'El monto es requerido' : ''}
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth>
+              <InputLabel>Método de Pago</InputLabel>
+              <Select
+                name="metodo_pago"
+                value={expenseData.metodo_pago}
+                onChange={handleInputChange}
+                label="Método de Pago"
+              >
+                <MenuItem value="efectivo">Efectivo</MenuItem>
+                <MenuItem value="tarjeta">Tarjeta</MenuItem>
+                <MenuItem value="transferencia">Transferencia</MenuItem>
+                <MenuItem value="cheque">Cheque</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Fecha de Pago"
+              name="fecha_pago"
+              type="date"
+              value={expenseData.fecha_pago}
+              onChange={handleInputChange}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth>
+              <InputLabel>Empleado (opcional)</InputLabel>
+              <Select
+                name="empleado_id"
+                value={expenseData.empleado_id}
+                onChange={handleInputChange}
+                label="Empleado (opcional)"
+              >
+                <MenuItem value="">
+                  <em>Ninguno</em>
+                </MenuItem>
+                {employees.map((employee) => (
+                  <MenuItem key={employee.id} value={employee.id}>
+                    {employee.nombre}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Descripción"
+              name="descripcion"
+              value={expenseData.descripcion}
+              onChange={handleInputChange}
+              multiline
+              rows={3}
+              placeholder="Descripción opcional del egreso"
+            />
+          </Grid>
+        </Grid>
+      </GlassmorphismDialog>
     </Box>
   );
 }

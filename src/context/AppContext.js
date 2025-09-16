@@ -10,6 +10,10 @@ export function AppProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [businesses, setBusinesses] = useState([]);
   const [currentBusiness, setCurrentBusiness] = useState(null);
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('darkMode');
+    return saved ? JSON.parse(saved) : false;
+  });
 
   const loadBusinesses = async (firebaseUser = null) => {
     const userToUse = firebaseUser || user;
@@ -41,6 +45,32 @@ export function AppProvider({ children }) {
       setCurrentBusiness(business);
       localStorage.setItem('currentBusinessId', businessId);
     }
+  };
+
+  const refreshCurrentBusiness = async () => {
+    if (!user?.uid || !currentBusiness?.id) return;
+    
+    try {
+      console.log('AppContext - Refrescando negocio actual...');
+      const response = await api.get(`/businesses/${user.uid}`);
+      const updatedBusinesses = response.data;
+      setBusinesses(updatedBusinesses);
+      
+      // Actualizar el negocio actual con los datos más recientes
+      const updatedCurrentBusiness = updatedBusinesses.find(b => b.id === currentBusiness.id);
+      if (updatedCurrentBusiness) {
+        console.log('AppContext - Negocio actualizado:', updatedCurrentBusiness);
+        setCurrentBusiness(updatedCurrentBusiness);
+      }
+    } catch (error) {
+      console.error('Error al refrescar el negocio actual:', error);
+    }
+  };
+
+  const toggleDarkMode = () => {
+    const newDarkMode = !darkMode;
+    setDarkMode(newDarkMode);
+    localStorage.setItem('darkMode', JSON.stringify(newDarkMode));
   };
 
   useEffect(() => {
@@ -92,6 +122,9 @@ export function AppProvider({ children }) {
     setCurrentBusiness,
     loadBusinesses,
     switchBusiness,
+    refreshCurrentBusiness,
+    darkMode,
+    toggleDarkMode,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

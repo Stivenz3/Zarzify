@@ -3,10 +3,6 @@ import {
   Box,
   Typography,
   Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
   FormControl,
   InputLabel,
@@ -19,17 +15,19 @@ import {
   Card,
   CardContent,
   CardMedia,
+  Stack,
   Chip,
   Menu,
   ToggleButton,
   ToggleButtonGroup,
   Badge,
   Divider,
-  Stack,
   CardActions,
   Tooltip,
   Paper,
   InputAdornment,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -46,11 +44,15 @@ import {
   AttachMoney as MoneyIcon,
   Info as InfoIcon,
   ShoppingCart as ShoppingCartIcon,
+  CloudUpload as CloudUploadIcon,
 } from '@mui/icons-material';
+import GlassmorphismDialog from '../../components/common/GlassmorphismDialog';
+import { CancelButton, PrimaryButton } from '../../components/common/GlassmorphismButton';
 import { useApp } from '../../context/AppContext';
 import { useDashboard } from '../../context/DashboardContext';
 import api from '../../config/axios';
 import DataTable from '../../components/common/DataTable';
+import CurrencyDisplay from '../../components/common/CurrencyDisplay';
 
 function Products() {
   const { currentBusiness } = useApp();
@@ -66,6 +68,7 @@ function Products() {
   const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'table'
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
+  const [useImageUrl, setUseImageUrl] = useState(true); // true para URL, false para upload
   
   const [productData, setProductData] = useState({
     nombre: '',
@@ -78,6 +81,7 @@ function Products() {
     impuesto: '',
     stock_minimo: '',
     imagen_url: '',
+    imagen_file: null,
   });
 
   useEffect(() => {
@@ -133,7 +137,9 @@ function Products() {
         impuesto: product.impuesto || '',
         stock_minimo: product.stock_minimo || '',
         imagen_url: product.imagen_url || '',
+        imagen_file: null,
       });
+      setUseImageUrl(true); // Por defecto usar URL al editar
     } else {
       setEditingProduct(null);
       setProductData({
@@ -147,7 +153,9 @@ function Products() {
         impuesto: '',
         stock_minimo: '',
         imagen_url: '',
+        imagen_file: null,
       });
+      setUseImageUrl(true);
     }
     setOpenDialog(true);
     setError('');
@@ -177,6 +185,46 @@ function Products() {
     }));
   };
 
+  const handleImageFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        setError('La imagen no debe superar los 5MB');
+        return;
+      }
+      setProductData(prev => ({
+        ...prev,
+        imagen_file: file
+      }));
+      setError('');
+    }
+  };
+
+  const uploadImageToLocal = async (file) => {
+    const formData = new FormData();
+    formData.append('imagen', file);
+    
+    try {
+      const response = await fetch('http://localhost:3001/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error del servidor: ${response.status} - ${errorText}`);
+      }
+      
+      const data = await response.json();
+      return data.imageUrl;
+    } catch (error) {
+      if (error.message.includes('fetch')) {
+        throw new Error('Error de conexión. Verifica que el servidor esté corriendo en puerto 3001.');
+      }
+      throw new Error(`Error al subir la imagen: ${error.message}`);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!productData.nombre.trim() || !productData.precio_venta) {
       setError('Nombre y precio de venta son requeridos');
@@ -185,8 +233,16 @@ function Products() {
 
     setLoading(true);
     try {
+      let imageUrl = productData.imagen_url;
+
+      // Si hay un archivo de imagen, subirlo
+      if (!useImageUrl && productData.imagen_file) {
+        imageUrl = await uploadImageToLocal(productData.imagen_file);
+      }
+
       const dataToSend = {
         ...productData,
+        imagen_url: imageUrl,
         negocio_id: currentBusiness.id,
         precio_venta: parseFloat(productData.precio_venta) || 0,
         precio_compra: parseFloat(productData.precio_compra) || 0,
@@ -194,6 +250,9 @@ function Products() {
         impuesto: parseFloat(productData.impuesto) || 0,
         stock_minimo: parseFloat(productData.stock_minimo) || 0,
       };
+
+      // Removemos imagen_file del dataToSend ya que no debe enviarse al backend
+      delete dataToSend.imagen_file;
 
       if (editingProduct) {
         await api.put(`/productos/${editingProduct.id}`, dataToSend);
@@ -328,9 +387,11 @@ function Products() {
           <Box sx={{ mt: 'auto' }}>
             <Grid container spacing={1} alignItems="center">
               <Grid item xs={6}>
-                <Typography variant="h6" color="primary" fontWeight="bold">
-                  ${parseFloat(product.precio_venta || 0).toFixed(2)}
-                </Typography>
+              <CurrencyDisplay
+                  amount={product.precio_venta}
+                  variant="body1"
+                  sx={{ color: 'primary.main', fontWeight: 'bold', fontSize: '0.9rem' }}
+                />
               </Grid>
               <Grid item xs={6} sx={{ textAlign: 'right' }}>
                 <Chip 
@@ -531,8 +592,14 @@ function Products() {
     {
       field: 'precio_venta',
       headerName: 'Precio Venta',
-      width: 120,
-      renderCell: (params) => `$${parseFloat(params.row.precio_venta || 0).toFixed(2)}`,
+      width: 160,
+      renderCell: (params) => (
+        <CurrencyDisplay 
+          amount={params.row.precio_venta}
+          variant="body2"
+          sx={{ fontWeight: 'bold' }}
+        />
+      ),
     },
     {
       field: 'stock',
@@ -682,19 +749,30 @@ function Products() {
       )}
 
       {/* Dialog de detalles del producto */}
-      <Dialog 
-        open={openDetailDialog} 
-        onClose={handleCloseDetailDialog} 
-        maxWidth="md" 
-        fullWidth
+      <GlassmorphismDialog
+        open={openDetailDialog}
+        onClose={handleCloseDetailDialog}
+        title="Detalles del Producto"
+        subtitle="Información completa del producto seleccionado"
+        icon={InfoIcon}
+        maxWidth="md"
+        actions={
+          <>
+            <CancelButton onClick={handleCloseDetailDialog}>
+              Cerrar
+            </CancelButton>
+            <PrimaryButton 
+              startIcon={<EditIcon />}
+              onClick={() => {
+                handleCloseDetailDialog();
+                handleOpenDialog(viewingProduct);
+              }}
+            >
+              Editar Producto
+            </PrimaryButton>
+          </>
+        }
       >
-        <DialogTitle sx={{ pb: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <InfoIcon color="primary" />
-            Detalles del Producto
-          </Box>
-        </DialogTitle>
-        <DialogContent>
           {viewingProduct && (
             <Grid container spacing={3} sx={{ mt: 1 }}>
               {/* Imagen del producto */}
@@ -756,9 +834,11 @@ function Products() {
                         <Typography variant="subtitle2" color="success.dark">
                           Precio de Venta
                         </Typography>
-                        <Typography variant="h6" color="success.dark">
-                          ${parseFloat(viewingProduct.precio_venta || 0).toFixed(2)}
-                        </Typography>
+                        <CurrencyDisplay
+                          amount={viewingProduct.precio_venta}
+                          variant="h6"
+                          sx={{ color: 'success.dark' }}
+                        />
                       </Box>
                     </Grid>
                     <Grid item xs={6}>
@@ -780,9 +860,10 @@ function Products() {
                         <Typography variant="subtitle2" color="text.secondary">
                           Precio de Compra
                         </Typography>
-                        <Typography variant="body1">
-                          ${parseFloat(viewingProduct.precio_compra || 0).toFixed(2)}
-                        </Typography>
+                        <CurrencyDisplay
+                          amount={viewingProduct.precio_compra}
+                          variant="body1"
+                        />
                       </Grid>
                     )}
                     {viewingProduct.codigo_barras && (
@@ -840,182 +921,221 @@ function Products() {
               </Grid>
             </Grid>
           )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDetailDialog}>
-            Cerrar
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<EditIcon />}
-            onClick={() => {
-              handleCloseDetailDialog();
-              handleOpenDialog(viewingProduct);
-            }}
-          >
-            Editar Producto
-          </Button>
-        </DialogActions>
-      </Dialog>
+      </GlassmorphismDialog>
 
       {/* Dialog para crear/editar producto - mantener el existente */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {editingProduct ? 'Editar Producto' : 'Nuevo Producto'}
-        </DialogTitle>
-        <DialogContent>
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-          
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Nombre *"
-                name="nombre"
-                value={productData.nombre}
+      <GlassmorphismDialog
+        open={openDialog}
+        onClose={handleCloseDialog}
+        title={editingProduct ? 'Editar Producto' : 'Nuevo Producto'}
+        subtitle={editingProduct ? 'Modifica los datos del producto' : 'Agrega un nuevo producto a tu inventario'}
+        icon={ShoppingCartIcon}
+        maxWidth="md"
+        actions={
+          <>
+            <CancelButton onClick={handleCloseDialog} disabled={loading}>
+              Cancelar
+            </CancelButton>
+            <PrimaryButton
+              onClick={handleSubmit}
+              disabled={loading || !productData.nombre.trim() || !productData.precio_venta}
+            >
+              {loading ? 'Guardando...' : (editingProduct ? 'Actualizar' : 'Crear')}
+            </PrimaryButton>
+          </>
+        }
+      >
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+        
+        <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Nombre *"
+              name="nombre"
+              value={productData.nombre}
+              onChange={handleInputChange}
+              required
+              error={Boolean(!productData.nombre.trim() && error)}
+              helperText={!productData.nombre.trim() && error ? 'El nombre es requerido' : ''}
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth>
+              <InputLabel>Categoría</InputLabel>
+              <Select
+                name="categoria_id"
+                value={productData.categoria_id}
                 onChange={handleInputChange}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Categoría</InputLabel>
-                <Select
-                  name="categoria_id"
-                  value={productData.categoria_id}
-                  onChange={handleInputChange}
-                  label="Categoría"
-                >
-                  <MenuItem value="">
-                    <em>Sin categoría</em>
+                label="Categoría"
+              >
+                <MenuItem value="">
+                  <em>Sin categoría</em>
+                </MenuItem>
+                {categories.map((category) => (
+                  <MenuItem key={category.id} value={category.id}>
+                    {category.nombre}
                   </MenuItem>
-                  {categories.map((category) => (
-                    <MenuItem key={category.id} value={category.id}>
-                      {category.nombre}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12}>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Descripción"
+              name="descripcion"
+              value={productData.descripcion}
+              onChange={handleInputChange}
+              multiline
+              rows={2}
+              placeholder="Descripción detallada del producto"
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Código de Barras"
+              name="codigo_barras"
+              value={productData.codigo_barras}
+              onChange={handleInputChange}
+              placeholder="123456789012"
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <Typography variant="h6" gutterBottom>
+              Imagen del Producto
+            </Typography>
+            
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={useImageUrl}
+                  onChange={(e) => setUseImageUrl(e.target.checked)}
+                />
+              }
+              label={useImageUrl ? "Usar URL de imagen" : "Subir imagen desde dispositivo"}
+              sx={{ mb: 2 }}
+            />
+
+            {useImageUrl ? (
               <TextField
                 fullWidth
-                label="Descripción"
-                name="descripcion"
-                value={productData.descripcion}
-                onChange={handleInputChange}
-                multiline
-                rows={2}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Código de Barras"
-                name="codigo_barras"
-                value={productData.codigo_barras}
-                onChange={handleInputChange}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="URL de Imagen"
+                label="URL de la Imagen"
                 name="imagen_url"
                 value={productData.imagen_url}
                 onChange={handleInputChange}
                 placeholder="https://ejemplo.com/imagen.jpg"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <ImageIcon />
+                    </InputAdornment>
+                  ),
+                }}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
+            ) : (
+              <Button
+                variant="outlined"
+                component="label"
                 fullWidth
-                label="Precio de Venta *"
-                name="precio_venta"
-                type="number"
-                value={productData.precio_venta}
-                onChange={handleInputChange}
-                required
-                inputProps={{ step: "0.01", min: "0" }}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Precio de Compra"
-                name="precio_compra"
-                type="number"
-                value={productData.precio_compra}
-                onChange={handleInputChange}
-                inputProps={{ step: "0.01", min: "0" }}
-              />
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label="Stock"
-                name="stock"
-                type="number"
-                value={productData.stock}
-                onChange={handleInputChange}
-                inputProps={{ step: "0.01", min: "0" }}
-              />
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label="Stock Mínimo"
-                name="stock_minimo"
-                type="number"
-                value={productData.stock_minimo}
-                onChange={handleInputChange}
-                inputProps={{ step: "0.01", min: "0" }}
-              />
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label="Impuesto (%)"
-                name="impuesto"
-                type="number"
-                value={productData.impuesto}
-                onChange={handleInputChange}
-                inputProps={{ step: "0.01", min: "0", max: "100" }}
-              />
-            </Grid>
-            
-            {productData.imagen_url && (
-              <Grid item xs={12}>
-                <Box sx={{ textAlign: 'center', mt: 2 }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Vista previa:
-                  </Typography>
-                  <Avatar
-                    src={productData.imagen_url}
-                    sx={{ width: 100, height: 100, mx: 'auto' }}
-                  >
-                    <ImageIcon />
-                  </Avatar>
-                </Box>
-              </Grid>
+                startIcon={<CloudUploadIcon />}
+                sx={{ height: 56 }}
+              >
+                {productData.imagen_file ? productData.imagen_file.name : 'Seleccionar imagen'}
+                <input
+                  hidden
+                  accept="image/*"
+                  type="file"
+                  onChange={handleImageFileChange}
+                />
+              </Button>
             )}
           </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancelar</Button>
-          <Button
-            onClick={handleSubmit}
-            variant="contained"
-            disabled={loading}
-          >
-            {loading ? 'Guardando...' : editingProduct ? 'Actualizar' : 'Crear'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Precio de Venta *"
+              name="precio_venta"
+              type="number"
+              value={productData.precio_venta}
+              onChange={handleInputChange}
+              required
+              inputProps={{ step: "0.01", min: "0" }}
+              error={Boolean(!productData.precio_venta && error)}
+              helperText={!productData.precio_venta && error ? 'El precio de venta es requerido' : ''}
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Precio de Compra"
+              name="precio_compra"
+              type="number"
+              value={productData.precio_compra}
+              onChange={handleInputChange}
+              inputProps={{ step: "0.01", min: "0" }}
+              placeholder="0.00"
+            />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label="Stock"
+              name="stock"
+              type="number"
+              value={productData.stock}
+              onChange={handleInputChange}
+              inputProps={{ step: "0.01", min: "0" }}
+              placeholder="0"
+            />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label="Stock Mínimo"
+              name="stock_minimo"
+              type="number"
+              value={productData.stock_minimo}
+              onChange={handleInputChange}
+              inputProps={{ step: "0.01", min: "0" }}
+              placeholder="0"
+            />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label="Impuesto (%)"
+              name="impuesto"
+              type="number"
+              value={productData.impuesto}
+              onChange={handleInputChange}
+              inputProps={{ step: "0.01", min: "0", max: "100" }}
+              placeholder="0.00"
+            />
+          </Grid>
+          
+          {(productData.imagen_url || productData.imagen_file) && (
+            <Grid item xs={12}>
+              <Box sx={{ textAlign: 'center', mt: 2 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Vista previa:
+                </Typography>
+                <Avatar
+                  src={productData.imagen_file ? URL.createObjectURL(productData.imagen_file) : productData.imagen_url}
+                  sx={{ width: 100, height: 100, mx: 'auto' }}
+                >
+                  <ImageIcon />
+                </Avatar>
+              </Box>
+            </Grid>
+          )}
+        </Grid>
+      </GlassmorphismDialog>
     </Box>
   );
 }

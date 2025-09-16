@@ -21,9 +21,12 @@ import {
   MoreVert as MoreVertIcon,
   Category as CategoryIcon,
 } from '@mui/icons-material';
+import GlassmorphismDialog from '../../components/common/GlassmorphismDialog';
+import { CancelButton, PrimaryButton } from '../../components/common/GlassmorphismButton';
 import { useApp } from '../../context/AppContext';
 import api from '../../config/axios';
 import DataTable from '../../components/common/DataTable';
+import CurrencyDisplay from '../../components/common/CurrencyDisplay';
 
 function Categories() {
   const { currentBusiness } = useApp();
@@ -186,12 +189,14 @@ function Categories() {
         const inventoryData = categoriesWithInventory.find(inv => inv.id === params.row.id);
         const valor = inventoryData ? parseFloat(inventoryData.valor_inventario) : 0;
         return (
-          <Box sx={{ 
-            color: valor > 0 ? 'success.main' : 'text.secondary',
-            fontWeight: valor > 0 ? 'bold' : 'normal'
-          }}>
-            ${valor.toFixed(2)}
-          </Box>
+          <CurrencyDisplay
+            amount={valor}
+            variant="body2"
+            sx={{ 
+              color: valor > 0 ? 'success.main' : 'text.secondary',
+              fontWeight: valor > 0 ? 'bold' : 'normal'
+            }}
+          />
         );
       }
     },
@@ -272,52 +277,60 @@ function Categories() {
       </Menu>
 
       {/* Dialog para crear/editar categoría */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {editingCategory ? 'Editar Categoría' : 'Nueva Categoría'}
-        </DialogTitle>
-        <DialogContent>
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-          
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Nombre *"
-                name="nombre"
-                value={categoryData.nombre}
-                onChange={handleInputChange}
-                required
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Descripción"
-                name="descripcion"
-                value={categoryData.descripcion}
-                onChange={handleInputChange}
-                multiline
-                rows={3}
-              />
-            </Grid>
+      <GlassmorphismDialog
+        open={openDialog}
+        onClose={handleCloseDialog}
+        title={editingCategory ? 'Editar Categoría' : 'Nueva Categoría'}
+        subtitle={editingCategory ? 'Modifica los datos de la categoría' : 'Agrega una nueva categoría para organizar tus productos'}
+        icon={CategoryIcon}
+        maxWidth="sm"
+        actions={
+          <>
+            <CancelButton onClick={handleCloseDialog} disabled={loading}>
+              Cancelar
+            </CancelButton>
+            <PrimaryButton
+              onClick={handleSubmit}
+              disabled={loading || !categoryData.nombre.trim()}
+            >
+              {loading ? 'Guardando...' : (editingCategory ? 'Actualizar' : 'Crear')}
+            </PrimaryButton>
+          </>
+        }
+      >
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+        
+        <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Nombre *"
+              name="nombre"
+              value={categoryData.nombre}
+              onChange={handleInputChange}
+              required
+              error={Boolean(!categoryData.nombre.trim() && error)}
+              helperText={!categoryData.nombre.trim() && error ? 'El nombre es requerido' : ''}
+            />
           </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancelar</Button>
-          <Button
-            onClick={handleSubmit}
-            variant="contained"
-            disabled={loading}
-          >
-            {loading ? 'Guardando...' : editingCategory ? 'Actualizar' : 'Crear'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Descripción"
+              name="descripcion"
+              value={categoryData.descripcion}
+              onChange={handleInputChange}
+              multiline
+              rows={3}
+              placeholder="Descripción opcional de la categoría"
+            />
+          </Grid>
+        </Grid>
+      </GlassmorphismDialog>
     </Box>
   );
 }

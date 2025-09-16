@@ -12,6 +12,9 @@ import {
   TextField,
   Alert,
   Divider,
+  FormControl,
+  InputLabel,
+  Select,
 } from '@mui/material';
 import {
   Store as StoreIcon,
@@ -19,16 +22,20 @@ import {
   Add as AddIcon,
 } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
+import { useTheme } from '@mui/material/styles';
 import api from '../../config/axios';
+import { getCurrencyOptions } from '../../utils/currency';
 
 function BusinessSelector() {
-  const { user, businesses, currentBusiness, loadBusinesses, switchBusiness } = useApp();
+  const { user, businesses, currentBusiness, loadBusinesses, switchBusiness, darkMode } = useApp();
+  const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState(null);
   const [openNewDialog, setOpenNewDialog] = useState(false);
   const [newBusiness, setNewBusiness] = useState({
     nombre: '',
     direccion: '',
     telefono: '',
+    divisa: 'COP',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -103,6 +110,7 @@ function BusinessSelector() {
         nombre: '',
         direccion: '',
         telefono: '',
+        divisa: 'COP',
       });
       
       // Cerrar el diálogo
@@ -110,7 +118,7 @@ function BusinessSelector() {
       
       // Seleccionar el nuevo negocio automáticamente
       if (businessResponse.data && businessResponse.data.id) {
-        switchBusiness(businessResponse.data.id);
+        await switchBusiness(businessResponse.data.id);
       }
       
     } catch (error) {
@@ -134,6 +142,7 @@ function BusinessSelector() {
       nombre: '',
       direccion: '',
       telefono: '',
+      divisa: 'COP',
     });
   };
 
@@ -144,17 +153,34 @@ function BusinessSelector() {
         startIcon={<StoreIcon />}
         endIcon={<ArrowDownIcon />}
         sx={{
-          color: 'inherit',
+          color: darkMode ? '#ffffff' : '#000000',
           textTransform: 'none',
           fontSize: '1.1rem',
           fontWeight: 'bold',
-          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          borderRadius: '8px',
+          backgroundColor: darkMode 
+            ? 'rgba(255, 255, 255, 0.08)' 
+            : 'rgba(255, 255, 255, 0.9)',
+          border: `1px solid ${darkMode 
+            ? 'rgba(255, 255, 255, 0.15)' 
+            : 'rgba(0, 0, 0, 0.1)'}`,
+          borderRadius: '12px',
           padding: '8px 16px',
+          backdropFilter: 'blur(10px)',
+          boxShadow: darkMode 
+            ? '0 4px 20px rgba(0, 0, 0, 0.3)' 
+            : '0 2px 10px rgba(0, 0, 0, 0.1)',
+          transition: 'all 0.3s ease-in-out',
           '&:hover': {
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-            borderColor: 'rgba(255, 255, 255, 0.3)',
+            backgroundColor: darkMode 
+              ? 'rgba(255, 255, 255, 0.15)' 
+              : 'rgba(255, 255, 255, 1)',
+            borderColor: darkMode 
+              ? 'rgba(255, 255, 255, 0.25)' 
+              : 'rgba(0, 0, 0, 0.2)',
+            transform: 'translateY(-1px)',
+            boxShadow: darkMode 
+              ? '0 6px 25px rgba(0, 0, 0, 0.4)' 
+              : '0 4px 15px rgba(0, 0, 0, 0.15)',
           },
           minWidth: '200px',
           justifyContent: 'flex-start',
@@ -175,26 +201,44 @@ function BusinessSelector() {
         onClose={handleClose}
         PaperProps={{
           sx: { 
-            minWidth: 250,
-            borderRadius: '8px',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
+            minWidth: 280,
+            borderRadius: '16px',
+            backgroundColor: darkMode ? '#2d2d2d' : '#ffffff',
+            backgroundImage: darkMode 
+              ? 'linear-gradient(135deg, #2d2d2d 0%, #1e1e1e 100%)' 
+              : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+            boxShadow: darkMode 
+              ? '0 16px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)' 
+              : '0 8px 32px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+            backdropFilter: 'blur(20px)',
+            border: `1px solid ${darkMode 
+              ? 'rgba(255, 255, 255, 0.1)' 
+              : 'rgba(0, 0, 0, 0.05)'}`,
           }
         }}
         transformOrigin={{ horizontal: 'left', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
+        sx={{
+          '& .MuiPaper-root': {
+            mt: 1,
+          }
+        }}
       >
         {businesses && businesses.length > 0 ? (
           <>
             <Typography 
               variant="caption" 
               sx={{ 
-                px: 2, 
-                py: 1, 
+                px: 3, 
+                py: 2, 
                 display: 'block',
-                color: 'text.secondary',
+                color: darkMode ? '#b3b3b3' : 'text.secondary',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '0.5px'
+                letterSpacing: '1px',
+                fontSize: '0.75rem',
+                borderBottom: `1px solid ${darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+                mb: 1,
               }}
             >
               Mis Negocios
@@ -205,14 +249,33 @@ function BusinessSelector() {
                 onClick={() => handleSwitchBusiness(business)}
                 selected={currentBusiness?.id === business.id}
                 sx={{
-                  py: 1.5,
-                  px: 2,
+                  py: 2,
+                  px: 3,
+                  mx: 1,
+                  my: 0.5,
+                  borderRadius: '12px',
+                  transition: 'all 0.3s ease-in-out',
                   '&.Mui-selected': {
-                    backgroundColor: 'primary.light',
-                    color: 'primary.contrastText',
+                    backgroundColor: darkMode 
+                      ? 'rgba(25, 118, 210, 0.3)' 
+                      : 'rgba(25, 118, 210, 0.1)',
+                    color: darkMode ? '#ffffff' : 'primary.main',
+                    backgroundImage: darkMode 
+                      ? 'linear-gradient(135deg, rgba(25, 118, 210, 0.3) 0%, rgba(25, 118, 210, 0.1) 100%)'
+                      : 'linear-gradient(135deg, rgba(25, 118, 210, 0.1) 0%, rgba(25, 118, 210, 0.05) 100%)',
+                    border: `1px solid ${darkMode ? 'rgba(25, 118, 210, 0.5)' : 'rgba(25, 118, 210, 0.3)'}`,
                     '&:hover': {
-                      backgroundColor: 'primary.main',
+                      backgroundColor: darkMode 
+                        ? 'rgba(25, 118, 210, 0.4)' 
+                        : 'rgba(25, 118, 210, 0.15)',
+                      transform: 'translateX(4px)',
                     },
+                  },
+                  '&:hover': {
+                    backgroundColor: darkMode 
+                      ? 'rgba(255, 255, 255, 0.08)' 
+                      : 'rgba(0, 0, 0, 0.04)',
+                    transform: 'translateX(2px)',
                   },
                 }}
               >
@@ -229,7 +292,11 @@ function BusinessSelector() {
                 </Box>
               </MenuItem>
             ))}
-            <Divider sx={{ my: 1 }} />
+            <Divider sx={{ 
+              my: 2, 
+              mx: 2,
+              borderColor: darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+            }} />
           </>
         ) : (
           <MenuItem disabled>
@@ -244,12 +311,25 @@ function BusinessSelector() {
             setOpenNewDialog(true);
           }}
           sx={{ 
-            color: 'primary.main',
-            py: 1.5,
-            px: 2,
+            color: darkMode ? '#74b9ff' : 'primary.main',
+            py: 2,
+            px: 3,
+            mx: 1,
+            mb: 1,
+            borderRadius: '12px',
+            background: darkMode 
+              ? 'linear-gradient(135deg, rgba(116, 185, 255, 0.1) 0%, rgba(116, 185, 255, 0.05) 100%)'
+              : 'linear-gradient(135deg, rgba(25, 118, 210, 0.05) 0%, rgba(25, 118, 210, 0.02) 100%)',
+            border: `1px dashed ${darkMode ? 'rgba(116, 185, 255, 0.3)' : 'rgba(25, 118, 210, 0.3)'}`,
+            transition: 'all 0.3s ease-in-out',
             '&:hover': {
-              backgroundColor: 'primary.light',
-              color: 'primary.contrastText',
+              backgroundColor: darkMode 
+                ? 'rgba(116, 185, 255, 0.15)' 
+                : 'rgba(25, 118, 210, 0.1)',
+              color: darkMode ? '#ffffff' : 'primary.main',
+              transform: 'translateX(4px) scale(1.02)',
+              borderColor: darkMode ? 'rgba(116, 185, 255, 0.5)' : 'rgba(25, 118, 210, 0.5)',
+              borderStyle: 'solid',
             },
           }}
         >
@@ -267,17 +347,61 @@ function BusinessSelector() {
         fullWidth
         PaperProps={{
           sx: {
-            borderRadius: '12px',
+            borderRadius: '20px',
+            backgroundColor: darkMode ? '#2d2d2d' : '#ffffff',
+            backgroundImage: darkMode 
+              ? 'linear-gradient(135deg, #2d2d2d 0%, #1e1e1e 100%)' 
+              : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+            boxShadow: darkMode 
+              ? '0 20px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1)' 
+              : '0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+            backdropFilter: 'blur(20px)',
+          }
+        }}
+        sx={{
+          '& .MuiBackdrop-root': {
+            backgroundColor: darkMode 
+              ? 'rgba(0, 0, 0, 0.8)' 
+              : 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(4px)',
           }
         }}
       >
-        <DialogTitle sx={{ pb: 1 }}>
+        <DialogTitle sx={{ 
+          pb: 1, 
+          pt: 3,
+          px: 3,
+          borderBottom: `1px solid ${darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+        }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <StoreIcon sx={{ mr: 1, color: 'primary.main' }} />
-            Crear Nuevo Negocio
+            <Box sx={{
+              p: 1.5,
+              borderRadius: '12px',
+              backgroundColor: darkMode ? 'rgba(116, 185, 255, 0.15)' : 'rgba(25, 118, 210, 0.1)',
+              mr: 2,
+            }}>
+              <StoreIcon sx={{ 
+                color: darkMode ? '#74b9ff' : 'primary.main',
+                fontSize: 24,
+              }} />
+            </Box>
+            <Box>
+              <Typography variant="h6" sx={{ 
+                fontWeight: 'bold',
+                color: darkMode ? '#ffffff' : '#000000',
+              }}>
+                Crear Nuevo Negocio
+              </Typography>
+              <Typography variant="body2" sx={{ 
+                color: darkMode ? '#b3b3b3' : 'text.secondary',
+                mt: 0.5,
+              }}>
+                Agrega un nuevo negocio a tu cuenta
+              </Typography>
+            </Box>
           </Box>
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ px: 3, py: 3 }}>
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
@@ -292,7 +416,7 @@ function BusinessSelector() {
               onChange={handleNewBusinessChange}
               sx={{ mb: 2 }}
               required
-              error={!newBusiness.nombre.trim() && error}
+              error={Boolean(!newBusiness.nombre.trim() && error)}
               helperText={!newBusiness.nombre.trim() && error ? 'El nombre es requerido' : ''}
             />
             <TextField
@@ -310,21 +434,77 @@ function BusinessSelector() {
               name="telefono"
               value={newBusiness.telefono}
               onChange={handleNewBusinessChange}
+              sx={{ mb: 2 }}
               placeholder="Opcional"
             />
+            <FormControl fullWidth>
+              <InputLabel>Divisa</InputLabel>
+              <Select
+                name="divisa"
+                value={newBusiness.divisa}
+                onChange={handleNewBusinessChange}
+                label="Divisa"
+              >
+                {getCurrencyOptions().map((currency) => (
+                  <MenuItem key={currency.value} value={currency.value}>
+                    {currency.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Box>
         </DialogContent>
-        <DialogActions sx={{ p: 2.5 }}>
-          <Button onClick={handleCloseDialog} disabled={loading}>
+        <DialogActions sx={{ 
+          p: 3, 
+          borderTop: `1px solid ${darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+          gap: 2,
+        }}>
+          <Button 
+            onClick={handleCloseDialog} 
+            disabled={loading}
+            sx={{
+              px: 3,
+              py: 1.5,
+              borderRadius: '12px',
+              color: darkMode ? '#b3b3b3' : 'text.secondary',
+              '&:hover': {
+                backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
+              }
+            }}
+          >
             Cancelar
           </Button>
           <Button
             onClick={handleCreateBusiness}
             variant="contained"
             disabled={!newBusiness.nombre.trim() || loading}
-            sx={{ px: 3 }}
+            sx={{ 
+              px: 4,
+              py: 1.5,
+              borderRadius: '12px',
+              background: darkMode 
+                ? 'linear-gradient(135deg, #74b9ff 0%, #0984e3 100%)' 
+                : 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+              boxShadow: darkMode 
+                ? '0 8px 25px rgba(116, 185, 255, 0.4)' 
+                : '0 4px 15px rgba(25, 118, 210, 0.3)',
+              '&:hover': {
+                background: darkMode 
+                  ? 'linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%)' 
+                  : 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)',
+                transform: 'translateY(-2px)',
+                boxShadow: darkMode 
+                  ? '0 12px 30px rgba(116, 185, 255, 0.5)' 
+                  : '0 8px 20px rgba(25, 118, 210, 0.4)',
+              },
+              '&:disabled': {
+                background: darkMode ? '#444' : '#e0e0e0',
+                color: darkMode ? '#666' : '#999',
+              },
+              transition: 'all 0.3s ease-in-out',
+            }}
           >
-            {loading ? 'Creando...' : 'Crear Negocio'}
+            {loading ? 'Creando...' : ' Crear Negocio'}
           </Button>
         </DialogActions>
       </Dialog>

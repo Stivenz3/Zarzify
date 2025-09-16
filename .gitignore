@@ -54,3 +54,5 @@ firebase-debug.log
 
 # Database credentials (solo ejemplo local)
 backend/production.env
+
+.vercel

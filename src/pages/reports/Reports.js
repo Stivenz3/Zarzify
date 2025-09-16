@@ -55,6 +55,7 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useApp } from '../../context/AppContext';
 import api from '../../config/axios';
+import CurrencyDisplay from '../../components/common/CurrencyDisplay';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import logoZarzify from '../../logo zarzify.png';
@@ -94,6 +95,15 @@ function Reports() {
       fetchReportData();
     }
   }, [currentBusiness, reportType, startDate, endDate]);
+
+  // Función para obtener el tamaño de fuente basado en la longitud del número
+  const getResponsiveFontSize = (value) => {
+    const str = String(value);
+    if (str.length > 15) return { fontSize: '1.5rem', lineHeight: 1.2 }; // Muy largo
+    if (str.length > 12) return { fontSize: '1.7rem', lineHeight: 1.3 }; // Largo
+    if (str.length > 9) return { fontSize: '1.9rem', lineHeight: 1.4 };  // Medio
+    return { fontSize: '2.125rem', lineHeight: 1.2 }; // Normal (h4)
+  };
 
   const fetchReportData = async () => {
     if (!currentBusiness) return;
@@ -782,40 +792,91 @@ function Reports() {
 
         {/* Métricas principales */}
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: 'primary.light', color: 'primary.contrastText' }}>
-            <CardContent sx={{ textAlign: 'center' }}>
+          <Card sx={{ 
+            bgcolor: 'primary.main', 
+            color: 'primary.contrastText',
+            '&:hover': { bgcolor: 'primary.dark' },
+            height: 160
+          }}>
+            <CardContent sx={{ textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <InventoryIcon sx={{ fontSize: 40, mb: 1 }} />
-              <Typography variant="h4">{dashboardData.totalProducts}</Typography>
+              <Typography 
+                variant="h4" 
+                sx={{ 
+                  ...getResponsiveFontSize(dashboardData.totalProducts),
+                  mb: 1
+                }}
+              >
+                {dashboardData.totalProducts}
+              </Typography>
               <Typography variant="body2">Productos</Typography>
             </CardContent>
           </Card>
         </Grid>
         
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: 'success.light', color: 'success.contrastText' }}>
-            <CardContent sx={{ textAlign: 'center' }}>
+          <Card sx={{ 
+            bgcolor: 'success.main', 
+            color: 'success.contrastText',
+            '&:hover': { bgcolor: 'success.dark' },
+            height: 160
+          }}>
+            <CardContent sx={{ textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <TrendingUpIcon sx={{ fontSize: 40, mb: 1 }} />
-              <Typography variant="h4">{dashboardData.totalSales}</Typography>
+              <Typography 
+                variant="h4" 
+                sx={{ 
+                  ...getResponsiveFontSize(dashboardData.totalSales),
+                  mb: 1
+                }}
+              >
+                {dashboardData.totalSales}
+              </Typography>
               <Typography variant="body2">Ventas</Typography>
             </CardContent>
           </Card>
         </Grid>
         
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: 'info.light', color: 'info.contrastText' }}>
-            <CardContent sx={{ textAlign: 'center' }}>
+          <Card sx={{ 
+            bgcolor: 'info.main', 
+            color: 'info.contrastText',
+            '&:hover': { bgcolor: 'info.dark' },
+            height: 160
+          }}>
+            <CardContent sx={{ textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <PeopleIcon sx={{ fontSize: 40, mb: 1 }} />
-              <Typography variant="h4">{dashboardData.totalCustomers}</Typography>
+              <Typography 
+                variant="h4" 
+                sx={{ 
+                  ...getResponsiveFontSize(dashboardData.totalCustomers),
+                  mb: 1
+                }}
+              >
+                {dashboardData.totalCustomers}
+              </Typography>
               <Typography variant="body2">Clientes</Typography>
             </CardContent>
           </Card>
         </Grid>
         
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: 'warning.light', color: 'warning.contrastText' }}>
-            <CardContent sx={{ textAlign: 'center' }}>
+          <Card sx={{ 
+            bgcolor: 'warning.main', 
+            color: 'warning.contrastText',
+            '&:hover': { bgcolor: 'warning.dark' },
+            height: 160
+          }}>
+            <CardContent sx={{ textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <MoneyIcon sx={{ fontSize: 40, mb: 1 }} />
-              <Typography variant="h4">${dashboardData.totalRevenue?.toFixed(2)}</Typography>
+              <CurrencyDisplay
+                amount={dashboardData.totalRevenue}
+                variant="h4"
+                sx={{ 
+                  ...getResponsiveFontSize(`$ ${Number(dashboardData.totalRevenue).toLocaleString()} USD`),
+                  mb: 1
+                }}
+              />
               <Typography variant="body2">Ingresos</Typography>
             </CardContent>
           </Card>
@@ -828,18 +889,21 @@ function Reports() {
               <Typography variant="h6" gutterBottom>Métricas Financieras</Typography>
               <Box sx={{ mb: 2 }}>
                 <Typography variant="body2">Valor de Inventario</Typography>
-                <Typography variant="h5" color="primary">
-                  ${dashboardData.inventoryValue?.toFixed(2)}
-                </Typography>
+                <CurrencyDisplay
+                  amount={dashboardData.inventoryValue}
+                  variant="h5"
+                  sx={{ color: 'primary.main' }}
+                />
               </Box>
               <Box sx={{ mb: 2 }}>
                 <Typography variant="body2">Ganancia Neta</Typography>
-                <Typography 
-                  variant="h5" 
-                  color={dashboardData.netProfit >= 0 ? 'success.main' : 'error.main'}
-                >
-                  ${dashboardData.netProfit?.toFixed(2)}
-                </Typography>
+                <CurrencyDisplay
+                  amount={dashboardData.netProfit}
+                  variant="h5"
+                  sx={{ 
+                    color: dashboardData.netProfit >= 0 ? 'success.main' : 'error.main'
+                  }}
+                />
               </Box>
               <Box>
                 <Typography variant="body2">Margen de Ganancia</Typography>

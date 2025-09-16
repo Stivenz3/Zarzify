@@ -32,7 +32,6 @@ import {
   People as PeopleIcon,
   Business as BusinessIcon,
   Assessment as AssessmentIcon,
-  Settings as SettingsIcon,
   Person as PersonIcon,
 } from '@mui/icons-material';
 import { auth } from '../../config/firebase';
@@ -50,7 +49,6 @@ const menuItems = [
   { text: 'Egresos', icon: <EgresosIcon />, path: '/expenses' },
   { text: 'Negocios', icon: <BusinessIcon />, path: '/business' },
   { text: 'Reportes', icon: <AssessmentIcon />, path: '/reports' },
-  { text: 'Configuración', icon: <SettingsIcon />, path: '/settings' },
 ];
 
 function MainLayout({ children }) {

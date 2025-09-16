@@ -4,6 +4,7 @@ import { Provider } from 'react-redux';
 import store from './store';
 import App from './App';
 import './index.css';
+import './styles/theme-transitions.css';
 import '@fontsource/roboto/300.css';
 import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';

@@ -33,7 +33,7 @@ import {
 } from '@mui/icons-material';
 import api from '../../config/axios';
 import logoZarzify from '../../logo zarzify.png';
-import fondoLogin from '../../FONDO LOGIN.png';
+// import fondoLogin from '../../FONDO LOGIN.png'; // Archivo eliminado
 
 function TabPanel({ children, value, index, ...other }) {
   return (
@@ -257,10 +257,7 @@ function Login() {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundImage: `url(${fondoLogin})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         '&::before': {
           content: '""',
           position: 'absolute',
