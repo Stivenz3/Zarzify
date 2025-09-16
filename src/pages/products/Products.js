@@ -53,6 +53,7 @@ import { useDashboard } from '../../context/DashboardContext';
 import api from '../../config/axios';
 import DataTable from '../../components/common/DataTable';
 import CurrencyDisplay from '../../components/common/CurrencyDisplay';
+import getImageUrl from '../../utils/imageUtils';
 
 function Products() {
   const { currentBusiness } = useApp();
@@ -236,7 +237,7 @@ function Products() {
       let imageUrl = productData.imagen_url;
 
       // Si hay un archivo de imagen, subirlo
-      if (!useImageUrl && productData.imagen_file) {
+      if (productData.imagen_file) {
         imageUrl = await uploadImageToLocal(productData.imagen_file);
       }
 
@@ -249,6 +250,7 @@ function Products() {
         stock: parseFloat(productData.stock) || 0,
         impuesto: parseFloat(productData.impuesto) || 0,
         stock_minimo: parseFloat(productData.stock_minimo) || 0,
+        categoria_id: productData.categoria_id || null, // Convertir cadena vacía a null
       };
 
       // Removemos imagen_file del dataToSend ya que no debe enviarse al backend
@@ -331,7 +333,7 @@ function Products() {
             sx={{
               height: 200,
               backgroundImage: product.imagen_url 
-                ? `url(${product.imagen_url})` 
+                ? `url(${getImageUrl(product.imagen_url)})` 
                 : 'linear-gradient(45deg, #f5f5f5 30%, #e0e0e0 90%)',
               backgroundSize: 'cover',
               backgroundPosition: 'center',
@@ -1126,7 +1128,7 @@ function Products() {
                   Vista previa:
                 </Typography>
                 <Avatar
-                  src={productData.imagen_file ? URL.createObjectURL(productData.imagen_file) : productData.imagen_url}
+                  src={productData.imagen_file ? URL.createObjectURL(productData.imagen_file) : getImageUrl(productData.imagen_url)}
                   sx={{ width: 100, height: 100, mx: 'auto' }}
                 >
                   <ImageIcon />

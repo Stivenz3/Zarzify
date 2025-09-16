@@ -53,9 +53,6 @@ function Dashboard() {
   const { needsRefresh, markDashboardAsRefreshed, refreshDashboard } = useDashboard();
   const theme = useTheme();
   
-  // Debug: mostrar información de la divisa actual
-  console.log('Dashboard - currentBusiness:', currentBusiness);
-  console.log('Dashboard - divisa actual:', currentBusiness?.divisa);
   const [stats, setStats] = useState({
     totalProducts: 0,
     totalSales: 0,
@@ -75,7 +72,7 @@ function Dashboard() {
     datasets: [],
   });
   
-  const [chartPeriod, setChartPeriod] = useState('monthly'); // 'weekly', 'monthly', 'yearly'
+  const [chartPeriod, setChartPeriod] = useState('weekly'); // 'weekly', 'monthly', 'yearly'
 
   // Cargar datos cuando cambia el negocio actual
   useEffect(() => {
@@ -116,7 +113,6 @@ function Dashboard() {
     setLoading(true);
     setError('');
     try {
-      console.log('📊 Obteniendo datos del dashboard para:', currentBusiness.nombre);
       const response = await api.get(`/dashboard/${currentBusiness.id}?period=${chartPeriod}`);
       const data = response.data;
       
@@ -131,10 +127,62 @@ function Dashboard() {
         profitMargin: data.profitMargin,
       });
 
-      // Configurar datos de las gráficas
-      const labels = data.monthlyStats.map(stat => stat.mes);
-      const ingresos = data.monthlyStats.map(stat => parseFloat(stat.ingresos || 0));
-      const egresos = data.monthlyStats.map(stat => parseFloat(stat.egresos || 0));
+      // Configurar datos de las gráficas según el período
+      let labels, ingresos, egresos;
+      
+      if (chartPeriod === 'weekly') {
+        // Para vista semanal, mostrar días de la semana
+        const dayMapping = {
+          'Sun': 'Dom', 'Mon': 'Lun', 'Tue': 'Mar', 'Wed': 'Mié', 
+          'Thu': 'Jue', 'Fri': 'Vie', 'Sat': 'Sáb'
+        };
+        
+        // Crear array con los últimos 7 días
+        const last7Days = [];
+        for (let i = 6; i >= 0; i--) {
+          const date = new Date();
+          date.setDate(date.getDate() - i);
+          const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+          last7Days.push(dayName);
+        }
+        
+        const weeklyData = last7Days.map(dayName => {
+          const dayData = data.monthlyStats.find(stat => stat.mes === dayName);
+          return {
+            mes: dayMapping[dayName] || dayName,
+            ingresos: dayData ? parseFloat(dayData.ingresos || 0) : 0,
+            egresos: dayData ? parseFloat(dayData.egresos || 0) : 0
+          };
+        });
+        labels = weeklyData.map(stat => stat.mes);
+        ingresos = weeklyData.map(stat => stat.ingresos);
+        egresos = weeklyData.map(stat => stat.egresos);
+      } else if (chartPeriod === 'yearly') {
+        // Para vista anual, asegurar que tengamos al menos 3 años
+        const currentYear = new Date().getFullYear();
+        const years = [];
+        for (let i = 2; i >= 0; i--) {
+          years.push((currentYear - i).toString());
+        }
+        
+        const yearlyData = years.map(year => {
+          const yearData = data.monthlyStats.find(stat => stat.mes === year);
+          return {
+            mes: year,
+            ingresos: yearData ? parseFloat(yearData.ingresos || 0) : 0,
+            egresos: yearData ? parseFloat(yearData.egresos || 0) : 0
+          };
+        });
+        
+        labels = yearlyData.map(stat => stat.mes);
+        ingresos = yearlyData.map(stat => stat.ingresos);
+        egresos = yearlyData.map(stat => stat.egresos);
+      } else {
+        // Para vista mensual
+        labels = data.monthlyStats.map(stat => stat.mes);
+        ingresos = data.monthlyStats.map(stat => parseFloat(stat.ingresos || 0));
+        egresos = data.monthlyStats.map(stat => parseFloat(stat.egresos || 0));
+      }
 
       setChartsData({
         labels: labels.length > 0 ? labels : ['Sin datos'],
@@ -169,7 +217,6 @@ function Dashboard() {
       });
       
       setLastUpdate(new Date());
-      console.log('✅ Dashboard actualizado exitosamente');
     } catch (error) {
       console.error('Error al cargar datos del dashboard:', error);
       setError('Error al cargar los datos del dashboard');

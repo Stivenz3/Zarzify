@@ -13,6 +13,11 @@ import {
   Grid,
   Menu,
   MenuItem,
+  FormControlLabel,
+  Switch,
+  InputAdornment,
+  Divider,
+  Avatar,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -20,6 +25,8 @@ import {
   Delete as DeleteIcon,
   MoreVert as MoreVertIcon,
   Category as CategoryIcon,
+  Image as ImageIcon,
+  CloudUpload as CloudUploadIcon,
 } from '@mui/icons-material';
 import GlassmorphismDialog from '../../components/common/GlassmorphismDialog';
 import { CancelButton, PrimaryButton } from '../../components/common/GlassmorphismButton';
@@ -38,10 +45,13 @@ function Categories() {
   const [error, setError] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [useImageUrl, setUseImageUrl] = useState(true); // true para URL, false para upload
   
   const [categoryData, setCategoryData] = useState({
     nombre: '',
     descripcion: '',
+    imagen_url: '',
+    imagen_file: null,
   });
 
   useEffect(() => {
@@ -81,13 +91,19 @@ function Categories() {
       setCategoryData({
         nombre: category.nombre || '',
         descripcion: category.descripcion || '',
+        imagen_url: category.imagen_url || '',
+        imagen_file: null,
       });
+      setUseImageUrl(true); // Por defecto usar URL al editar
     } else {
       setEditingCategory(null);
       setCategoryData({
         nombre: '',
         descripcion: '',
+        imagen_url: '',
+        imagen_file: null,
       });
+      setUseImageUrl(true);
     }
     setOpenDialog(true);
     setError('');
@@ -107,6 +123,46 @@ function Categories() {
     }));
   };
 
+  const handleImageFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        setError('La imagen no debe superar los 5MB');
+        return;
+      }
+      setCategoryData(prev => ({
+        ...prev,
+        imagen_file: file
+      }));
+      setError('');
+    }
+  };
+
+  const uploadImageToLocal = async (file) => {
+    const formData = new FormData();
+    formData.append('imagen', file);
+    
+    try {
+      const response = await fetch('http://localhost:3001/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error del servidor: ${response.status} - ${errorText}`);
+      }
+      
+      const data = await response.json();
+      return data.imageUrl;
+    } catch (error) {
+      if (error.message.includes('fetch')) {
+        throw new Error('Error de conexión. Verifica que el servidor esté corriendo en puerto 3001.');
+      }
+      throw new Error(`Error al subir la imagen: ${error.message}`);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!categoryData.nombre.trim()) {
       setError('El nombre es requerido');
@@ -115,8 +171,17 @@ function Categories() {
 
     setLoading(true);
     try {
+      let imagenUrl = categoryData.imagen_url;
+
+      // Si hay un archivo de imagen, subirlo primero
+      if (categoryData.imagen_file) {
+        imagenUrl = await uploadImageToLocal(categoryData.imagen_file);
+      }
+
       const dataToSend = {
-        ...categoryData,
+        nombre: categoryData.nombre,
+        descripcion: categoryData.descripcion,
+        imagen_url: imagenUrl,
         negocio_id: currentBusiness.id,
       };
 
@@ -131,7 +196,7 @@ function Categories() {
       handleCloseDialog();
     } catch (error) {
       console.error('Error al guardar categoría:', error);
-      setError(error.response?.data?.error || 'Error al guardar la categoría');
+      setError(error.response?.data?.error || error.message || 'Error al guardar la categoría');
     } finally {
       setLoading(false);
     }
@@ -235,6 +300,7 @@ function Categories() {
     );
   }
 
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -329,6 +395,73 @@ function Categories() {
               placeholder="Descripción opcional de la categoría"
             />
           </Grid>
+          
+          <Grid item xs={12}>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="h6" gutterBottom>
+              Imagen de la Categoría
+            </Typography>
+            
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={useImageUrl}
+                  onChange={(e) => setUseImageUrl(e.target.checked)}
+                />
+              }
+              label={useImageUrl ? "Usar URL de imagen" : "Subir imagen desde dispositivo"}
+              sx={{ mb: 2 }}
+            />
+
+            {useImageUrl ? (
+              <TextField
+                fullWidth
+                label="URL de la Imagen"
+                name="imagen_url"
+                value={categoryData.imagen_url}
+                onChange={handleInputChange}
+                placeholder="https://ejemplo.com/imagen.jpg"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <ImageIcon />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            ) : (
+              <Button
+                variant="outlined"
+                component="label"
+                fullWidth
+                startIcon={<CloudUploadIcon />}
+                sx={{ height: 56 }}
+              >
+                {categoryData.imagen_file ? categoryData.imagen_file.name : 'Seleccionar imagen'}
+                <input
+                  hidden
+                  accept="image/*"
+                  type="file"
+                  onChange={handleImageFileChange}
+                />
+              </Button>
+            )}
+          </Grid>
+          
+          {/* Preview de la imagen */}
+          {(categoryData.imagen_url || categoryData.imagen_file) && (
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                <Avatar
+                  src={categoryData.imagen_file ? URL.createObjectURL(categoryData.imagen_file) : getImageUrl(categoryData.imagen_url)}
+                  alt="Preview"
+                  sx={{ width: 100, height: 100 }}
+                >
+                  <CategoryIcon sx={{ fontSize: 40 }} />
+                </Avatar>
+              </Box>
+            </Grid>
+          )}
         </Grid>
       </GlassmorphismDialog>
     </Box>

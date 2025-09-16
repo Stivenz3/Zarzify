@@ -48,6 +48,7 @@ import { CancelButton, PrimaryButton } from '../../components/common/Glassmorphi
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useApp } from '../../context/AppContext';
 import api from '../../config/axios';
+import getImageUrl from '../../utils/imageUtils';
 import DataTable from '../../components/common/DataTable';
 import CurrencyDisplay from '../../components/common/CurrencyDisplay';
 
@@ -225,7 +226,7 @@ function Employees() {
       let imageUrl = employeeData.imagen_url;
 
       // Si hay un archivo de imagen, subirlo
-      if (!useImageUrl && employeeData.imagen_file) {
+      if (employeeData.imagen_file) {
         imageUrl = await uploadImageToLocal(employeeData.imagen_file);
       }
 
@@ -433,7 +434,7 @@ function Employees() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 bgcolor: 'grey.100',
-                backgroundImage: employee.imagen_url ? `url(${employee.imagen_url})` : 'none',
+                backgroundImage: employee.imagen_url ? `url(${getImageUrl(employee.imagen_url)})` : 'none',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
               }}
@@ -808,7 +809,7 @@ function Employees() {
             <Grid item xs={12}>
               <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
                 <Avatar
-                  src={employeeData.imagen_file ? URL.createObjectURL(employeeData.imagen_file) : employeeData.imagen_url}
+                  src={employeeData.imagen_file ? URL.createObjectURL(employeeData.imagen_file) : getImageUrl(employeeData.imagen_url)}
                   alt="Preview"
                   sx={{ width: 100, height: 100 }}
                 >

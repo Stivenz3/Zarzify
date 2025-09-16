@@ -43,6 +43,7 @@ import { useApp } from '../../context/AppContext';
 import api from '../../config/axios';
 import DataTable from '../../components/common/DataTable';
 import { formatCurrency } from '../../utils/currency';
+import getImageUrl from '../../utils/imageUtils';
 
 function Categories() {
   const { currentBusiness } = useApp();
@@ -229,7 +230,7 @@ function Categories() {
       width: 80,
       renderCell: (params) => (
         <Avatar
-          src={params.row.imagen_url}
+          src={params.row.imagen_url ? getImageUrl(params.row.imagen_url) : null}
           alt={params.row.nombre}
           sx={{ width: 40, height: 40 }}
         >
@@ -283,7 +284,7 @@ function Categories() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 bgcolor: 'grey.100',
-                backgroundImage: category.imagen_url ? `url(${category.imagen_url})` : 'none',
+                backgroundImage: category.imagen_url ? `url(${getImageUrl(category.imagen_url)})` : 'none',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
               }}

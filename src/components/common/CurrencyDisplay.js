@@ -18,12 +18,8 @@ const CurrencyDisplay = ({
   const { currentBusiness } = useApp();
   
   // Usar divisa del negocio actual o la proporcionada
-  const currency = currencyCode || (currentBusiness?.divisa) || 'COP';
+  const currency = currencyCode || (currentBusiness?.moneda) || 'COP';
   
-  // Debug: mostrar información de la divisa
-  console.log('CurrencyDisplay - currentBusiness:', currentBusiness);
-  console.log('CurrencyDisplay - currency:', currency);
-  console.log('CurrencyDisplay - amount:', amount);
   
   const formattedAmount = formatCurrency(amount, currency, showSymbol, showCode);
 

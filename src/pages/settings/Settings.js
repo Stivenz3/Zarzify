@@ -40,7 +40,7 @@ function Settings() {
   useEffect(() => {
     if (currentBusiness) {
       setBusinessSettings({
-        divisa: currentBusiness.divisa || 'COP',
+        divisa: currentBusiness.moneda || 'COP',
         impuesto_default: currentBusiness.impuesto_default || 0,
       });
     }
@@ -58,21 +58,20 @@ function Settings() {
         nombre: currentBusiness.nombre,
         direccion: currentBusiness.direccion,
         telefono: currentBusiness.telefono,
-        divisa: businessSettings.divisa,
+        moneda: businessSettings.divisa,
         impuesto_default: businessSettings.impuesto_default,
       });
 
       setSuccess('Configuración guardada exitosamente');
       
+      
       // Actualizar el negocio actual localmente con los nuevos datos
       const updatedBusiness = {
         ...currentBusiness,
-        divisa: businessSettings.divisa,
+        moneda: businessSettings.divisa,
         impuesto_default: businessSettings.impuesto_default,
       };
       
-      console.log('Settings - Actualizando negocio:', updatedBusiness);
-      console.log('Settings - Nueva divisa:', businessSettings.divisa);
       
       // Actualizar el contexto global
       setCurrentBusiness(updatedBusiness);

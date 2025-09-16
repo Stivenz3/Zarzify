@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 const path = require('path');
+const multer = require('multer');
 
 // Debug de variables de entorno
 console.log('🔍 DEBUG: Variables de entorno');
@@ -34,6 +35,33 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// Configuración de multer para subida de archivos
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, 'uploads'))
+  },
+  filename: function (req, file, cb) {
+    // Generar nombre único con timestamp
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname))
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB límite
+  },
+  fileFilter: function (req, file, cb) {
+    // Aceptar solo imágenes
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true)
+    } else {
+      cb(new Error('Solo se permiten archivos de imagen'), false)
+    }
+  }
+});
 
 // Middleware de timeout para evitar requests colgados
 app.use((req, res, next) => {
@@ -128,6 +156,31 @@ const invalidateDashboardCache = (businessId, reason = 'datos actualizados') => 
   }
   // Aquí se podría agregar WebSocket notification en el futuro
 };
+
+// --- UPLOAD DE ARCHIVOS ---
+app.post('/api/upload', upload.single('imagen'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No se proporcionó ningún archivo' });
+    }
+
+    // Generar URL de la imagen
+    const imageUrl = `/uploads/${req.file.filename}`;
+    
+    res.json({ 
+      imageUrl: imageUrl,
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      size: req.file.size
+    });
+  } catch (error) {
+    console.error('Error al subir archivo:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Servir archivos estáticos de uploads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // --- USUARIOS ---
 app.post('/api/usuarios', async (req, res) => {
@@ -302,11 +355,11 @@ app.get('/api/categorias/:businessId', async (req, res) => {
 });
 
 app.post('/api/categorias', async (req, res) => {
-  const { nombre, descripcion, negocio_id } = req.body;
+  const { nombre, descripcion, negocio_id, imagen_url } = req.body;
   try {
     const result = await pool.query(
-      'INSERT INTO categorias (nombre, descripcion, negocio_id) VALUES ($1, $2, $3) RETURNING *',
-      [nombre, descripcion, negocio_id]
+      'INSERT INTO categorias (nombre, descripcion, negocio_id, imagen_url) VALUES ($1, $2, $3, $4) RETURNING *',
+      [nombre, descripcion, negocio_id, imagen_url]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -317,11 +370,11 @@ app.post('/api/categorias', async (req, res) => {
 
 app.put('/api/categorias/:id', async (req, res) => {
   const { id } = req.params;
-  const { nombre, descripcion } = req.body;
+  const { nombre, descripcion, imagen_url } = req.body;
   try {
     const result = await pool.query(
-      'UPDATE categorias SET nombre = $1, descripcion = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3 RETURNING *',
-      [nombre, descripcion, id]
+      'UPDATE categorias SET nombre = $1, descripcion = $2, imagen_url = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4 RETURNING *',
+      [nombre, descripcion, imagen_url, id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Categoría no encontrada' });
@@ -637,13 +690,13 @@ app.get('/api/empleados/:businessId', async (req, res) => {
 });
 
 app.post('/api/empleados', async (req, res) => {
-  const { nombre, cargo, telefono, email, salario, direccion, fecha_contratacion, negocio_id } = req.body;
+  const { nombre, cargo, telefono, email, salario, direccion, fecha_contratacion, negocio_id, imagen_url } = req.body;
   try {
     const result = await pool.query(
       `INSERT INTO empleados (
-        nombre, cargo, telefono, email, salario, direccion, fecha_contratacion, negocio_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-      [nombre, cargo, telefono, email, salario || 0, direccion, fecha_contratacion, negocio_id]
+        nombre, cargo, telefono, email, salario, direccion, fecha_contratacion, negocio_id, imagen_url
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [nombre, cargo, telefono, email, salario || 0, direccion, fecha_contratacion, negocio_id, imagen_url]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -654,14 +707,14 @@ app.post('/api/empleados', async (req, res) => {
 
 app.put('/api/empleados/:id', async (req, res) => {
   const { id } = req.params;
-  const { nombre, cargo, telefono, email, salario, direccion, fecha_contratacion } = req.body;
+  const { nombre, cargo, telefono, email, salario, direccion, fecha_contratacion, imagen_url } = req.body;
   try {
     const result = await pool.query(
       `UPDATE empleados SET 
         nombre = $1, cargo = $2, telefono = $3, email = $4, 
-        salario = $5, direccion = $6, fecha_contratacion = $7, updated_at = CURRENT_TIMESTAMP 
-      WHERE id = $8 RETURNING *`,
-      [nombre, cargo, telefono, email, salario, direccion, fecha_contratacion, id]
+        salario = $5, direccion = $6, fecha_contratacion = $7, imagen_url = $8, updated_at = CURRENT_TIMESTAMP 
+      WHERE id = $9 RETURNING *`,
+      [nombre, cargo, telefono, email, salario, direccion, fecha_contratacion, imagen_url, id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Empleado no encontrado' });
@@ -712,6 +765,7 @@ app.post('/api/ventas', async (req, res) => {
     metodo_pago, 
     descuento = 0, 
     total, 
+    subtotal,
     productos,
     fecha_venta 
   } = req.body;
@@ -723,10 +777,10 @@ app.post('/api/ventas', async (req, res) => {
     
     // Insertar venta con fecha personalizada si se proporciona
     const ventaResult = await client.query(
-      `INSERT INTO ventas (negocio_id, cliente_id, total, descuento, metodo_pago, fecha_venta) 
-       VALUES ($1, $2, $3, $4, $5, $6) 
+      `INSERT INTO ventas (negocio_id, cliente_id, total, subtotal, descuento, metodo_pago, created_at) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) 
        RETURNING id`,
-      [negocio_id, cliente_id || null, total, descuento, metodo_pago, fecha_venta || new Date()]
+      [negocio_id, cliente_id || null, total, subtotal || total, descuento, metodo_pago, fecha_venta || new Date()]
     );
     
     const ventaId = ventaResult.rows[0].id;
@@ -877,6 +931,7 @@ app.put('/api/ventas/:id', async (req, res) => {
   const { 
     cliente_id, 
     total, 
+    subtotal,
     descuento, 
     metodo_pago, 
     productos,
@@ -919,6 +974,11 @@ app.put('/api/ventas/:id', async (req, res) => {
       updateValues.push(total);
       paramIndex++;
     }
+    if (subtotal !== undefined) {
+      updateFields.push(`subtotal = $${paramIndex}`);
+      updateValues.push(subtotal);
+      paramIndex++;
+    }
     if (descuento !== undefined) {
       updateFields.push(`descuento = $${paramIndex}`);
       updateValues.push(descuento);
@@ -930,7 +990,7 @@ app.put('/api/ventas/:id', async (req, res) => {
       paramIndex++;
     }
     if (fecha_venta !== undefined) {
-      updateFields.push(`fecha_venta = $${paramIndex}`);
+      updateFields.push(`created_at = $${paramIndex}`);
       updateValues.push(fecha_venta);
       paramIndex++;
     }
@@ -989,7 +1049,7 @@ app.put('/api/ventas/:id/fecha', async (req, res) => {
   
   try {
     const result = await pool.query(
-      'UPDATE ventas SET fecha_venta = $1 WHERE id = $2 RETURNING *',
+      'UPDATE ventas SET created_at = $1 WHERE id = $2 RETURNING *',
       [fecha_venta, id]
     );
 
@@ -1119,10 +1179,11 @@ app.delete('/api/egresos/:id', async (req, res) => {
 // --- DASHBOARD STATS ---
 app.get('/api/dashboard/:businessId', async (req, res) => {
   const { businessId } = req.params;
+  const { period = 'monthly' } = req.query;
   try {
     // Solo log de debug si está habilitado
     if (process.env.NODE_ENV === 'development') {
-      console.log('📊 Dashboard consultado para negocio:', businessId);
+      console.log('📊 Dashboard consultado para negocio:', businessId, 'período:', period);
     }
     
     // Obtener estadísticas del negocio con mayor precisión
@@ -1144,24 +1205,43 @@ app.get('/api/dashboard/:businessId', async (req, res) => {
 
     const inventoryData = inventoryValue.rows[0];
 
-    // Ingresos vs Egresos mensuales de los últimos 6 meses con mayor precisión
-    const monthlyStats = await pool.query(`
+    // Ingresos vs Egresos según el período seleccionado
+    let periodQuery, intervalPeriod, dateFormat, groupBy;
+    
+    switch (period) {
+      case 'weekly':
+        intervalPeriod = '7 days';
+        dateFormat = 'Dy';
+        groupBy = 'DATE_TRUNC(\'day\', fecha), TO_CHAR(fecha, \'Dy\')';
+        break;
+      case 'yearly':
+        intervalPeriod = '5 years';
+        dateFormat = 'YYYY';
+        groupBy = 'DATE_TRUNC(\'year\', fecha), TO_CHAR(fecha, \'YYYY\')';
+        break;
+      default: // monthly
+        intervalPeriod = '6 months';
+        dateFormat = 'Mon YYYY';
+        groupBy = 'DATE_TRUNC(\'month\', fecha), TO_CHAR(fecha, \'Mon YYYY\')';
+    }
+    
+    const periodStats = await pool.query(`
       SELECT 
-        TO_CHAR(fecha, 'Mon YYYY') as mes,
-        DATE_TRUNC('month', fecha) as mes_fecha,
+        TO_CHAR(fecha, '${dateFormat}') as mes,
+        DATE_TRUNC('${period === 'weekly' ? 'day' : period === 'yearly' ? 'year' : 'month'}', fecha) as mes_fecha,
         COALESCE(SUM(CAST(ingresos AS DECIMAL(12,2))), 0) as ingresos,
         COALESCE(SUM(CAST(egresos AS DECIMAL(12,2))), 0) as egresos
       FROM (
         SELECT created_at as fecha, total as ingresos, 0 as egresos
         FROM ventas 
-        WHERE negocio_id = $1 AND created_at >= CURRENT_DATE - INTERVAL '6 months'
+        WHERE negocio_id = $1 AND created_at >= CURRENT_DATE - INTERVAL '${intervalPeriod}'
         UNION ALL
         SELECT fecha as fecha, 0 as ingresos, monto as egresos
         FROM egresos 
-        WHERE negocio_id = $1 AND fecha >= CURRENT_DATE - INTERVAL '6 months'
+        WHERE negocio_id = $1 AND fecha >= CURRENT_DATE - INTERVAL '${intervalPeriod}'
       ) combined
-      GROUP BY DATE_TRUNC('month', fecha), TO_CHAR(fecha, 'Mon YYYY')
-      ORDER BY DATE_TRUNC('month', fecha)
+      GROUP BY ${groupBy}
+      ORDER BY DATE_TRUNC('${period === 'weekly' ? 'day' : period === 'yearly' ? 'year' : 'month'}', fecha)
     `, [businessId]);
 
     // Calcular estadísticas financieras precisas
@@ -1179,7 +1259,7 @@ app.get('/api/dashboard/:businessId', async (req, res) => {
       inventoryValue: parseFloat(inventoryData.valor_inventario),
       netProfit: netProfit,
       profitMargin: profitMargin,
-      monthlyStats: monthlyStats.rows.map(row => ({
+      monthlyStats: periodStats.rows.map(row => ({
         mes: row.mes,
         ingresos: parseFloat(row.ingresos),
         egresos: parseFloat(row.egresos)

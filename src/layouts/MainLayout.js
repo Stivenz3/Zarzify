@@ -207,7 +207,7 @@ function MainLayout({ children }) {
             height: 36,
             zIndex: 1001,
             position: 'absolute',
-            top: sidebarCollapsed ? 16 : 16,
+            top: sidebarCollapsed ? 40 : 16,
             right: sidebarCollapsed ? 14 : 16,
           }}
         >
@@ -215,7 +215,7 @@ function MainLayout({ children }) {
         </IconButton>
       </Toolbar>
       
-      <Divider sx={{ borderColor: darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }} />
+      
       
       {/* Menu Items */}
       <List sx={{ 

@@ -20,9 +20,7 @@ export function AppProvider({ children }) {
     if (!userToUse?.uid) return;
 
     try {
-      console.log('Cargando negocios para usuario:', userToUse.uid);
       const response = await api.get(`/businesses/${userToUse.uid}`);
-      console.log('Negocios cargados:', response.data);
       setBusinesses(response.data);
       
       // Si hay negocios y no hay uno seleccionado, seleccionar el primero
@@ -51,7 +49,6 @@ export function AppProvider({ children }) {
     if (!user?.uid || !currentBusiness?.id) return;
     
     try {
-      console.log('AppContext - Refrescando negocio actual...');
       const response = await api.get(`/businesses/${user.uid}`);
       const updatedBusinesses = response.data;
       setBusinesses(updatedBusinesses);
@@ -59,7 +56,6 @@ export function AppProvider({ children }) {
       // Actualizar el negocio actual con los datos más recientes
       const updatedCurrentBusiness = updatedBusinesses.find(b => b.id === currentBusiness.id);
       if (updatedCurrentBusiness) {
-        console.log('AppContext - Negocio actualizado:', updatedCurrentBusiness);
         setCurrentBusiness(updatedCurrentBusiness);
       }
     } catch (error) {
