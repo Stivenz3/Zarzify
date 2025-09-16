@@ -4,7 +4,8 @@ import {
   signInWithPopup, 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
-  updateProfile 
+  updateProfile,
+  sendPasswordResetEmail 
 } from 'firebase/auth';
 import { auth, googleProvider } from '../../config/firebase';
 import {
@@ -18,6 +19,7 @@ import {
   Divider,
   InputAdornment,
   IconButton,
+  Link,
 } from '@mui/material';
 import { 
   Google as GoogleIcon, 
@@ -42,6 +44,7 @@ function Login() {
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [info, setInfo] = useState('');
   const [tabValue, setTabValue] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -54,6 +57,7 @@ function Login() {
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
     setError('');
+    setInfo('');
     setFormData({ email: '', password: '', confirmPassword: '', nombre: '' });
   };
 
@@ -81,6 +85,7 @@ function Login() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     setError('');
+    setInfo('');
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
@@ -122,6 +127,7 @@ function Login() {
 
     setIsLoading(true);
     setError('');
+    setInfo('');
     try {
       const result = await signInWithEmailAndPassword(auth, formData.email, formData.password);
       const user = result.user;
@@ -176,6 +182,7 @@ function Login() {
 
     setIsLoading(true);
     setError('');
+    setInfo('');
     try {
       const result = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = result.user;
@@ -207,6 +214,34 @@ function Login() {
           break;
         default:
           setError('Error al crear la cuenta');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    if (!formData.email) {
+      setError('Ingresa tu email para restablecer la contraseña');
+      return;
+    }
+    setIsLoading(true);
+    setError('');
+    setInfo('');
+    try {
+      await sendPasswordResetEmail(auth, formData.email);
+      setInfo('Te enviamos un correo para restablecer tu contraseña. Revisa tu bandeja.');
+    } catch (error) {
+      switch (error.code) {
+        case 'auth/user-not-found':
+          setError('No existe un usuario con ese email');
+          break;
+        case 'auth/invalid-email':
+          setError('Email inválido');
+          break;
+        default:
+          setError('No se pudo enviar el correo de restablecimiento');
       }
     } finally {
       setIsLoading(false);
@@ -245,6 +280,7 @@ function Login() {
               style={{ 
                 width: '70px', 
                 height: '70px',
+                margin:0
               }}
             />
           </Box>
@@ -257,7 +293,7 @@ function Login() {
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               fontSize: { xs: '1.7rem', sm: '1.9rem' },
-              mb: 0.5,
+              mb: 0.1,
             }}
           >
             Zarzify
@@ -267,14 +303,16 @@ function Login() {
             sx={{ 
               color: 'text.secondary',
               fontSize: { xs: '0.7rem', sm: '0.75rem' },
-              opacity: 0.8,
+              opacity: 1,
+              padding:0
+              
             }}
           >
             Sistema de Gestión de Inventario
           </Typography>
         </Box>
 
-        {/* Error Alert - MÁS COMPACTO */}
+        {/* Mensajes */}
         {error && (
           <Alert
             severity="error"
@@ -290,6 +328,23 @@ function Login() {
             }}
           >
             {error}
+          </Alert>
+        )}
+        {info && (
+          <Alert
+            severity="success"
+            sx={{
+              mb: 1.5,
+              borderRadius: 2,
+              fontSize: { xs: '0.7rem', sm: '0.75rem' },
+              flexShrink: 0,
+              py: 0.5,
+              '& .MuiAlert-message': {
+                py: 0,
+              },
+            }}
+          >
+            {info}
           </Alert>
         )}
 
@@ -412,6 +467,18 @@ function Login() {
                   },
                 }}
               />
+              <Box sx={{ textAlign: 'right' }}>
+                <Link
+                  component="button"
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={isLoading}
+                  underline="hover"
+                  sx={{ fontSize: { xs: '0.75rem', sm: '0.8rem' } }}
+                >
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </Box>
               <Button
                 type="submit"
                 fullWidth
@@ -446,7 +513,7 @@ function Login() {
               sx={{ 
                 display: 'flex',
                 flexDirection: 'column',
-                gap: { xs: 1, sm: 1.2 },
+                gap: { xs: 1, sm: 1 },
                 height: '100%',
                 pt: 1, // Padding superior para que no se corten las etiquetas
               }}
