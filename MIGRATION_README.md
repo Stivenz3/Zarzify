@@ -9,13 +9,14 @@ Migrar los datos existentes de tu PostgreSQL local a Firestore para hacer prueba
 ### 1. Configurar PostgreSQL local
 
 Asegúrate de que tu PostgreSQL local esté corriendo y actualiza la configuración en `migrate-to-firestore.js`:
+
 ```javascript
 const pool = new Pool({
-  host: 'localhost',
+  host: "localhost",
   port: 5432,
-  database: 'zarzify',
-  user: 'postgres',
-  password: 'tu-password-postgres'  // Cambia por tu password real
+  database: "zarzify",
+  user: "postgres",
+  password: "1078754787" por tu password real
 });
 ```
 

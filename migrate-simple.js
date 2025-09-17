@@ -10,7 +10,7 @@ const pool = new Pool({
   port: 5432,
   database: 'zarzify',
   user: 'postgres',
-  password: 'tu-password-aqui'  // ⚠️ CAMBIA ESTO por tu password real
+  password: '1078754787'
 });
 
 // Tu clave privada de Firebase (ya está configurada)
