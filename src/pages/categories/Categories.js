@@ -44,6 +44,7 @@ import api from '../../config/axios';
 import DataTable from '../../components/common/DataTable';
 import { formatCurrency } from '../../utils/currency';
 import getImageUrl from '../../utils/imageUtils';
+import { categoriesService } from '../../services/firestoreService';
 
 function Categories() {
   const { currentBusiness } = useApp();
@@ -74,8 +75,9 @@ function Categories() {
     if (!currentBusiness) return;
     setLoading(true);
     try {
-      const response = await api.get(`/categorias/${currentBusiness.id}`);
-      setCategories(response.data);
+      // Cargar categorías desde Firestore filtradas por business_id
+      const allCategories = await categoriesService.getWhere('business_id', '==', currentBusiness.id);
+      setCategories(allCategories);
     } catch (error) {
       console.error('Error al cargar categorías:', error);
       setError('Error al cargar las categorías');
@@ -181,13 +183,15 @@ function Categories() {
         nombre: categoryData.nombre.trim(),
         descripcion: categoryData.descripcion.trim(),
         imagen_url: imageUrl,
-        negocio_id: currentBusiness.id,
+        business_id: currentBusiness.id,
       };
 
       if (editingCategory) {
-        await api.put(`/categorias/${editingCategory.id}`, dataToSend);
+        // Actualizar categoría existente en Firestore
+        await categoriesService.update(editingCategory.id, dataToSend);
       } else {
-        await api.post('/categorias', dataToSend);
+        // Crear nueva categoría en Firestore
+        await categoriesService.create(dataToSend);
       }
 
       await loadCategories();
@@ -203,12 +207,13 @@ function Categories() {
   const handleDelete = async (categoryId) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar esta categoría?')) {
       try {
-        await api.delete(`/categorias/${categoryId}`);
+        // Eliminar categoría de Firestore
+        await categoriesService.delete(categoryId);
         await loadCategories();
         handleCloseMenu();
       } catch (error) {
         console.error('Error al eliminar categoría:', error);
-        alert(error.response?.data?.error || 'Error al eliminar la categoría');
+        alert('Error al eliminar la categoría');
       }
     }
   };

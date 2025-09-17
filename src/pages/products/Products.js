@@ -54,6 +54,7 @@ import api from '../../config/axios';
 import DataTable from '../../components/common/DataTable';
 import CurrencyDisplay from '../../components/common/CurrencyDisplay';
 import getImageUrl from '../../utils/imageUtils';
+import { productsService, categoriesService } from '../../services/firestoreService';
 
 function Products() {
   const { currentBusiness } = useApp();
@@ -96,8 +97,9 @@ function Products() {
     if (!currentBusiness) return;
     setLoading(true);
     try {
-      const response = await api.get(`/productos/${currentBusiness.id}`);
-      setProducts(response.data);
+      // Cargar productos desde Firestore filtrados por business_id
+      const allProducts = await productsService.getWhere('business_id', '==', currentBusiness.id);
+      setProducts(allProducts);
     } catch (error) {
       console.error('Error al cargar productos:', error);
       setError('Error al cargar los productos');
@@ -109,8 +111,9 @@ function Products() {
   const loadCategories = async () => {
     if (!currentBusiness) return;
     try {
-      const response = await api.get(`/categorias/${currentBusiness.id}`);
-      setCategories(response.data);
+      // Cargar categorías desde Firestore filtradas por business_id
+      const allCategories = await categoriesService.getWhere('business_id', '==', currentBusiness.id);
+      setCategories(allCategories);
     } catch (error) {
       console.error('Error al cargar categorías:', error);
     }
@@ -244,7 +247,7 @@ function Products() {
       const dataToSend = {
         ...productData,
         imagen_url: imageUrl,
-        negocio_id: currentBusiness.id,
+        business_id: currentBusiness.id,
         precio_venta: parseFloat(productData.precio_venta) || 0,
         precio_compra: parseFloat(productData.precio_compra) || 0,
         stock: parseFloat(productData.stock) || 0,
@@ -257,10 +260,12 @@ function Products() {
       delete dataToSend.imagen_file;
 
       if (editingProduct) {
-        await api.put(`/productos/${editingProduct.id}`, dataToSend);
+        // Actualizar producto existente en Firestore
+        await productsService.update(editingProduct.id, dataToSend);
         markDashboardForRefresh('producto actualizado');
       } else {
-        await api.post('/productos', dataToSend);
+        // Crear nuevo producto en Firestore
+        await productsService.create(dataToSend);
         markDashboardForRefresh('nuevo producto creado');
       }
 
@@ -277,12 +282,13 @@ function Products() {
   const handleDelete = async (productId) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar este producto?')) {
       try {
-        await api.delete(`/productos/${productId}`);
+        // Eliminar producto de Firestore
+        await productsService.delete(productId);
         markDashboardForRefresh('producto eliminado');
         await loadProducts();
       } catch (error) {
         console.error('Error al eliminar producto:', error);
-        alert(error.response?.data?.error || 'Error al eliminar el producto');
+        alert('Error al eliminar el producto');
       }
     }
   };

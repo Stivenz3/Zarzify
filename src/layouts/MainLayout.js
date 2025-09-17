@@ -59,6 +59,7 @@ const menuItems = [
   { text: 'Gastos', icon: <Receipt />, path: '/expenses' },
   { text: 'Empleados', icon: <Work />, path: '/employees' },
   { text: 'Reportes', icon: <Assessment />, path: '/reports' },
+  { text: '🧪 Test Firestore', icon: <SettingsIcon />, path: '/test-firestore' },
 ]
 
 function MainLayout({ children }) {

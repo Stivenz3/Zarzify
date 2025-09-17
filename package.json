@@ -4,15 +4,11 @@
   "description": "Sistema de gestión empresarial Zarzify - Full Stack",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "start-frontend": "react-scripts start",
-    "start-backend": "node backend/start-local.js",
-    "start-backend-local": "node backend/start-local-db.js",
-    "dev": "concurrently \"npm run start-backend\" \"npm run start-frontend\"",
-    "dev:local": "concurrently \"npm run start-backend-local\" \"npm run start-frontend\"",
+    "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "vercel-build": "npm run build"
   },
   "engines": {
     "node": ">=18.0.0",
