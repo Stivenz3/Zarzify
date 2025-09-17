@@ -147,7 +147,8 @@ async function migrateData() {
       const saleData = {
         cliente_id: sale.cliente_id || null,
         total: sale.total || 0,
-        fecha: sale.fecha || new Date(),
+        fecha_venta: sale.fecha || new Date(),
+        metodo_pago: sale.metodo_pago || 'efectivo',
         estado: sale.estado || 'completada',
         business_id: sale.negocio_id,
         created_at: sale.created_at || new Date()

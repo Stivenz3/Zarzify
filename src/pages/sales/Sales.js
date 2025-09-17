@@ -152,7 +152,9 @@ function Sales() {
         metodo_pago: sale.metodo_pago || 'efectivo',
         descuento_total: sale.descuento || 0,
         productos: [], // Se cargarán los productos desde la BD
-        fecha_venta: new Date(sale.created_at), // Usar created_at ya que no existe fecha_venta en la tabla
+        fecha_venta: sale.fecha_venta ? 
+          (sale.fecha_venta?.toDate ? sale.fecha_venta.toDate() : new Date(sale.fecha_venta)) : 
+          new Date(),
         estado: sale.estado || 'completada',
       });
       // Cargar productos de la venta para edición
@@ -515,7 +517,9 @@ function Sales() {
       headerName: 'Fecha',
       width: 120,
       renderCell: (params) => {
-        const date = new Date(params.row.created_at); // Usar solo created_at
+        if (!params.row.fecha_venta) return '-';
+        const date = params.row.fecha_venta?.toDate ? 
+          params.row.fecha_venta.toDate() : new Date(params.row.fecha_venta);
         return date.toLocaleDateString();
       },
     },

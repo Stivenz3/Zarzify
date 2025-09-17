@@ -77,10 +77,15 @@ function Expenses() {
 
   useEffect(() => {
     if (currentBusiness) {
-      loadExpenses();
       loadEmployees();
     }
   }, [currentBusiness]);
+
+  useEffect(() => {
+    if (currentBusiness && employees.length > 0) {
+      loadExpenses();
+    }
+  }, [currentBusiness, employees]);
 
   const loadExpenses = async () => {
     if (!currentBusiness) return;
@@ -88,7 +93,17 @@ function Expenses() {
     try {
       // Cargar gastos desde Firestore filtrados por business_id
       const allExpenses = await expensesService.getWhere('business_id', '==', currentBusiness.id);
-      setExpenses(allExpenses);
+      
+      // Enriquecer gastos con nombres de empleados
+      const enrichedExpenses = allExpenses.map(expense => {
+        const employee = employees.find(emp => emp.id === expense.empleado_id);
+        return {
+          ...expense,
+          empleado_nombre: employee ? employee.nombre : '-'
+        };
+      });
+      
+      setExpenses(enrichedExpenses);
     } catch (error) {
       console.error('Error al cargar egresos:', error);
       setError('Error al cargar los egresos');
@@ -118,7 +133,9 @@ function Expenses() {
         categoria: expense.categoria || '',
         metodo_pago: expense.metodo_pago || 'efectivo',
         empleado_id: expense.empleado_id || '',
-        fecha_pago: expense.fecha_pago ? expense.fecha_pago.split('T')[0] : new Date().toISOString().split('T')[0],
+        fecha_pago: expense.fecha_pago ? 
+          (expense.fecha_pago?.toDate ? expense.fecha_pago.toDate().toISOString().split('T')[0] : expense.fecha_pago.split('T')[0]) : 
+          new Date().toISOString().split('T')[0],
       });
     } else {
       setEditingExpense(null);
@@ -296,7 +313,9 @@ function Expenses() {
       headerName: 'Fecha',
       width: 120,
       renderCell: (params) => {
-        const date = new Date(params.row.fecha_pago);
+        if (!params.row.fecha_pago) return '-';
+        const date = params.row.fecha_pago?.toDate ? 
+          params.row.fecha_pago.toDate() : new Date(params.row.fecha_pago);
         return date.toLocaleDateString();
       },
     },
