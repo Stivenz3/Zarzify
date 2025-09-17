@@ -199,8 +199,8 @@ function Dashboard() {
           
           return {
             mes: dayMapping[dayName] || dayName,
-            ingresos: daySales.reduce((sum, sale) => sum + (sale.total || 0), 0),
-            egresos: dayExpenses.reduce((sum, expense) => sum + (expense.monto || 0), 0)
+            ingresos: daySales.reduce((sum, sale) => sum + (parseFloat(sale.total) || 0), 0),
+            egresos: dayExpenses.reduce((sum, expense) => sum + (parseFloat(expense.monto) || 0), 0)
           };
         });
         labels = weeklyData.map(stat => stat.mes);
@@ -230,8 +230,8 @@ function Dashboard() {
           
           return {
             mes: year,
-            ingresos: yearSales.reduce((sum, sale) => sum + (sale.total || 0), 0),
-            egresos: yearExpenses.reduce((sum, expense) => sum + (expense.monto || 0), 0)
+            ingresos: yearSales.reduce((sum, sale) => sum + (parseFloat(sale.total) || 0), 0),
+            egresos: yearExpenses.reduce((sum, expense) => sum + (parseFloat(expense.monto) || 0), 0)
           };
         });
         
@@ -259,8 +259,8 @@ function Dashboard() {
           
           monthlyData.push({
             mes: date.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' }),
-            ingresos: monthSales.reduce((sum, sale) => sum + (sale.total || 0), 0),
-            egresos: monthExpenses.reduce((sum, expense) => sum + (expense.monto || 0), 0)
+            ingresos: monthSales.reduce((sum, sale) => sum + (parseFloat(sale.total) || 0), 0),
+            egresos: monthExpenses.reduce((sum, expense) => sum + (parseFloat(expense.monto) || 0), 0)
           });
         }
         

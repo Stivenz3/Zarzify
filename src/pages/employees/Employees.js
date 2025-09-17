@@ -22,8 +22,6 @@ import {
   ToggleButtonGroup,
   Stack,
   Divider,
-  FormControlLabel,
-  Switch,
   InputAdornment,
   Chip,
 } from '@mui/material';
@@ -37,7 +35,6 @@ import {
   GridView as GridViewIcon,
   TableRows as TableRowsIcon,
   Image as ImageIcon,
-  CloudUpload as CloudUploadIcon,
   Email as EmailIcon,
   Phone as PhoneIcon,
   LocationOn as LocationIcon,
@@ -52,8 +49,6 @@ import getImageUrl from '../../utils/imageUtils';
 import DataTable from '../../components/common/DataTable';
 import CurrencyDisplay from '../../components/common/CurrencyDisplay';
 import { employeesService } from '../../services/firestoreService';
-import { storage } from '../../config/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 function Employees() {
   const { currentBusiness } = useApp();
@@ -65,7 +60,6 @@ function Employees() {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'table'
-  const [useImageUrl, setUseImageUrl] = useState(true); // true para URL, false para upload
   
   const [employeeData, setEmployeeData] = useState({
     nombre: '',
@@ -76,7 +70,6 @@ function Employees() {
     salario: '',
     fecha_contratacion: null,
     imagen_url: '',
-    imagen_file: null,
   });
 
   // Estados para filtros
@@ -116,11 +109,10 @@ function Employees() {
         direccion: employee.direccion || '',
         cargo: employee.cargo || '',
         salario: employee.salario || '',
-        fecha_contratacion: employee.fecha_contratacion ? new Date(employee.fecha_contratacion) : null,
+        fecha_contratacion: employee.fecha_contratacion ? 
+          (employee.fecha_contratacion?.toDate ? employee.fecha_contratacion.toDate() : new Date(employee.fecha_contratacion)) : null,
         imagen_url: employee.imagen_url || '',
-        imagen_file: null,
       });
-      setUseImageUrl(true); // Por defecto usar URL al editar
     } else {
       setEditingEmployee(null);
       setEmployeeData({
@@ -132,9 +124,7 @@ function Employees() {
         salario: '',
         fecha_contratacion: null,
         imagen_url: '',
-        imagen_file: null,
       });
-      setUseImageUrl(true);
     }
     setOpenDialog(true);
     setError('');
@@ -153,35 +143,7 @@ function Employees() {
     }));
   };
 
-  const handleImageFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        setError('La imagen no debe superar los 5MB');
-        return;
-      }
-      setEmployeeData(prev => ({
-        ...prev,
-        imagen_file: file
-      }));
-      setError('');
-    }
-  };
 
-  const uploadImageToFirebase = async (file) => {
-    try {
-      const timestamp = Date.now();
-      const fileName = `empleados/${currentBusiness.id}/${timestamp}_${file.name}`;
-      const storageRef = ref(storage, fileName);
-      
-      await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(storageRef);
-      return downloadURL;
-    } catch (error) {
-      console.error('Error al subir la imagen a Firebase:', error);
-      throw new Error(`Error al subir la imagen: ${error.message}`);
-    }
-  };
 
   const handleSubmit = async () => {
     if (!employeeData.nombre.trim()) {
@@ -218,11 +180,6 @@ function Employees() {
 
     try {
       let imageUrl = employeeData.imagen_url;
-
-      // Si hay un archivo de imagen, subirlo a Firebase Storage
-      if (employeeData.imagen_file) {
-        imageUrl = await uploadImageToFirebase(employeeData.imagen_file);
-      }
 
       const dataToSend = {
         ...employeeData,
@@ -290,8 +247,8 @@ function Employees() {
     // Ordenar por fecha de contratación si está activo (puede sobrescribir el orden de salario)
     if (filters.dateOrder !== null) {
       filteredEmployees.sort((a, b) => {
-        const dateA = new Date(a.fecha_contratacion);
-        const dateB = new Date(b.fecha_contratacion);
+        const dateA = a.fecha_contratacion?.toDate ? a.fecha_contratacion.toDate() : new Date(a.fecha_contratacion);
+        const dateB = b.fecha_contratacion?.toDate ? b.fecha_contratacion.toDate() : new Date(b.fecha_contratacion);
         
         if (filters.dateOrder === 'desc') {
           return dateB - dateA; // Recientes primero
@@ -389,7 +346,8 @@ function Employees() {
       width: 130,
       renderCell: (params) => {
         if (!params.row.fecha_contratacion) return '-';
-        const date = new Date(params.row.fecha_contratacion);
+        const date = params.row.fecha_contratacion?.toDate ? 
+          params.row.fecha_contratacion.toDate() : new Date(params.row.fecha_contratacion);
         return date.toLocaleDateString();
       },
     },
@@ -499,7 +457,7 @@ function Employees() {
               <Divider sx={{ my: 1 }} />
               <Typography variant="caption" color="text.secondary">
                 {employee.fecha_contratacion 
-                  ? `Desde: ${new Date(employee.fecha_contratacion).toLocaleDateString()}`
+                  ? `Desde: ${(employee.fecha_contratacion?.toDate ? employee.fecha_contratacion.toDate() : new Date(employee.fecha_contratacion)).toLocaleDateString()}`
                   : 'Fecha no especificada'
                 }
               </Typography>
@@ -755,58 +713,29 @@ function Employees() {
               Foto del Empleado
             </Typography>
             
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={useImageUrl}
-                  onChange={(e) => setUseImageUrl(e.target.checked)}
-                />
-              }
-              label={useImageUrl ? "Usar URL de imagen" : "Subir imagen desde dispositivo"}
-              sx={{ mb: 2 }}
+            <TextField
+              fullWidth
+              label="URL de la Imagen"
+              name="imagen_url"
+              value={employeeData.imagen_url}
+              onChange={handleInputChange}
+              placeholder="https://ejemplo.com/foto.jpg"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <ImageIcon />
+                  </InputAdornment>
+                ),
+              }}
             />
-
-            {useImageUrl ? (
-              <TextField
-                fullWidth
-                label="URL de la Imagen"
-                name="imagen_url"
-                value={employeeData.imagen_url}
-                onChange={handleInputChange}
-                placeholder="https://ejemplo.com/foto.jpg"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <ImageIcon />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            ) : (
-              <Button
-                variant="outlined"
-                component="label"
-                fullWidth
-                startIcon={<CloudUploadIcon />}
-                sx={{ height: 56 }}
-              >
-                {employeeData.imagen_file ? employeeData.imagen_file.name : 'Seleccionar imagen'}
-                <input
-                  hidden
-                  accept="image/*"
-                  type="file"
-                  onChange={handleImageFileChange}
-                />
-              </Button>
-            )}
           </Grid>
 
           {/* Preview de la imagen */}
-          {(employeeData.imagen_url || employeeData.imagen_file) && (
+          {employeeData.imagen_url && (
             <Grid item xs={12}>
               <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
                 <Avatar
-                  src={employeeData.imagen_file ? URL.createObjectURL(employeeData.imagen_file) : getImageUrl(employeeData.imagen_url)}
+                  src={getImageUrl(employeeData.imagen_url)}
                   alt="Preview"
                   sx={{ width: 100, height: 100 }}
                 >

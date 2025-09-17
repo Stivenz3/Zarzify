@@ -22,8 +22,6 @@ import {
   Avatar,
   Stack,
   Divider,
-  FormControlLabel,
-  Switch,
   InputAdornment,
 } from '@mui/material';
 import {
@@ -35,7 +33,6 @@ import {
   GridView as GridViewIcon,
   TableRows as TableRowsIcon,
   Image as ImageIcon,
-  CloudUpload as CloudUploadIcon,
 } from '@mui/icons-material';
 import GlassmorphismDialog from '../../components/common/GlassmorphismDialog';
 import { CancelButton, PrimaryButton } from '../../components/common/GlassmorphismButton';
@@ -45,8 +42,6 @@ import DataTable from '../../components/common/DataTable';
 import { formatCurrency } from '../../utils/currency';
 import getImageUrl from '../../utils/imageUtils';
 import { categoriesService } from '../../services/firestoreService';
-import { storage } from '../../config/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 function Categories() {
   const { currentBusiness } = useApp();
@@ -58,13 +53,11 @@ function Categories() {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'table'
-  const [useImageUrl, setUseImageUrl] = useState(true); // true para URL, false para upload
   
   const [categoryData, setCategoryData] = useState({
     nombre: '',
     descripcion: '',
     imagen_url: '',
-    imagen_file: null,
   });
 
   useEffect(() => {
@@ -95,18 +88,14 @@ function Categories() {
         nombre: category.nombre || '',
         descripcion: category.descripcion || '',
         imagen_url: category.imagen_url || '',
-        imagen_file: null,
       });
-      setUseImageUrl(true); // Por defecto usar URL al editar
     } else {
       setEditingCategory(null);
       setCategoryData({
         nombre: '',
         descripcion: '',
         imagen_url: '',
-        imagen_file: null,
       });
-      setUseImageUrl(true);
     }
     setOpenDialog(true);
     setError('');
@@ -126,35 +115,7 @@ function Categories() {
     }));
   };
 
-  const handleImageFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        setError('La imagen no debe superar los 5MB');
-        return;
-      }
-      setCategoryData(prev => ({
-        ...prev,
-        imagen_file: file
-      }));
-      setError('');
-    }
-  };
 
-  const uploadImageToFirebase = async (file) => {
-    try {
-      const timestamp = Date.now();
-      const fileName = `categorias/${currentBusiness.id}/${timestamp}_${file.name}`;
-      const storageRef = ref(storage, fileName);
-      
-      await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(storageRef);
-      return downloadURL;
-    } catch (error) {
-      console.error('Error al subir la imagen a Firebase:', error);
-      throw new Error(`Error al subir la imagen: ${error.message}`);
-    }
-  };
 
   const handleSubmit = async () => {
     if (!categoryData.nombre.trim()) {
@@ -166,10 +127,6 @@ function Categories() {
     try {
       let imageUrl = categoryData.imagen_url;
 
-      // Si hay un archivo de imagen, subirlo a Firebase Storage
-      if (!useImageUrl && categoryData.imagen_file) {
-        imageUrl = await uploadImageToFirebase(categoryData.imagen_file);
-      }
 
       const dataToSend = {
         nombre: categoryData.nombre.trim(),
@@ -472,61 +429,29 @@ function Categories() {
               Imagen de la Categoría
             </Typography>
             
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={useImageUrl}
-                  onChange={(e) => setUseImageUrl(e.target.checked)}
-                />
-              }
-              label={useImageUrl ? "Usar URL de imagen" : "Subir imagen desde dispositivo"}
+            <TextField
+              fullWidth
+              label="URL de la Imagen"
+              name="imagen_url"
+              value={categoryData.imagen_url}
+              onChange={handleInputChange}
+              placeholder="https://ejemplo.com/imagen.jpg"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <ImageIcon />
+                  </InputAdornment>
+                ),
+              }}
             />
           </Grid>
 
-          {useImageUrl ? (
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="URL de la Imagen"
-                name="imagen_url"
-                value={categoryData.imagen_url}
-                onChange={handleInputChange}
-                placeholder="https://ejemplo.com/imagen.jpg"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <ImageIcon />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-          ) : (
-            <Grid item xs={12}>
-              <Button
-                variant="outlined"
-                component="label"
-                fullWidth
-                startIcon={<CloudUploadIcon />}
-                sx={{ height: 56 }}
-              >
-                {categoryData.imagen_file ? categoryData.imagen_file.name : 'Seleccionar imagen'}
-                <input
-                  hidden
-                  accept="image/*"
-                  type="file"
-                  onChange={handleImageFileChange}
-                />
-              </Button>
-            </Grid>
-          )}
-
           {/* Preview de la imagen */}
-          {(categoryData.imagen_url || categoryData.imagen_file) && (
+          {categoryData.imagen_url && (
             <Grid item xs={12}>
               <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
                 <Avatar
-                  src={categoryData.imagen_file ? URL.createObjectURL(categoryData.imagen_file) : categoryData.imagen_url}
+                  src={categoryData.imagen_url}
                   alt="Preview"
                   sx={{ width: 100, height: 100 }}
                 >

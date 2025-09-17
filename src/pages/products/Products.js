@@ -26,8 +26,6 @@ import {
   Tooltip,
   Paper,
   InputAdornment,
-  FormControlLabel,
-  Switch,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -44,7 +42,6 @@ import {
   AttachMoney as MoneyIcon,
   Info as InfoIcon,
   ShoppingCart as ShoppingCartIcon,
-  CloudUpload as CloudUploadIcon,
 } from '@mui/icons-material';
 import GlassmorphismDialog from '../../components/common/GlassmorphismDialog';
 import { CancelButton, PrimaryButton } from '../../components/common/GlassmorphismButton';
@@ -55,8 +52,6 @@ import DataTable from '../../components/common/DataTable';
 import CurrencyDisplay from '../../components/common/CurrencyDisplay';
 import getImageUrl from '../../utils/imageUtils';
 import { productsService, categoriesService } from '../../services/firestoreService';
-import { storage } from '../../config/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 function Products() {
   const { currentBusiness } = useApp();
@@ -72,7 +67,6 @@ function Products() {
   const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'table'
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
-  const [useImageUrl, setUseImageUrl] = useState(true); // true para URL, false para upload
   
   const [productData, setProductData] = useState({
     nombre: '',
@@ -85,7 +79,6 @@ function Products() {
     impuesto: '',
     stock_minimo: '',
     imagen_url: '',
-    imagen_file: null,
   });
 
   useEffect(() => {
@@ -143,9 +136,7 @@ function Products() {
         impuesto: product.impuesto || '',
         stock_minimo: product.stock_minimo || '',
         imagen_url: product.imagen_url || '',
-        imagen_file: null,
       });
-      setUseImageUrl(true); // Por defecto usar URL al editar
     } else {
       setEditingProduct(null);
       setProductData({
@@ -159,9 +150,7 @@ function Products() {
         impuesto: '',
         stock_minimo: '',
         imagen_url: '',
-        imagen_file: null,
       });
-      setUseImageUrl(true);
     }
     setOpenDialog(true);
     setError('');
@@ -191,35 +180,7 @@ function Products() {
     }));
   };
 
-  const handleImageFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        setError('La imagen no debe superar los 5MB');
-        return;
-      }
-      setProductData(prev => ({
-        ...prev,
-        imagen_file: file
-      }));
-      setError('');
-    }
-  };
 
-  const uploadImageToFirebase = async (file) => {
-    try {
-      const timestamp = Date.now();
-      const fileName = `productos/${currentBusiness.id}/${timestamp}_${file.name}`;
-      const storageRef = ref(storage, fileName);
-      
-      await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(storageRef);
-      return downloadURL;
-    } catch (error) {
-      console.error('Error al subir la imagen a Firebase:', error);
-      throw new Error(`Error al subir la imagen: ${error.message}`);
-    }
-  };
 
   const handleSubmit = async () => {
     if (!productData.nombre.trim() || !productData.precio_venta) {
@@ -231,10 +192,6 @@ function Products() {
     try {
       let imageUrl = productData.imagen_url;
 
-      // Si hay un archivo de imagen, subirlo a Firebase Storage
-      if (productData.imagen_file) {
-        imageUrl = await uploadImageToFirebase(productData.imagen_file);
-      }
 
       const dataToSend = {
         ...productData,
@@ -248,8 +205,6 @@ function Products() {
         categoria_id: productData.categoria_id || null, // Convertir cadena vacía a null
       };
 
-      // Removemos imagen_file del dataToSend ya que no debe enviarse al backend
-      delete dataToSend.imagen_file;
 
       if (editingProduct) {
         // Actualizar producto existente en Firestore
@@ -1011,50 +966,21 @@ function Products() {
               Imagen del Producto
             </Typography>
             
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={useImageUrl}
-                  onChange={(e) => setUseImageUrl(e.target.checked)}
-                />
-              }
-              label={useImageUrl ? "Usar URL de imagen" : "Subir imagen desde dispositivo"}
-              sx={{ mb: 2 }}
+            <TextField
+              fullWidth
+              label="URL de la Imagen"
+              name="imagen_url"
+              value={productData.imagen_url}
+              onChange={handleInputChange}
+              placeholder="https://ejemplo.com/imagen.jpg"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <ImageIcon />
+                  </InputAdornment>
+                ),
+              }}
             />
-
-            {useImageUrl ? (
-              <TextField
-                fullWidth
-                label="URL de la Imagen"
-                name="imagen_url"
-                value={productData.imagen_url}
-                onChange={handleInputChange}
-                placeholder="https://ejemplo.com/imagen.jpg"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <ImageIcon />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            ) : (
-              <Button
-                variant="outlined"
-                component="label"
-                fullWidth
-                startIcon={<CloudUploadIcon />}
-                sx={{ height: 56 }}
-              >
-                {productData.imagen_file ? productData.imagen_file.name : 'Seleccionar imagen'}
-                <input
-                  hidden
-                  accept="image/*"
-                  type="file"
-                  onChange={handleImageFileChange}
-                />
-              </Button>
-            )}
           </Grid>
           <Grid item xs={12} md={6}>
             <TextField
@@ -1119,14 +1045,14 @@ function Products() {
             />
           </Grid>
           
-          {(productData.imagen_url || productData.imagen_file) && (
+          {productData.imagen_url && (
             <Grid item xs={12}>
               <Box sx={{ textAlign: 'center', mt: 2 }}>
                 <Typography variant="subtitle2" gutterBottom>
                   Vista previa:
                 </Typography>
                 <Avatar
-                  src={productData.imagen_file ? URL.createObjectURL(productData.imagen_file) : getImageUrl(productData.imagen_url)}
+                  src={getImageUrl(productData.imagen_url)}
                   sx={{ width: 100, height: 100, mx: 'auto' }}
                 >
                   <ImageIcon />
