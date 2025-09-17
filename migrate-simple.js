@@ -1,19 +1,19 @@
-// Script para migrar datos de PostgreSQL a Firestore
-// Ejecutar con: node migrate-to-firestore.js
+// Script simple para migrar datos de PostgreSQL local a Firestore
+// Ejecutar con: node migrate-simple.js
 
 const { Pool } = require('pg');
 const admin = require('firebase-admin');
 
-// Configuración de PostgreSQL local
+// Configuración de PostgreSQL local - CAMBIA ESTOS VALORES
 const pool = new Pool({
   host: 'localhost',
   port: 5432,
   database: 'zarzify',
   user: 'postgres',
-  password: 'tu-password-postgres'
+  password: 'tu-password-aqui'  // ⚠️ CAMBIA ESTO por tu password real
 });
 
-// Configuración de Firebase Admin con tu clave real
+// Tu clave privada de Firebase (ya está configurada)
 const serviceAccount = {
   "type": "service_account",
   "project_id": "zarzify",
@@ -37,11 +37,19 @@ const db = admin.firestore();
 
 async function migrateData() {
   try {
-    console.log('🚀 Iniciando migración de PostgreSQL a Firestore...');
+    console.log('🚀 Iniciando migración de PostgreSQL local a Firestore...');
+    console.log('📝 Asegúrate de cambiar la password de PostgreSQL en el script');
+
+    // Verificar conexión a PostgreSQL
+    console.log('🔍 Verificando conexión a PostgreSQL...');
+    const testQuery = await pool.query('SELECT 1');
+    console.log('✅ Conexión a PostgreSQL exitosa');
 
     // Migrar usuarios
     console.log('👥 Migrando usuarios...');
     const usersResult = await pool.query('SELECT * FROM usuarios');
+    console.log(`📊 Encontrados ${usersResult.rows.length} usuarios`);
+    
     for (const user of usersResult.rows) {
       await db.collection('users').doc(user.id).set({
         email: user.email,
@@ -55,6 +63,8 @@ async function migrateData() {
     // Migrar negocios
     console.log('🏢 Migrando negocios...');
     const businessesResult = await pool.query('SELECT * FROM negocios');
+    console.log(`📊 Encontrados ${businessesResult.rows.length} negocios`);
+    
     for (const business of businessesResult.rows) {
       await db.collection('businesses').doc(business.id).set({
         nombre: business.nombre,
@@ -69,6 +79,8 @@ async function migrateData() {
     // Migrar categorías
     console.log('📁 Migrando categorías...');
     const categoriesResult = await pool.query('SELECT * FROM categorias');
+    console.log(`📊 Encontrados ${categoriesResult.rows.length} categorías`);
+    
     for (const category of categoriesResult.rows) {
       await db.collection('categories').doc(category.id).set({
         nombre: category.nombre,
@@ -83,6 +95,8 @@ async function migrateData() {
     // Migrar productos
     console.log('📦 Migrando productos...');
     const productsResult = await pool.query('SELECT * FROM productos');
+    console.log(`📊 Encontrados ${productsResult.rows.length} productos`);
+    
     for (const product of productsResult.rows) {
       await db.collection('products').doc(product.id).set({
         nombre: product.nombre,
@@ -104,6 +118,8 @@ async function migrateData() {
     // Migrar clientes
     console.log('👥 Migrando clientes...');
     const clientsResult = await pool.query('SELECT * FROM clientes');
+    console.log(`📊 Encontrados ${clientsResult.rows.length} clientes`);
+    
     for (const client of clientsResult.rows) {
       await db.collection('clients').doc(client.id).set({
         nombre: client.nombre,
@@ -120,6 +136,8 @@ async function migrateData() {
     // Migrar ventas
     console.log('💰 Migrando ventas...');
     const salesResult = await pool.query('SELECT * FROM ventas');
+    console.log(`📊 Encontradas ${salesResult.rows.length} ventas`);
+    
     for (const sale of salesResult.rows) {
       await db.collection('sales').doc(sale.id).set({
         cliente_id: sale.cliente_id,
@@ -135,6 +153,8 @@ async function migrateData() {
     // Migrar gastos
     console.log('💸 Migrando gastos...');
     const expensesResult = await pool.query('SELECT * FROM egresos');
+    console.log(`📊 Encontrados ${expensesResult.rows.length} gastos`);
+    
     for (const expense of expensesResult.rows) {
       await db.collection('expenses').doc(expense.id).set({
         concepto: expense.concepto,
@@ -150,6 +170,8 @@ async function migrateData() {
     // Migrar empleados
     console.log('👷 Migrando empleados...');
     const employeesResult = await pool.query('SELECT * FROM empleados');
+    console.log(`📊 Encontrados ${employeesResult.rows.length} empleados`);
+    
     for (const employee of employeesResult.rows) {
       await db.collection('employees').doc(employee.id).set({
         nombre: employee.nombre,
@@ -166,10 +188,15 @@ async function migrateData() {
       console.log(`✅ Empleado migrado: ${employee.nombre}`);
     }
 
-    console.log('🎉 Migración completada exitosamente!');
+    console.log('🎉 ¡Migración completada exitosamente!');
+    console.log('📱 Ahora puedes probar tu app con los datos migrados a Firestore');
     
   } catch (error) {
     console.error('❌ Error durante la migración:', error);
+    console.log('💡 Verifica que:');
+    console.log('   1. PostgreSQL esté corriendo');
+    console.log('   2. La password esté correcta en el script');
+    console.log('   3. La base de datos "zarzify" exista');
   } finally {
     await pool.end();
     process.exit(0);

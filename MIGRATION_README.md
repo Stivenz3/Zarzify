@@ -1,32 +1,31 @@
-# Migración de PostgreSQL a Firestore
+# Migración de PostgreSQL Local a Firestore
 
 ## Objetivo
 
-Migrar los datos existentes de PostgreSQL (Railway) a Firestore para hacer pruebas de CRUD.
+Migrar los datos existentes de tu PostgreSQL local a Firestore para hacer pruebas de CRUD.
 
 ## Pasos
 
-### 1. Configurar Firebase Admin
+### 1. Configurar PostgreSQL local
 
-1. Ve a [Firebase Console](https://console.firebase.google.com/)
-2. Selecciona tu proyecto `zarzify`
-3. Ve a Project Settings > Service Accounts
-4. Genera una nueva clave privada
-5. Reemplaza el contenido de `serviceAccount` en `migrate-to-firestore.js`
-
-### 2. Configurar variables de entorno
-
-```bash
-export DATABASE_URL="tu-url-de-railway"
+Asegúrate de que tu PostgreSQL local esté corriendo y actualiza la configuración en `migrate-to-firestore.js`:
+```javascript
+const pool = new Pool({
+  host: 'localhost',
+  port: 5432,
+  database: 'zarzify',
+  user: 'postgres',
+  password: 'tu-password-postgres'  // Cambia por tu password real
+});
 ```
 
-### 3. Instalar dependencias
+### 2. Instalar dependencias
 
 ```bash
 npm install pg firebase-admin
 ```
 
-### 4. Ejecutar migración
+### 3. Ejecutar migración
 
 ```bash
 node migrate-to-firestore.js
