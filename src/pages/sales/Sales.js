@@ -152,7 +152,13 @@ function Sales() {
       // Obtener la venta desde Firestore
       const sale = await salesService.getById(saleId);
       if (sale) {
-        setSaleDetails(sale);
+        // Enriquecer con nombre de cliente
+        const client = clients.find(c => c.id === sale.cliente_id);
+        const enrichedSale = {
+          ...sale,
+          cliente_nombre: client ? client.nombre : 'Cliente General'
+        };
+        setSaleDetails(enrichedSale);
       }
     } catch (error) {
       console.error('Error al cargar detalles:', error);
@@ -1058,7 +1064,17 @@ function Sales() {
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="subtitle1">
-                  <strong>Fecha:</strong> {new Date(saleDetails.created_at).toLocaleDateString()}
+                  <strong>Fecha:</strong> {
+                    saleDetails.fecha_venta ? 
+                      (saleDetails.fecha_venta?.toDate ? 
+                        saleDetails.fecha_venta.toDate().toLocaleDateString() : 
+                        new Date(saleDetails.fecha_venta).toLocaleDateString()
+                      ) : 
+                      (saleDetails.created_at?.toDate ? 
+                        saleDetails.created_at.toDate().toLocaleDateString() : 
+                        new Date(saleDetails.created_at).toLocaleDateString()
+                      )
+                  }
                 </Typography>
               </Grid>
               <Grid item xs={6}>
@@ -1088,32 +1104,34 @@ function Sales() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {saleDetails.productos?.map((product, index) => {
-                    const precio = parseFloat(product.precio_unitario || product.precio || 0);
-                    const cantidad = parseInt(product.cantidad || 0);
-                    const subtotal = cantidad * precio;
-                    
-                    return (
-                      <TableRow key={index}>
-                        <TableCell>{product.nombre}</TableCell>
-                        <TableCell align="center">{cantidad}</TableCell>
-                        <TableCell align="right">
-                          <CurrencyDisplay amount={precio} variant="body2" />
-                        </TableCell>
-                        <TableCell align="right">
-                          <CurrencyDisplay 
-                            amount={subtotal} 
-                            variant="body2" 
-                            sx={{ fontWeight: 'bold' }}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    );
-                  }) || (
+                  {saleDetails.productos && saleDetails.productos.length > 0 ? (
+                    saleDetails.productos.map((product, index) => {
+                      const precio = parseFloat(product.precio || 0);
+                      const cantidad = parseInt(product.cantidad || 0);
+                      const subtotal = cantidad * precio;
+                      
+                      return (
+                        <TableRow key={index}>
+                          <TableCell>{product.nombre || `Producto ${index + 1}`}</TableCell>
+                          <TableCell align="center">{cantidad}</TableCell>
+                          <TableCell align="right">
+                            <CurrencyDisplay amount={precio} variant="body2" />
+                          </TableCell>
+                          <TableCell align="right">
+                            <CurrencyDisplay 
+                              amount={subtotal} 
+                              variant="body2" 
+                              sx={{ fontWeight: 'bold' }}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  ) : (
                     <TableRow>
                       <TableCell colSpan={4} align="center">
                         <Typography color="text.secondary">
-                          No se pudieron cargar los detalles de productos
+                          No hay productos asociados a esta venta
                         </Typography>
                       </TableCell>
                     </TableRow>
