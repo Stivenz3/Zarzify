@@ -27,6 +27,7 @@ const Expenses = lazy(() => import('./pages/expenses/Expenses'));
 const Categories = lazy(() => import('./pages/categories/Categories'));
 const Employees = lazy(() => import('./pages/employees/Employees'));
 const Settings = lazy(() => import('./pages/settings/Settings'));
+const Landing = lazy(() => import('./pages/landing/Landing'));
 
 // Componente wrapper para gestionar el tema dinámico
 function AppContent() {
@@ -76,16 +77,17 @@ function AppRoutes({ user }) {
   return (
     <Router>
       {!user ? (
-        // Usuario no autenticado - Mostrar solo Login (siempre en modo claro)
+        // Usuario no autenticado - Mostrar Landing como raíz y acceso a Login (siempre en modo claro)
         <AuthThemeWrapper>
           <Suspense fallback={<div />}> 
             <Routes>
+              <Route path="/" element={<Landing />} />
               <Route path="/login" element={
                 <AuthLayout>
                   <Login />
                 </AuthLayout>
               } />
-              <Route path="*" element={<Navigate to="/login" replace />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
         </AuthThemeWrapper>

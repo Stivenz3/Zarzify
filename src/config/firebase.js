@@ -19,7 +19,26 @@ export const auth = getAuth(app);
 auth.languageCode = 'es';
 export const storage = getStorage(app);
 export const db = getFirestore(app);
-export const analytics = getAnalytics(app);
+// Configurar Analytics con configuración específica para el dominio
+let analytics;
+if (typeof window !== 'undefined') {
+  try {
+    analytics = getAnalytics(app);
+    
+    // Configurar para el dominio correcto
+    const domain = window.location.hostname;
+    if (domain === 'zarzify.vercel.app' || domain === 'localhost') {
+      console.log('Analytics configurado para:', domain);
+    }
+  } catch (error) {
+    console.warn('Error al inicializar Analytics:', error);
+    analytics = null;
+  }
+} else {
+  analytics = null;
+}
+
+export { analytics };
 export const googleProvider = new GoogleAuthProvider();
 
 // Configuración adicional del proveedor de Google
