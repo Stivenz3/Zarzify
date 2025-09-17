@@ -27,9 +27,6 @@ import Expenses from './pages/expenses/Expenses';
 import Categories from './pages/categories/Categories';
 import Employees from './pages/employees/Employees';
 import Settings from './pages/settings/Settings';
-import TestFirestore from './pages/test/TestFirestore';
-import SimpleTest from './pages/test/SimpleTest';
-import DataMigration from './pages/test/DataMigration';
 
 // Componente wrapper para gestionar el tema dinámico
 function AppContent() {
@@ -149,21 +146,6 @@ function AppRoutes({ user }) {
             <Route path="/settings" element={
               <MainLayout>
                 <Settings />
-              </MainLayout>
-            } />
-            <Route path="/test-firestore" element={
-              <MainLayout>
-                <TestFirestore />
-              </MainLayout>
-            } />
-            <Route path="/simple-test" element={
-              <MainLayout>
-                <SimpleTest />
-              </MainLayout>
-            } />
-            <Route path="/data-migration" element={
-              <MainLayout>
-                <DataMigration />
               </MainLayout>
             } />
             
