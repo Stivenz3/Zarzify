@@ -143,6 +143,8 @@ function AppRoutes({ user }) {
                   <Reports />
                 </MainLayout>
               } />
+              {/* Landing accesible también autenticado */}
+              <Route path="/home" element={<Landing />} />
               <Route path="/categories" element={
                 <MainLayout>
                   <Categories />

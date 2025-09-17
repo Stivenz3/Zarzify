@@ -161,7 +161,7 @@ function MainLayout({ children }) {
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: sidebarCollapsed ? 0 : 2 }}>
           <Box
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/home')}
             sx={{
               cursor: 'pointer',
               borderRadius: '50%',

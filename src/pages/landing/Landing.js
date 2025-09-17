@@ -218,54 +218,104 @@ function Landing() {
                 transition: 'all 0.8s ease-out 0.2s'
               }}
             >
-              <Card
-                sx={{
-                  p: 4,
-                  borderRadius: 4,
-                  background: 'linear-gradient(135deg, rgba(25,118,210,0.1), rgba(236,72,153,0.1))',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-              >
+              {/* Mockup realista estilo SaaS */}
+              <Box sx={{ position: 'relative' }}>
+                {/* Ilustración abstracta al fondo */}
                 <Box
+                  aria-hidden
                   sx={{
                     position: 'absolute',
-                    top: -50,
-                    right: -50,
-                    width: 100,
-                    height: 100,
-                    borderRadius: '50%',
-                    background: 'linear-gradient(45deg, #1976d2, #ec4899)',
-                    opacity: 0.1
+                    inset: -24,
+                    background:
+                      'radial-gradient(600px 300px at 10% 10%, rgba(25,118,210,0.15), transparent 60%), radial-gradient(500px 260px at 90% 20%, rgba(236,72,153,0.12), transparent 60%)',
+                    filter: 'blur(6px)'
                   }}
                 />
-                <Typography variant="h5" sx={{ fontWeight: 700, mb: 2, textAlign: 'center' }}>
-                  Dashboard Preview
-                </Typography>
-                <Grid container spacing={2}>
-                  {[1,2,3,4].map((i) => (
-                    <Grid item xs={6} key={i}>
-                      <Box
-                        sx={{
-                          height: 60,
+
+                {/* Dispositivo / ventana de dashboard */}
+                <Card
+                  sx={{
+                    borderRadius: 3,
+                    overflow: 'hidden',
+                    boxShadow: '0 20px 50px rgba(0,0,0,0.18)',
+                    border: '1px solid rgba(255,255,255,0.25)'
+                  }}
+                >
+                  {/* Barra superior de ventana */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.2, bgcolor: 'background.paper' }}>
+                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#ff5f56' }} />
+                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#ffbd2e' }} />
+                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#27c93f' }} />
+                    <Typography variant="caption" sx={{ ml: 1, color: 'text.secondary' }}>Zarzify Dashboard</Typography>
+                  </Box>
+
+                  {/* Contenido simulado */}
+                  <Box sx={{ p: 2.5, bgcolor: 'rgba(255,255,255,0.6)' }}>
+                    <Grid container spacing={2}>
+                      {/* Tarjetas resumen */}
+                      {[ 'Ventas', 'Ingresos', 'Clientes', 'Stock' ].map((label, i) => (
+                        <Grid item xs={6} key={label}>
+                          <Box
+                            sx={{
+                              p: 1.5,
+                              borderRadius: 2,
+                              background: 'linear-gradient(135deg, rgba(25,118,210,0.08), rgba(236,72,153,0.08))',
+                              border: '1px solid rgba(0,0,0,0.06)'
+                            }}
+                          >
+                            <Typography variant="caption" color="text.secondary">{label}</Typography>
+                            <Typography variant="h6" sx={{ fontWeight: 800 }}> {['124','$12.4k','58','842'][i]} </Typography>
+                          </Box>
+                        </Grid>
+                      ))}
+
+                      {/* Gráfico simulado */}
+                      <Grid item xs={12}>
+                        <Box sx={{
+                          height: 140,
                           borderRadius: 2,
-                          background: `linear-gradient(45deg, rgba(25,118,210,0.2), rgba(236,72,153,0.2))`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'text.secondary',
-                          fontWeight: 600
-                        }}
-                      >
-                        Feature {i}
-                      </Box>
+                          background: 'linear-gradient(180deg, rgba(25,118,210,0.08), rgba(236,72,153,0.08))',
+                          position: 'relative',
+                          overflow: 'hidden',
+                          border: '1px solid rgba(0,0,0,0.06)'
+                        }}>
+                          <Box sx={{
+                            position: 'absolute',
+                            inset: 0,
+                            backgroundImage: 'repeating-linear-gradient(90deg, rgba(0,0,0,0.06) 0 1px, transparent 1px 40px), repeating-linear-gradient(0deg, rgba(0,0,0,0.06) 0 1px, transparent 1px 32px)'
+                          }} />
+                          <Box sx={{
+                            position: 'absolute',
+                            left: 0,
+                            right: 0,
+                            bottom: 16,
+                            height: 60,
+                            background: 'linear-gradient(90deg, rgba(25,118,210,0.45), rgba(236,72,153,0.45))',
+                            clipPath: 'polygon(0% 70%, 10% 60%, 20% 70%, 30% 40%, 40% 50%, 50% 35%, 60% 55%, 70% 45%, 80% 65%, 90% 50%, 100% 60%)',
+                            opacity: 0.8
+                          }} />
+                        </Box>
+                      </Grid>
+
+                      {/* Tabla simulada */}
+                      <Grid item xs={12}>
+                        <Box sx={{
+                          borderRadius: 2,
+                          border: '1px solid rgba(0,0,0,0.06)'
+                        }}>
+                          {[1,2,3,4].map((row) => (
+                            <Box key={row} sx={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 2, p: 1.2, bgcolor: row % 2 ? 'rgba(0,0,0,0.02)' : 'transparent' }}>
+                              <Typography variant="body2">Producto {row}</Typography>
+                              <Typography variant="body2" color="text.secondary">Cat {row}</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 700 }}>$ {(row*12.5).toFixed(2)}</Typography>
+                            </Box>
+                          ))}
+                        </Box>
+                      </Grid>
                     </Grid>
-                  ))}
-                </Grid>
-              </Card>
+                  </Box>
+                </Card>
+              </Box>
             </Box>
           </Grid>
         </Grid>
