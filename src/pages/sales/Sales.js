@@ -89,11 +89,16 @@ function Sales() {
 
   useEffect(() => {
     if (currentBusiness) {
-      loadSales();
       loadClients();
       loadProducts();
     }
   }, [currentBusiness]);
+
+  useEffect(() => {
+    if (currentBusiness && clients.length > 0) {
+      loadSales();
+    }
+  }, [currentBusiness, clients]);
 
   const loadSales = async () => {
     if (!currentBusiness) return;
@@ -101,7 +106,17 @@ function Sales() {
     try {
       // Cargar ventas desde Firestore filtradas por business_id
       const allSales = await salesService.getWhere('business_id', '==', currentBusiness.id);
-      setSales(allSales);
+      
+      // Enriquecer ventas con nombres de clientes
+      const enrichedSales = allSales.map(sale => {
+        const client = clients.find(c => c.id === sale.cliente_id);
+        return {
+          ...sale,
+          cliente_nombre: client ? client.nombre : 'Cliente General'
+        };
+      });
+      
+      setSales(enrichedSales);
     } catch (error) {
       console.error('Error al cargar ventas:', error);
       setError('Error al cargar las ventas');
@@ -134,13 +149,18 @@ function Sales() {
 
   const loadSaleDetails = async (saleId) => {
     try {
-      const response = await api.get(`/ventas/${saleId}/details`);
-      setSaleDetails(response.data);
+      // Obtener la venta desde Firestore
+      const sale = await salesService.getById(saleId);
+      if (sale) {
+        setSaleDetails(sale);
+      }
     } catch (error) {
       console.error('Error al cargar detalles:', error);
       // Fallback: usar datos de la venta sin detalles
       const sale = sales.find(s => s.id === saleId);
-      setSaleDetails(sale);
+      if (sale) {
+        setSaleDetails(sale);
+      }
     }
   };
 
@@ -178,18 +198,15 @@ function Sales() {
 
   const loadSaleProducts = async (saleId) => {
     try {
-      const response = await api.get(`/ventas/${saleId}/products`);
-      // Asegurar que los productos tengan el formato correcto
-      const productosFormateados = response.data.map(producto => ({
-        ...producto,
-        precio: producto.precio || producto.precio_unitario || 0,
-        subtotal: (producto.cantidad || 0) * (producto.precio || producto.precio_unitario || 0)
-      }));
-      
-      setSaleData(prev => ({
-        ...prev,
-        productos: productosFormateados
-      }));
+      // Obtener la venta desde Firestore
+      const sale = await salesService.getById(saleId);
+      if (sale && sale.productos) {
+        // Los productos ya están en el documento de la venta
+        setSaleData(prev => ({
+          ...prev,
+          productos: sale.productos || []
+        }));
+      }
     } catch (error) {
       console.error('Error al cargar productos de venta:', error);
     }
@@ -401,16 +418,15 @@ function Sales() {
 
       console.log('📤 Enviando datos de venta:', salePayload); // Debug
 
-      let response;
       if (editingSale) {
         console.log('✏️ Actualizando venta existente:', editingSale.id);
-        response = await api.put(`/ventas/${editingSale.id}`, salePayload);
+        await salesService.update(editingSale.id, salePayload);
       } else {
         console.log('🆕 Creando nueva venta');
-        response = await api.post('/ventas', salePayload);
+        await salesService.create(salePayload);
       }
 
-      console.log('✅ Respuesta del servidor:', response.data);
+      console.log('✅ Venta guardada en Firestore');
       console.log('🔄 Recargando ventas...');
       await loadSales();
       console.log('📊 Actualizando dashboard...');
@@ -491,7 +507,7 @@ function Sales() {
   const handleDelete = async (saleId) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar esta venta?')) {
       try {
-        await api.delete(`/ventas/${saleId}`);
+        await salesService.delete(saleId);
         await loadSales();
         markDashboardForRefresh();
       } catch (error) {
