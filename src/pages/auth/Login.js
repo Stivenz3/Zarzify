@@ -252,62 +252,67 @@ function Login() {
 
   return (
     <Box
-      
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        p: { xs: 2, sm: 3 },
+        background: 'linear-gradient(135deg, rgba(25,118,210,0.1), rgba(236,72,153,0.1))'
+      }}
     >
       <Box
         sx={{
           position: 'relative',
           zIndex: 2,
-          width: { xs: '0%', sm: '700px' },
-          maxWidth: '500px',
-          height: { xs: '20vh', sm: '0' },
-          maxHeight: '120vh',
-          backgroundColor: 'rgba(242, 242, 242, 0.72)',
+          width: '100%',
+          maxWidth: { xs: '100%', sm: '500px' },
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
           backdropFilter: 'blur(20px)',
           borderRadius: 3,
           border: '1px solid rgba(255, 255, 255, 0.3)',
           boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
-          p: { xs: 2, sm: 3 },
+          p: { xs: 3, sm: 4 },
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
         }}
       >
-        {/* Header - MÁS COMPACTO */}
-        <Box sx={{ textAlign: 'center', mb: { xs: 1.5, sm: 1 }, flexShrink: 0 }}>
+        {/* Header */}
+        <Box sx={{ textAlign: 'center', mb: 3, flexShrink: 0 }}>
           <Box sx={{ mb: 2 }}>
             <img 
               src={logoZarzify} 
               alt="Zarzify Logo" 
               style={{ 
-                width: '70px', 
-                height: '70px',
-                margin:0
+                width: '60px', 
+                height: '60px',
+                margin: 0,
+                borderRadius: '50%',
+                boxShadow: '0 4px 16px rgba(25,118,210,0.3)'
               }}
             />
           </Box>
           <Typography
-            variant="h1"
+            variant="h4"
             sx={{
               fontWeight: 700,
               background: 'linear-gradient(135deg, #1976d2 0%, #9c27b0 100%)',
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              fontSize: { xs: '1.7rem', sm: '1.9rem' },
-              mb: 0.1,
+              fontSize: { xs: '1.8rem', sm: '2.2rem' },
+              mb: 0.5,
             }}
           >
             Zarzify
           </Typography>
           <Typography
-            variant="caption"
+            variant="body2"
             sx={{ 
               color: 'text.secondary',
-              fontSize: { xs: '0.7rem', sm: '0.75rem' },
-              opacity: 1,
-              padding:0
-              
+              fontSize: { xs: '0.8rem', sm: '0.9rem' },
+              opacity: 0.8
             }}
           >
             Sistema de Gestión de Inventario
@@ -319,14 +324,11 @@ function Login() {
           <Alert
             severity="error"
             sx={{
-              mb: 1.5,
+              mb: 2,
               borderRadius: 2,
-              fontSize: { xs: '0.7rem', sm: '0.75rem' },
+              fontSize: { xs: '0.8rem', sm: '0.85rem' },
               flexShrink: 0,
-              py: 0.5,
-              '& .MuiAlert-message': {
-                py: 0,
-              },
+              py: 1,
             }}
           >
             {error}
@@ -336,22 +338,19 @@ function Login() {
           <Alert
             severity="success"
             sx={{
-              mb: 1.5,
+              mb: 2,
               borderRadius: 2,
-              fontSize: { xs: '0.7rem', sm: '0.75rem' },
+              fontSize: { xs: '0.8rem', sm: '0.85rem' },
               flexShrink: 0,
-              py: 0.5,
-              '& .MuiAlert-message': {
-                py: 0,
-              },
+              py: 1,
             }}
           >
             {info}
           </Alert>
         )}
 
-        {/* Tabs - MÁS COMPACTOS */}
-        <Box sx={{ width: '100%', mb: 2, mt: -0.5, flexShrink: 0 }}>
+        {/* Tabs */}
+        <Box sx={{ width: '100%', mb: 3, flexShrink: 0 }}>
           <Tabs 
             value={tabValue} 
             onChange={handleTabChange} 
@@ -362,11 +361,11 @@ function Login() {
               minHeight: 'auto',
               '& .MuiTabs-indicator': {
                 background: 'linear-gradient(135deg, #1976d2 0%, #9c27b0 100%)',
-                height: 2,
+                height: 3,
               },
               '& .MuiTab-root': {
-                minHeight: { xs: 36, sm: 40 },
-                fontSize: { xs: '0.75rem', sm: '0.8rem' },
+                minHeight: 48,
+                fontSize: { xs: '0.9rem', sm: '1rem' },
                 textTransform: 'none',
                 fontWeight: 600,
                 py: 1,
@@ -409,22 +408,15 @@ function Login() {
                 label="Email"
                 value={formData.email}
                 onChange={handleInputChange}
-                size="small"
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <EmailIcon color="action" sx={{ fontSize: '1rem' }} />
+                      <EmailIcon color="action" />
                     </InputAdornment>
                   ),
                   sx: { 
                     borderRadius: 2, 
-                    height: { xs: 40, sm: 44 },
-                    fontSize: { xs: '0.8rem', sm: '0.9rem' },
-                  },
-                }}
-                InputLabelProps={{
-                  sx: {
-                    fontSize: { xs: '0.8rem', sm: '0.9rem' },
+                    height: 56,
                   },
                 }}
               />
@@ -436,11 +428,10 @@ function Login() {
                 label="Contraseña"
                 value={formData.password}
                 onChange={handleInputChange}
-                size="small"
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <LockIcon color="action" sx={{ fontSize: '1rem' }} />
+                      <LockIcon color="action" />
                     </InputAdornment>
                   ),
                   endAdornment: (
@@ -448,35 +439,25 @@ function Login() {
                       <IconButton
                         onClick={() => setShowPassword(!showPassword)}
                         edge="end"
-                        size="small"
                       >
-                        {showPassword ? 
-                          <VisibilityOff sx={{ fontSize: '1rem' }} /> : 
-                          <Visibility sx={{ fontSize: '1rem' }} />
-                        }
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
                       </IconButton>
                     </InputAdornment>
                   ),
                   sx: { 
                     borderRadius: 2, 
-                    height: { xs: 40, sm: 44 },
-                    fontSize: { xs: '0.8rem', sm: '0.9rem' },
-                  },
-                }}
-                InputLabelProps={{
-                  sx: {
-                    fontSize: { xs: '0.8rem', sm: '0.9rem' },
+                    height: 56,
                   },
                 }}
               />
-              <Box sx={{ textAlign: 'right' }}>
+              <Box sx={{ textAlign: 'right', mb: 1 }}>
                 <Link
                   component="button"
                   type="button"
                   onClick={handleForgotPassword}
                   disabled={isLoading}
                   underline="hover"
-                  sx={{ fontSize: { xs: '0.75rem', sm: '0.8rem' } }}
+                  sx={{ fontSize: '0.9rem' }}
                 >
                   ¿Olvidaste tu contraseña?
                 </Link>
@@ -486,8 +467,9 @@ function Login() {
                 fullWidth
                 variant="contained"
                 disabled={isLoading}
+                size="large"
                 sx={{ 
-                  py: { xs: 1, sm: 1.2 },
+                  py: 1.5,
                   fontSize: { xs: '0.85rem', sm: '0.9rem' },
                   fontWeight: 600,
                   textTransform: 'none',
@@ -527,22 +509,15 @@ function Login() {
                 label="Nombre completo"
                 value={formData.nombre}
                 onChange={handleInputChange}
-                size="small"
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <PersonIcon color="action" sx={{ fontSize: '1rem' }} />
+                      <PersonIcon color="action" />
                     </InputAdornment>
                   ),
                   sx: { 
                     borderRadius: 2, 
-                    height: { xs: 38, sm: 42 },
-                    fontSize: { xs: '0.8rem', sm: '0.9rem' },
-                  },
-                }}
-                InputLabelProps={{
-                  sx: {
-                    fontSize: { xs: '0.8rem', sm: '0.9rem' },
+                    height: 56,
                   },
                 }}
               />
@@ -554,22 +529,15 @@ function Login() {
                 label="Email"
                 value={formData.email}
                 onChange={handleInputChange}
-                size="small"
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <EmailIcon color="action" sx={{ fontSize: '1rem' }} />
+                      <EmailIcon color="action" />
                     </InputAdornment>
                   ),
                   sx: { 
                     borderRadius: 2, 
-                    height: { xs: 38, sm: 42 },
-                    fontSize: { xs: '0.8rem', sm: '0.9rem' },
-                  },
-                }}
-                InputLabelProps={{
-                  sx: {
-                    fontSize: { xs: '0.8rem', sm: '0.9rem' },
+                    height: 56,
                   },
                 }}
               />
@@ -581,11 +549,10 @@ function Login() {
                 label="Contraseña"
                 value={formData.password}
                 onChange={handleInputChange}
-                size="small"
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <LockIcon color="action" sx={{ fontSize: '1rem' }} />
+                      <LockIcon color="action" />
                     </InputAdornment>
                   ),
                   endAdornment: (
@@ -593,24 +560,14 @@ function Login() {
                       <IconButton
                         onClick={() => setShowPassword(!showPassword)}
                         edge="end"
-                        size="small"
                       >
-                        {showPassword ? 
-                          <VisibilityOff sx={{ fontSize: '1rem' }} /> : 
-                          <Visibility sx={{ fontSize: '1rem' }} />
-                        }
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
                       </IconButton>
                     </InputAdornment>
                   ),
                   sx: { 
                     borderRadius: 2, 
-                    height: { xs: 38, sm: 42 },
-                    fontSize: { xs: '0.8rem', sm: '0.9rem' },
-                  },
-                }}
-                InputLabelProps={{
-                  sx: {
-                    fontSize: { xs: '0.8rem', sm: '0.9rem' },
+                    height: 56,
                   },
                 }}
               />
@@ -622,22 +579,15 @@ function Login() {
                 label="Confirmar contraseña"
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
-                size="small"
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <LockIcon color="action" sx={{ fontSize: '1rem' }} />
+                      <LockIcon color="action" />
                     </InputAdornment>
                   ),
                   sx: { 
                     borderRadius: 2, 
-                    height: { xs: 38, sm: 42 },
-                    fontSize: { xs: '0.8rem', sm: '0.9rem' },
-                  },
-                }}
-                InputLabelProps={{
-                  sx: {
-                    fontSize: { xs: '0.8rem', sm: '0.9rem' },
+                    height: 56,
                   },
                 }}
               />
@@ -646,9 +596,10 @@ function Login() {
                 fullWidth
                 variant="contained"
                 disabled={isLoading}
+                size="large"
                 sx={{ 
-                  py: { xs: 1, sm: 1.2 },
-                  fontSize: { xs: '0.85rem', sm: '0.9rem' },
+                  py: 1.5,
+                  fontSize: '1rem',
                   fontWeight: 600,
                   textTransform: 'none',
                   borderRadius: 2,
@@ -669,13 +620,13 @@ function Login() {
         </Box>
 
         {/* Botón para ir al landing */}
-        <Box sx={{ mt: { xs: 1, sm: 1.5 }, flexShrink: 0, textAlign: 'center' }}>
+        <Box sx={{ mt: 2, flexShrink: 0, textAlign: 'center' }}>
           <Button
             variant="text"
             onClick={() => navigate('/')}
             sx={{
               textTransform: 'none',
-              fontSize: { xs: '0.75rem', sm: '0.8rem' },
+              fontSize: '0.9rem',
               color: 'text.secondary',
               '&:hover': {
                 color: 'primary.main',
@@ -687,31 +638,32 @@ function Login() {
           </Button>
         </Box>
 
-        {/* Google Button - FOOTER FIJO Y COMPACTO */}
-        <Box sx={{ mt: { xs: 0.5, sm: 1 }, flexShrink: 0 }}>
-          <Divider sx={{ mb: { xs: 1, sm: 1.5 } }}>
+        {/* Google Button */}
+        <Box sx={{ mt: 2, flexShrink: 0 }}>
+          <Divider sx={{ mb: 2 }}>
             <Typography 
-              variant="caption" 
+              variant="body2" 
               sx={{ 
                 color: 'text.secondary', 
-                fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                px: 1,
+                fontSize: '0.9rem',
+                px: 2,
               }}
             >
-              o continúa con
+              O continúa con
             </Typography>
           </Divider>
           <Button
             fullWidth
             variant="outlined"
-            startIcon={<GoogleIcon sx={{ fontSize: '1rem' }} />}
+            startIcon={<GoogleIcon />}
             onClick={handleGoogleSignIn}
             disabled={isLoading}
+            size="large"
             sx={{
-              py: { xs: 1, sm: 1.2 },
+              py: 1.5,
               textTransform: 'none',
-              fontSize: { xs: '0.85rem', sm: '0.9rem' },
-              fontWeight: 500,
+              fontSize: '1rem',
+              fontWeight: 600,
               borderRadius: 2,
               borderColor: 'rgba(0, 0, 0, 0.12)',
               backgroundColor: 'rgba(255, 255, 255, 0.8)',
@@ -724,7 +676,7 @@ function Login() {
               transition: 'all 0.2s ease-in-out',
             }}
           >
-            {isLoading ? 'Conectando...' : 'Google'}
+            {isLoading ? 'Conectando...' : 'Continuar con Google'}
           </Button>
         </Box>
       </Box>
