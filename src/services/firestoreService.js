@@ -138,5 +138,6 @@ export const expensesService = new FirestoreService('expenses');
 export const categoriesService = new FirestoreService('categories');
 export const employeesService = new FirestoreService('employees');
 export const businessesService = new FirestoreService('businesses');
+export const usersService = new FirestoreService('users');
 
 export default FirestoreService;

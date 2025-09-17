@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth } from '../config/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import api from '../config/axios';
+import { businessesService, usersService } from '../services/firestoreService';
 
 const AppContext = createContext();
 
@@ -20,19 +20,17 @@ export function AppProvider({ children }) {
     if (!userToUse?.uid) return;
 
     try {
-      const response = await api.get(`/businesses/${userToUse.uid}`);
-      setBusinesses(response.data);
+      // Cargar negocios desde Firestore filtrados por user_id
+      const userBusinesses = await businessesService.getWhere('user_id', '==', userToUse.uid);
+      setBusinesses(userBusinesses);
       
       // Si hay negocios y no hay uno seleccionado, seleccionar el primero
-      if (response.data.length > 0 && !currentBusiness) {
-        setCurrentBusiness(response.data[0]);
-        localStorage.setItem('currentBusinessId', response.data[0].id);
+      if (userBusinesses.length > 0 && !currentBusiness) {
+        setCurrentBusiness(userBusinesses[0]);
+        localStorage.setItem('currentBusinessId', userBusinesses[0].id);
       }
     } catch (error) {
       console.error('Error al cargar los negocios:', error);
-      if (error.response?.status === 404) {
-        console.log('Usuario no encontrado en base de datos, se creará al crear el primer negocio');
-      }
       setBusinesses([]);
     }
   };
@@ -49,8 +47,8 @@ export function AppProvider({ children }) {
     if (!user?.uid || !currentBusiness?.id) return;
     
     try {
-      const response = await api.get(`/businesses/${user.uid}`);
-      const updatedBusinesses = response.data;
+      // Recargar negocios desde Firestore
+      const updatedBusinesses = await businessesService.getWhere('user_id', '==', user.uid);
       setBusinesses(updatedBusinesses);
       
       // Actualizar el negocio actual con los datos más recientes

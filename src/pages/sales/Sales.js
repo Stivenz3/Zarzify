@@ -46,6 +46,7 @@ import { useDashboard } from '../../context/DashboardContext';
 import api from '../../config/axios';
 import DataTable from '../../components/common/DataTable';
 import CurrencyDisplay from '../../components/common/CurrencyDisplay';
+import { salesService, clientsService, productsService } from '../../services/firestoreService';
 
 function Sales() {
   const { currentBusiness } = useApp();
@@ -98,8 +99,9 @@ function Sales() {
     if (!currentBusiness) return;
     setLoading(true);
     try {
-      const response = await api.get(`/ventas/${currentBusiness.id}`);
-      setSales(response.data);
+      // Cargar ventas desde Firestore filtradas por business_id
+      const allSales = await salesService.getWhere('business_id', '==', currentBusiness.id);
+      setSales(allSales);
     } catch (error) {
       console.error('Error al cargar ventas:', error);
       setError('Error al cargar las ventas');
@@ -111,8 +113,9 @@ function Sales() {
   const loadClients = async () => {
     if (!currentBusiness) return;
     try {
-      const response = await api.get(`/clientes/${currentBusiness.id}`);
-      setClients(response.data);
+      // Cargar clientes desde Firestore filtrados por business_id
+      const allClients = await clientsService.getWhere('business_id', '==', currentBusiness.id);
+      setClients(allClients);
     } catch (error) {
       console.error('Error al cargar clientes:', error);
     }
@@ -121,8 +124,9 @@ function Sales() {
   const loadProducts = async () => {
     if (!currentBusiness) return;
     try {
-      const response = await api.get(`/productos/${currentBusiness.id}`);
-      setProducts(response.data);
+      // Cargar productos desde Firestore filtrados por business_id
+      const allProducts = await productsService.getWhere('business_id', '==', currentBusiness.id);
+      setProducts(allProducts);
     } catch (error) {
       console.error('Error al cargar productos:', error);
     }

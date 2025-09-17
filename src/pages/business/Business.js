@@ -23,6 +23,7 @@ import {
 } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
 import api from '../../config/axios';
+import { businessesService } from '../../services/firestoreService';
 
 function Business() {
   const { user, businesses, currentBusiness } = useApp();
@@ -66,20 +67,23 @@ function Business() {
 
   const handleSubmit = async () => {
     try {
+      const businessData = {
+        ...formData,
+        user_id: user.uid
+      };
+
       if (selectedBusiness) {
-        await api.put(`/businesses/${selectedBusiness.id}`, {
-          ...formData,
-          usuario_id: user.uid
-        });
+        // Actualizar negocio existente en Firestore
+        await businessesService.update(selectedBusiness.id, businessData);
       } else {
-        await api.post('/businesses', {
-          ...formData,
-          usuario_id: user.uid
-        });
+        // Crear nuevo negocio en Firestore
+        await businessesService.create(businessData);
       }
+      
       // Recargar la página para actualizar la lista de negocios
       window.location.reload();
     } catch (error) {
+      console.error('Error al guardar el negocio:', error);
       setError('Error al guardar el negocio');
     }
   };
@@ -87,9 +91,11 @@ function Business() {
   const handleDelete = async (business) => {
     if (window.confirm('¿Está seguro de eliminar este negocio?')) {
       try {
-        await api.delete(`/businesses/${business.id}`);
+        // Eliminar negocio de Firestore
+        await businessesService.delete(business.id);
         window.location.reload();
       } catch (error) {
+        console.error('Error al eliminar el negocio:', error);
         setError('Error al eliminar el negocio');
       }
     }

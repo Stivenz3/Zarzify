@@ -30,6 +30,7 @@ import { useDashboard } from '../../context/DashboardContext';
 import api from '../../config/axios';
 import DataTable from '../../components/common/DataTable';
 import CurrencyDisplay from '../../components/common/CurrencyDisplay';
+import { clientsService } from '../../services/firestoreService';
 
 function Clients() {
   const { currentBusiness } = useApp();
@@ -63,8 +64,9 @@ function Clients() {
     if (!currentBusiness) return;
     setLoading(true);
     try {
-      const response = await api.get(`/clientes/${currentBusiness.id}`);
-      setClients(response.data);
+      // Cargar clientes desde Firestore filtrados por business_id
+      const allClients = await clientsService.getWhere('business_id', '==', currentBusiness.id);
+      setClients(allClients);
     } catch (error) {
       console.error('Error al cargar clientes:', error);
       setError('Error al cargar los clientes');
@@ -143,7 +145,7 @@ function Clients() {
     try {
       const dataToSend = {
         ...clientData,
-        negocio_id: currentBusiness.id,
+        business_id: currentBusiness.id,
         credito_disponible: parseFloat(clientData.credito_disponible) || 0,
         // Limpiar espacios
         nombre: clientData.nombre.trim(),
@@ -153,9 +155,11 @@ function Clients() {
       };
 
       if (editingClient) {
-        await api.put(`/clientes/${editingClient.id}`, dataToSend);
+        // Actualizar cliente existente en Firestore
+        await clientsService.update(editingClient.id, dataToSend);
       } else {
-        await api.post('/clientes', dataToSend);
+        // Crear nuevo cliente en Firestore
+        await clientsService.create(dataToSend);
       }
 
       await loadClients();
@@ -194,13 +198,14 @@ function Clients() {
   const handleDelete = async (clientId) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar este cliente?')) {
       try {
-        await api.delete(`/clientes/${clientId}`);
+        // Eliminar cliente de Firestore
+        await clientsService.delete(clientId);
         await loadClients();
         handleCloseMenu();
         markDashboardForRefresh();
       } catch (error) {
         console.error('Error al eliminar cliente:', error);
-        alert(error.response?.data?.error || 'Error al eliminar el cliente');
+        alert('Error al eliminar el cliente');
       }
     }
   };

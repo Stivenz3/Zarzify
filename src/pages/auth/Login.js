@@ -31,6 +31,7 @@ import {
 } from '@mui/icons-material';
 import api from '../../config/axios';
 import logoZarzify from '../../logo zarzify.png';
+import { usersService } from '../../services/firestoreService';
 
 function TabPanel({ children, value, index }) {
   return (
@@ -69,16 +70,17 @@ function Login() {
   const saveUserToDatabase = async (user) => {
     try {
       const userData = {
-        id: user.uid,
         email: user.email,
         nombre: user.displayName || formData.nombre || user.email.split('@')[0],
         foto_url: user.photoURL || null,
+        created_at: new Date(),
       };
 
-      // Usar el backend local para guardar usuario
-      await api.post('/usuarios', userData);
+      // Guardar usuario en Firestore
+      await usersService.create(userData);
+      console.log('✅ Usuario guardado en Firestore');
     } catch (error) {
-      console.error('Error al guardar usuario en BD:', error);
+      console.error('Error al guardar usuario en Firestore:', error);
     }
   };
 
