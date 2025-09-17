@@ -60,6 +60,7 @@ const menuItems = [
   { text: 'Empleados', icon: <Work />, path: '/employees' },
   { text: 'Reportes', icon: <Assessment />, path: '/reports' },
   { text: '🧪 Test Firestore', icon: <SettingsIcon />, path: '/test-firestore' },
+  { text: '🔧 Simple Test', icon: <SettingsIcon />, path: '/simple-test' },
 ]
 
 function MainLayout({ children }) {
