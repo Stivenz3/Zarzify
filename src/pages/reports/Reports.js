@@ -160,8 +160,8 @@ function Reports() {
       const totalProducts = products.length;
       const totalSales = sales.length;
       const totalCustomers = clients.length;
-      const totalRevenue = sales.reduce((sum, sale) => sum + (sale.total || 0), 0);
-      const totalExpenses = expenses.reduce((sum, expense) => sum + (expense.monto || 0), 0);
+      const totalRevenue = sales.reduce((sum, sale) => sum + (parseFloat(sale.total) || 0), 0);
+      const totalExpenses = expenses.reduce((sum, expense) => sum + (parseFloat(expense.monto) || 0), 0);
       const inventoryValue = products.reduce((sum, product) => {
         return sum + ((product.precio_compra || 0) * (product.stock || 0));
       }, 0);
@@ -385,8 +385,8 @@ function Reports() {
               expensesService.getWhere('business_id', '==', currentBusiness.id)
             ]);
             
-            const totalRevenue = sales.reduce((sum, sale) => sum + (sale.total || 0), 0);
-            const totalExpenses = expenses.reduce((sum, expense) => sum + (expense.monto || 0), 0);
+            const totalRevenue = sales.reduce((sum, sale) => sum + (parseFloat(sale.total) || 0), 0);
+            const totalExpenses = expenses.reduce((sum, expense) => sum + (parseFloat(expense.monto) || 0), 0);
             
             currentData = {
               totalProducts: products.length,
