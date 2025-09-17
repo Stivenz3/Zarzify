@@ -12,6 +12,7 @@ import {
   Fade,
   Grow
 } from '@mui/material';
+import logoZarzify from '../../logo zarzify.png';
 import { 
   Inventory, 
   PointOfSale, 
@@ -129,21 +130,32 @@ function Landing() {
                 transition: 'all 0.8s ease-out'
               }}
             >
-              <Typography
-                variant="h1"
-                sx={{ 
-                  fontWeight: 900, 
-                  fontSize: { xs: '3rem', md: '4rem' },
-                  lineHeight: 1.1, 
-                  mb: 2,
-                  background: 'linear-gradient(45deg, #1976d2, #ec4899)',
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent'
-                }}
-              >
-                Zarzify
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                <img 
+                  src={logoZarzify} 
+                  alt="Zarzify Logo" 
+                  style={{ 
+                    width: '80px', 
+                    height: '80px',
+                    borderRadius: '50%',
+                    boxShadow: '0 8px 32px rgba(25,118,210,0.3)'
+                  }}
+                />
+                <Typography
+                  variant="h1"
+                  sx={{ 
+                    fontWeight: 900, 
+                    fontSize: { xs: '3rem', md: '4rem' },
+                    lineHeight: 1.1,
+                    background: 'linear-gradient(45deg, #1976d2, #ec4899)',
+                    backgroundClip: 'text',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent'
+                  }}
+                >
+                  Zarzify
+                </Typography>
+              </Box>
               
               <Typography
                 variant="h4"
@@ -337,20 +349,28 @@ function Landing() {
 
       {/* Features Section - Arreglado para que no desaparezcan */}
       <Container maxWidth="lg" sx={{ py: 8, position: 'relative', zIndex: 2 }}>
-        <Typography 
-          variant="h3" 
-          sx={{ 
-            fontWeight: 800, 
-            mb: 6, 
-            textAlign: 'center',
-            dataAnimate: true,
-            opacity: 0,
-            transform: 'translateY(30px)',
-            transition: 'all 0.8s ease-out'
-          }}
-        >
-          Todo lo que necesitas para tu negocio
-        </Typography>
+        <Box sx={{ textAlign: 'center', mb: 6 }}>
+          <Typography 
+            variant="h2" 
+            sx={{ 
+              fontWeight: 900, 
+              mb: 2,
+              background: 'linear-gradient(45deg, #1976d2, #ec4899)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}
+          >
+            Características
+          </Typography>
+          <Typography 
+            variant="h5" 
+            color="text.secondary"
+            sx={{ fontWeight: 400 }}
+          >
+            Todo lo que necesitas para tu negocio
+          </Typography>
+        </Box>
         
         <Grid container spacing={4} ref={staggerRef}>
           {[
@@ -416,7 +436,7 @@ function Landing() {
                   }
                 }}
               >
-                <Box sx={{ color: 'primary.main', mb: 2, fontSize: '2.5rem' }}>
+                <Box sx={{ color: 'primary.main', mb: 2, fontSize: '4rem' }}>
                   {feature.icon}
                 </Box>
                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.5 }}>
@@ -458,6 +478,18 @@ function Landing() {
             transition: 'all 0.8s ease-out'
           }}
         >
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+            <img 
+              src={logoZarzify} 
+              alt="Zarzify Logo" 
+              style={{ 
+                width: '60px', 
+                height: '60px',
+                borderRadius: '50%',
+                boxShadow: '0 4px 16px rgba(25,118,210,0.3)'
+              }}
+            />
+          </Box>
           <Typography variant="h4" sx={{ fontWeight: 800, mb: 2 }}>
             ¿Listo para transformar tu negocio?
           </Typography>
