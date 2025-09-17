@@ -200,12 +200,19 @@ function Sales() {
     try {
       // Obtener la venta desde Firestore
       const sale = await salesService.getById(saleId);
-      if (sale && sale.productos) {
+      if (sale && sale.productos && sale.productos.length > 0) {
         // Los productos ya están en el documento de la venta
         setSaleData(prev => ({
           ...prev,
           productos: sale.productos || []
         }));
+      } else {
+        // Si no hay productos, mostrar mensaje
+        setSaleData(prev => ({
+          ...prev,
+          productos: []
+        }));
+        console.log('No hay productos asociados a esta venta');
       }
     } catch (error) {
       console.error('Error al cargar productos de venta:', error);
