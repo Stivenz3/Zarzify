@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -15,18 +15,18 @@ import AuthLayout from './layouts/AuthLayout';
 import MainLayout from './layouts/MainLayout';
 import AuthThemeWrapper from './components/auth/AuthThemeWrapper';
 
-// Pages
-import Login from './pages/auth/Login';
-import Dashboard from './pages/Dashboard';
-import Products from './pages/products/Products';
-import Sales from './pages/sales/Sales';
-import Reports from './pages/reports/Reports';
-import Business from './pages/business/Business';
-import Clients from './pages/clients/Clients';
-import Expenses from './pages/expenses/Expenses';
-import Categories from './pages/categories/Categories';
-import Employees from './pages/employees/Employees';
-import Settings from './pages/settings/Settings';
+// Pages (code-splitting)
+const Login = lazy(() => import('./pages/auth/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Products = lazy(() => import('./pages/products/Products'));
+const Sales = lazy(() => import('./pages/sales/Sales'));
+const Reports = lazy(() => import('./pages/reports/Reports'));
+const Business = lazy(() => import('./pages/business/Business'));
+const Clients = lazy(() => import('./pages/clients/Clients'));
+const Expenses = lazy(() => import('./pages/expenses/Expenses'));
+const Categories = lazy(() => import('./pages/categories/Categories'));
+const Employees = lazy(() => import('./pages/employees/Employees'));
+const Settings = lazy(() => import('./pages/settings/Settings'));
 
 // Componente wrapper para gestionar el tema dinámico
 function AppContent() {
@@ -78,80 +78,84 @@ function AppRoutes({ user }) {
       {!user ? (
         // Usuario no autenticado - Mostrar solo Login (siempre en modo claro)
         <AuthThemeWrapper>
-          <Routes>
-            <Route path="/login" element={
-              <AuthLayout>
-                <Login />
-              </AuthLayout>
-            } />
-            <Route path="*" element={<Navigate to="/login" replace />} />
-          </Routes>
+          <Suspense fallback={<div />}> 
+            <Routes>
+              <Route path="/login" element={
+                <AuthLayout>
+                  <Login />
+                </AuthLayout>
+              } />
+              <Route path="*" element={<Navigate to="/login" replace />} />
+            </Routes>
+          </Suspense>
         </AuthThemeWrapper>
       ) : (
         // Usuario autenticado - Mostrar App
         <DashboardProvider>
-          <Routes>
-            {/* Redirect root to dashboard */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/login" element={<Navigate to="/dashboard" replace />} />
-            
-            {/* Business */}
-            <Route path="/business" element={
-              <MainLayout>
-                <Business />
-              </MainLayout>
-            } />
-            
-            {/* Main App Routes */}
-            <Route path="/dashboard" element={
-              <MainLayout>
-                <Dashboard />
-              </MainLayout>
-            } />
-            <Route path="/products" element={
-              <MainLayout>
-                <Products />
-              </MainLayout>
-            } />
-            <Route path="/clients" element={
-              <MainLayout>
-                <Clients />
-              </MainLayout>
-            } />
-            <Route path="/sales" element={
-              <MainLayout>
-                <Sales />
-              </MainLayout>
-            } />
-            <Route path="/expenses" element={
-              <MainLayout>
-                <Expenses />
-              </MainLayout>
-            } />
-            <Route path="/employees" element={
-              <MainLayout>
-                <Employees />
-              </MainLayout>
-            } />
-            <Route path="/reports" element={
-              <MainLayout>
-                <Reports />
-              </MainLayout>
-            } />
-            <Route path="/categories" element={
-              <MainLayout>
-                <Categories />
-              </MainLayout>
-            } />
-            <Route path="/settings" element={
-              <MainLayout>
-                <Settings />
-              </MainLayout>
-            } />
-            
-            {/* Catch all other routes */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
+          <Suspense fallback={<div />}> 
+            <Routes>
+              {/* Redirect root to dashboard */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+              
+              {/* Business */}
+              <Route path="/business" element={
+                <MainLayout>
+                  <Business />
+                </MainLayout>
+              } />
+              
+              {/* Main App Routes */}
+              <Route path="/dashboard" element={
+                <MainLayout>
+                  <Dashboard />
+                </MainLayout>
+              } />
+              <Route path="/products" element={
+                <MainLayout>
+                  <Products />
+                </MainLayout>
+              } />
+              <Route path="/clients" element={
+                <MainLayout>
+                  <Clients />
+                </MainLayout>
+              } />
+              <Route path="/sales" element={
+                <MainLayout>
+                  <Sales />
+                </MainLayout>
+              } />
+              <Route path="/expenses" element={
+                <MainLayout>
+                  <Expenses />
+                </MainLayout>
+              } />
+              <Route path="/employees" element={
+                <MainLayout>
+                  <Employees />
+                </MainLayout>
+              } />
+              <Route path="/reports" element={
+                <MainLayout>
+                  <Reports />
+                </MainLayout>
+              } />
+              <Route path="/categories" element={
+                <MainLayout>
+                  <Categories />
+                </MainLayout>
+              } />
+              <Route path="/settings" element={
+                <MainLayout>
+                  <Settings />
+                </MainLayout>
+              } />
+              
+              {/* Catch all other routes */}
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </Suspense>
         </DashboardProvider>
       )}
     </Router>
