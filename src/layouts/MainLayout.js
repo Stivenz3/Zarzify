@@ -160,15 +160,34 @@ function MainLayout({ children }) {
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: sidebarCollapsed ? 0 : 2 }}>
-          <img 
-            src={logoZarzify} 
-            alt="Zarzify Logo" 
-            style={{ 
-              width: sidebarCollapsed ? '32px' : '40px', 
-              height: sidebarCollapsed ? '32px' : '40px',
-              transition: 'all 0.3s ease-in-out'
+          <Box
+            onClick={() => navigate('/')}
+            sx={{
+              cursor: 'pointer',
+              borderRadius: '50%',
+              p: 0.5,
+              transition: 'all 0.3s ease-in-out',
+              '&:hover': {
+                transform: 'scale(1.1) rotate(5deg)',
+                boxShadow: '0 4px 12px rgba(25,118,210,0.3)',
+                backgroundColor: 'rgba(25,118,210,0.1)'
+              },
+              '&:active': {
+                transform: 'scale(0.95)'
+              }
             }}
-          />
+          >
+            <img 
+              src={logoZarzify} 
+              alt="Zarzify Logo" 
+              style={{ 
+                width: sidebarCollapsed ? '32px' : '40px', 
+                height: sidebarCollapsed ? '32px' : '40px',
+                transition: 'all 0.3s ease-in-out',
+                borderRadius: '50%'
+              }}
+            />
+          </Box>
           {!sidebarCollapsed && (
             <Typography 
               variant="h6" 

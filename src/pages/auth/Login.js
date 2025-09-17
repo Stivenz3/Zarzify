@@ -668,8 +668,27 @@ function Login() {
           </TabPanel>
         </Box>
 
+        {/* Botón para ir al landing */}
+        <Box sx={{ mt: { xs: 1, sm: 1.5 }, flexShrink: 0, textAlign: 'center' }}>
+          <Button
+            variant="text"
+            onClick={() => navigate('/')}
+            sx={{
+              textTransform: 'none',
+              fontSize: { xs: '0.75rem', sm: '0.8rem' },
+              color: 'text.secondary',
+              '&:hover': {
+                color: 'primary.main',
+                backgroundColor: 'transparent'
+              }
+            }}
+          >
+            ← Volver al inicio
+          </Button>
+        </Box>
+
         {/* Google Button - FOOTER FIJO Y COMPACTO */}
-        <Box sx={{ mt: { xs: 1, sm: 1.5 }, flexShrink: 0 }}>
+        <Box sx={{ mt: { xs: 0.5, sm: 1 }, flexShrink: 0 }}>
           <Divider sx={{ mb: { xs: 1, sm: 1.5 } }}>
             <Typography 
               variant="caption" 
