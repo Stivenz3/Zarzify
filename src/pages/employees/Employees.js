@@ -51,6 +51,7 @@ import api from '../../config/axios';
 import getImageUrl from '../../utils/imageUtils';
 import DataTable from '../../components/common/DataTable';
 import CurrencyDisplay from '../../components/common/CurrencyDisplay';
+import { employeesService } from '../../services/firestoreService';
 
 function Employees() {
   const { currentBusiness } = useApp();
@@ -92,8 +93,9 @@ function Employees() {
     if (!currentBusiness) return;
     setLoading(true);
     try {
-      const response = await api.get(`/empleados/${currentBusiness.id}`);
-      setEmployees(response.data);
+      // Cargar empleados desde Firestore filtrados por business_id
+      const allEmployees = await employeesService.getWhere('business_id', '==', currentBusiness.id);
+      setEmployees(allEmployees);
     } catch (error) {
       console.error('Error al cargar empleados:', error);
       setError('Error al cargar los empleados');
@@ -241,16 +243,18 @@ function Employees() {
         fecha_contratacion: employeeData.fecha_contratacion ? 
           employeeData.fecha_contratacion.toISOString().split('T')[0] : null,
         imagen_url: imageUrl || null,
-        negocio_id: currentBusiness.id
+        business_id: currentBusiness.id
       };
 
       // Removemos imagen_file del dataToSend ya que no debe enviarse al backend
       delete dataToSend.imagen_file;
 
       if (editingEmployee) {
-        await api.put(`/empleados/${editingEmployee.id}`, dataToSend);
+        // Actualizar empleado existente en Firestore
+        await employeesService.update(editingEmployee.id, dataToSend);
       } else {
-        await api.post('/empleados', dataToSend);
+        // Crear nuevo empleado en Firestore
+        await employeesService.create(dataToSend);
       }
 
       await loadEmployees();
@@ -311,7 +315,8 @@ function Employees() {
   const handleDelete = async (employeeId) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar este empleado?')) {
       try {
-        await api.delete(`/empleados/${employeeId}`);
+        // Eliminar empleado de Firestore
+        await employeesService.delete(employeeId);
         await loadEmployees();
       } catch (error) {
         console.error('Error al eliminar empleado:', error);

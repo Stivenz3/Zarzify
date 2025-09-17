@@ -34,6 +34,7 @@ import { useDashboard } from '../../context/DashboardContext';
 import api from '../../config/axios';
 import DataTable from '../../components/common/DataTable';
 import CurrencyDisplay from '../../components/common/CurrencyDisplay';
+import { expensesService, employeesService } from '../../services/firestoreService';
 
 function Expenses() {
   const { currentBusiness } = useApp();
@@ -85,8 +86,9 @@ function Expenses() {
     if (!currentBusiness) return;
     setLoading(true);
     try {
-      const response = await api.get(`/egresos/${currentBusiness.id}`);
-      setExpenses(response.data);
+      // Cargar gastos desde Firestore filtrados por business_id
+      const allExpenses = await expensesService.getWhere('business_id', '==', currentBusiness.id);
+      setExpenses(allExpenses);
     } catch (error) {
       console.error('Error al cargar egresos:', error);
       setError('Error al cargar los egresos');
@@ -98,8 +100,9 @@ function Expenses() {
   const loadEmployees = async () => {
     if (!currentBusiness) return;
     try {
-      const response = await api.get(`/empleados/${currentBusiness.id}`);
-      setEmployees(response.data);
+      // Cargar empleados desde Firestore filtrados por business_id
+      const allEmployees = await employeesService.getWhere('business_id', '==', currentBusiness.id);
+      setEmployees(allEmployees);
     } catch (error) {
       console.error('Error al cargar empleados:', error);
     }
@@ -167,16 +170,18 @@ function Expenses() {
     try {
       const dataToSend = {
         ...expenseData,
-        negocio_id: currentBusiness.id,
+        business_id: currentBusiness.id,
         monto: parseFloat(expenseData.monto),
         empleado_id: expenseData.empleado_id || null,
       };
 
       if (editingExpense) {
-        await api.put(`/egresos/${editingExpense.id}`, dataToSend);
+        // Actualizar gasto existente en Firestore
+        await expensesService.update(editingExpense.id, dataToSend);
         markDashboardForRefresh('egreso actualizado');
       } else {
-        await api.post('/egresos', dataToSend);
+        // Crear nuevo gasto en Firestore
+        await expensesService.create(dataToSend);
         markDashboardForRefresh('nuevo egreso registrado');
       }
 
@@ -245,13 +250,14 @@ function Expenses() {
   const handleDelete = async (expenseId) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar este egreso?')) {
       try {
-        await api.delete(`/egresos/${expenseId}`);
+        // Eliminar gasto de Firestore
+        await expensesService.delete(expenseId);
         markDashboardForRefresh('egreso eliminado');
         await loadExpenses();
         handleCloseMenu();
       } catch (error) {
         console.error('Error al eliminar egreso:', error);
-        alert(error.response?.data?.error || 'Error al eliminar el egreso');
+        alert('Error al eliminar el egreso');
       }
     }
   };
