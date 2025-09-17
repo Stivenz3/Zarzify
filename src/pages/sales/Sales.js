@@ -419,17 +419,18 @@ function Sales() {
       console.log('💰 Total calculado:', total);
       
       const salePayload = {
-        negocio_id: currentBusiness.id,
+        business_id: currentBusiness.id, // Corregido: usar business_id en lugar de negocio_id
         cliente_id: saleData.cliente_id || null,
         metodo_pago: saleData.metodo_pago,
         descuento: saleData.descuento_total || 0,
         total: total,
         productos: saleData.productos,
-        fecha_venta: saleData.fecha_venta.toISOString().split('T')[0], // Solo fecha, sin hora
+        fecha_venta: saleData.fecha_venta, // Guardar como Date object para Firestore
         estado: saleData.estado,
       };
 
       console.log('📤 Enviando datos de venta:', salePayload); // Debug
+      console.log('📦 Productos en salePayload:', salePayload.productos); // Debug productos
 
       if (editingSale) {
         console.log('✏️ Actualizando venta existente:', editingSale.id);
@@ -440,6 +441,13 @@ function Sales() {
       }
 
       console.log('✅ Venta guardada en Firestore');
+      
+      // Verificar que la venta se guardó correctamente
+      if (!editingSale) {
+        console.log('🔍 Verificando venta recién creada...');
+        // Aquí podríamos hacer una consulta para verificar, pero por ahora solo log
+      }
+      
       console.log('🔄 Recargando ventas...');
       await loadSales();
       console.log('📊 Actualizando dashboard...');
