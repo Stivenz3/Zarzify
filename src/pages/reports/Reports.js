@@ -54,7 +54,14 @@ import {
 } from 'recharts';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useApp } from '../../context/AppContext';
-import api from '../../config/axios';
+import { 
+  productsService, 
+  salesService, 
+  clientsService, 
+  expensesService,
+  employeesService,
+  categoriesService
+} from '../../services/firestoreService';
 import CurrencyDisplay from '../../components/common/CurrencyDisplay';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -141,12 +148,42 @@ function Reports() {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await api.get(`/dashboard/${currentBusiness.id}`);
-      setDashboardData(response.data);
+      // Obtener datos de Firestore
+      const [products, sales, clients, expenses] = await Promise.all([
+        productsService.getWhere('business_id', '==', currentBusiness.id),
+        salesService.getWhere('business_id', '==', currentBusiness.id),
+        clientsService.getWhere('business_id', '==', currentBusiness.id),
+        expensesService.getWhere('business_id', '==', currentBusiness.id)
+      ]);
+
+      // Calcular estadísticas
+      const totalProducts = products.length;
+      const totalSales = sales.length;
+      const totalCustomers = clients.length;
+      const totalRevenue = sales.reduce((sum, sale) => sum + (sale.total || 0), 0);
+      const totalExpenses = expenses.reduce((sum, expense) => sum + (expense.monto || 0), 0);
+      const inventoryValue = products.reduce((sum, product) => {
+        return sum + ((product.precio_compra || 0) * (product.stock || 0));
+      }, 0);
+      const netProfit = totalRevenue - totalExpenses;
+      const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
       
-      // También cargar productos con stock bajo
-      const lowStockResponse = await api.get(`/productos/${currentBusiness.id}/low-stock`);
-      setLowStockProducts(lowStockResponse.data);
+      setDashboardData({
+        totalProducts,
+        totalSales,
+        totalCustomers,
+        totalRevenue,
+        totalExpenses,
+        inventoryValue,
+        netProfit,
+        profitMargin
+      });
+      
+      // Productos con stock bajo
+      const lowStockProducts = products.filter(product => 
+        (product.stock || 0) <= (product.stock_minimo || 0)
+      );
+      setLowStockProducts(lowStockProducts);
     } catch (error) {
       throw error;
     }
@@ -154,19 +191,18 @@ function Reports() {
 
   const fetchSalesData = async () => {
     try {
-      const response = await api.get(`/ventas/${currentBusiness.id}`);
-      const sales = response.data;
+      const sales = await salesService.getWhere('business_id', '==', currentBusiness.id);
       
       // Filtrar por rango de fechas
       const filteredSales = sales.filter(sale => {
-        const saleDate = new Date(sale.fecha_venta || sale.created_at);
+        const saleDate = sale.fecha?.toDate ? sale.fecha.toDate() : new Date(sale.fecha);
         return saleDate >= startDate && saleDate <= endDate;
       });
       
       // Procesar datos para gráfica lineal por mes
       const salesByMonth = {};
       filteredSales.forEach(sale => {
-        const date = new Date(sale.fecha_venta || sale.created_at);
+        const date = sale.fecha?.toDate ? sale.fecha.toDate() : new Date(sale.fecha);
         const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
         const monthName = date.toLocaleDateString('es-ES', { year: 'numeric', month: 'short' });
         
@@ -189,13 +225,10 @@ function Reports() {
 
   const fetchInventoryData = async () => {
     try {
-      const [productsResponse, categoriesResponse] = await Promise.all([
-        api.get(`/productos/${currentBusiness.id}`),
-        api.get(`/categorias/${currentBusiness.id}`)
+      const [products, categories] = await Promise.all([
+        productsService.getWhere('business_id', '==', currentBusiness.id),
+        categoriesService.getWhere('business_id', '==', currentBusiness.id)
       ]);
-      
-      const products = productsResponse.data;
-      const categories = categoriesResponse.data;
       
       // Procesar datos por categorías
       const productsByCategory = {};
@@ -235,8 +268,8 @@ function Reports() {
 
   const fetchCustomersData = async () => {
     try {
-      const response = await api.get(`/clientes/${currentBusiness.id}`);
-      setClientsData(response.data);
+      const clients = await clientsService.getWhere('business_id', '==', currentBusiness.id);
+      setClientsData(clients);
     } catch (error) {
       throw error;
     }
@@ -244,12 +277,11 @@ function Reports() {
 
   const fetchExpensesData = async () => {
     try {
-      const response = await api.get(`/egresos/${currentBusiness.id}`);
-      const expenses = response.data;
+      const expenses = await expensesService.getWhere('business_id', '==', currentBusiness.id);
       
       // Filtrar por rango de fechas
       const filteredExpenses = expenses.filter(expense => {
-        const expenseDate = new Date(expense.fecha || expense.created_at);
+        const expenseDate = expense.fecha?.toDate ? expense.fecha.toDate() : new Date(expense.fecha);
         return expenseDate >= startDate && expenseDate <= endDate;
       });
       
@@ -305,10 +337,9 @@ function Reports() {
       switch (reportType) {
         case 'sales':
           try {
-            const response = await api.get(`/ventas/${currentBusiness.id}`);
-            const allSales = response.data;
+            const allSales = await salesService.getWhere('business_id', '==', currentBusiness.id);
             currentData = allSales.filter(sale => {
-              const saleDate = new Date(sale.fecha_venta || sale.created_at);
+              const saleDate = sale.fecha?.toDate ? sale.fecha.toDate() : new Date(sale.fecha);
               return saleDate >= startDate && saleDate <= endDate;
             });
           } catch (error) {
@@ -318,8 +349,7 @@ function Reports() {
           break;
         case 'inventory':
           try {
-            const response = await api.get(`/productos/${currentBusiness.id}`);
-            currentData = response.data;
+            currentData = await productsService.getWhere('business_id', '==', currentBusiness.id);
           } catch (error) {
             console.error('Error cargando datos de inventario:', error);
             currentData = productsData; // Fallback a datos existentes
@@ -327,8 +357,7 @@ function Reports() {
           break;
         case 'customers':
           try {
-            const response = await api.get(`/clientes/${currentBusiness.id}`);
-            currentData = response.data;
+            currentData = await clientsService.getWhere('business_id', '==', currentBusiness.id);
           } catch (error) {
             console.error('Error cargando datos de clientes:', error);
             currentData = clientsData; // Fallback a datos existentes
@@ -336,10 +365,9 @@ function Reports() {
           break;
         case 'expenses':
           try {
-            const response = await api.get(`/egresos/${currentBusiness.id}`);
-            const allExpenses = response.data;
+            const allExpenses = await expensesService.getWhere('business_id', '==', currentBusiness.id);
             currentData = allExpenses.filter(expense => {
-              const expenseDate = new Date(expense.fecha || expense.created_at);
+              const expenseDate = expense.fecha?.toDate ? expense.fecha.toDate() : new Date(expense.fecha);
               return expenseDate >= startDate && expenseDate <= endDate;
             }).slice(0, 50); // Limitar para PDF
           } catch (error) {
@@ -349,8 +377,25 @@ function Reports() {
           break;
         case 'dashboard':
           try {
-            const response = await api.get(`/dashboard/${currentBusiness.id}`);
-            currentData = response.data;
+            // Calcular datos del dashboard
+            const [products, sales, clients, expenses] = await Promise.all([
+              productsService.getWhere('business_id', '==', currentBusiness.id),
+              salesService.getWhere('business_id', '==', currentBusiness.id),
+              clientsService.getWhere('business_id', '==', currentBusiness.id),
+              expensesService.getWhere('business_id', '==', currentBusiness.id)
+            ]);
+            
+            const totalRevenue = sales.reduce((sum, sale) => sum + (sale.total || 0), 0);
+            const totalExpenses = expenses.reduce((sum, expense) => sum + (expense.monto || 0), 0);
+            
+            currentData = {
+              totalProducts: products.length,
+              totalSales: sales.length,
+              totalCustomers: clients.length,
+              totalRevenue,
+              totalExpenses,
+              netProfit: totalRevenue - totalExpenses
+            };
           } catch (error) {
             console.error('Error cargando datos del dashboard:', error);
             currentData = dashboardData; // Fallback a datos existentes
@@ -362,8 +407,10 @@ function Reports() {
 
       // Cargar productos con stock bajo
       try {
-        const stockResponse = await api.get(`/productos/${currentBusiness.id}/low-stock`);
-        lowStock = stockResponse.data;
+        const products = await productsService.getWhere('business_id', '==', currentBusiness.id);
+        lowStock = products.filter(product => 
+          (product.stock || 0) <= (product.stock_minimo || 0)
+        );
       } catch (error) {
         console.log('No se pudieron cargar productos con stock bajo');
         lowStock = lowStockProducts; // Fallback a datos existentes

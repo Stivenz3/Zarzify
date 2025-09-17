@@ -25,7 +25,7 @@ import {
 } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
 import { getCurrencyOptions, formatCurrency } from '../../utils/currency';
-import api from '../../config/axios';
+import { businessesService } from '../../services/firestoreService';
 
 function Settings() {
   const { currentBusiness, darkMode, toggleDarkMode, loadBusinesses, refreshCurrentBusiness, setCurrentBusiness } = useApp();
@@ -54,7 +54,7 @@ function Settings() {
     setSuccess('');
 
     try {
-      await api.put(`/businesses/${currentBusiness.id}`, {
+      await businessesService.update(currentBusiness.id, {
         nombre: currentBusiness.nombre,
         direccion: currentBusiness.direccion,
         telefono: currentBusiness.telefono,

@@ -166,7 +166,10 @@ async function migrateData() {
     for (const expense of expensesResult.rows) {
       const expenseData = {
         concepto: expense.concepto || '',
+        descripcion: expense.descripcion || '',
         monto: expense.monto || 0,
+        categoria: expense.categoria || 'otros',
+        metodo_pago: expense.metodo_pago || 'efectivo',
         fecha: expense.fecha || new Date(),
         empleado_id: expense.empleado_id || null,
         business_id: expense.negocio_id,
