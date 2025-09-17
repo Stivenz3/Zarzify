@@ -33,9 +33,14 @@ import {
 } from 'chart.js';
 import { useApp } from '../context/AppContext';
 import { useDashboard } from '../context/DashboardContext';
-import api from '../config/axios';
 import { useTheme } from '@mui/material/styles';
 import CurrencyDisplay from '../components/common/CurrencyDisplay';
+import { 
+  productsService, 
+  salesService, 
+  clientsService, 
+  expensesService 
+} from '../services/firestoreService';
 
 // Registrar los componentes necesarios para Chart.js
 ChartJS.register(
@@ -113,8 +118,37 @@ function Dashboard() {
     setLoading(true);
     setError('');
     try {
-      const response = await api.get(`/dashboard/${currentBusiness.id}?period=${chartPeriod}`);
-      const data = response.data;
+      // Obtener datos de Firestore
+      const [products, sales, clients, expenses] = await Promise.all([
+        productsService.getWhere('business_id', '==', currentBusiness.id),
+        salesService.getWhere('business_id', '==', currentBusiness.id),
+        clientsService.getWhere('business_id', '==', currentBusiness.id),
+        expensesService.getWhere('business_id', '==', currentBusiness.id)
+      ]);
+
+      // Calcular estadísticas
+      const totalProducts = products.length;
+      const totalSales = sales.length;
+      const totalCustomers = clients.length;
+      const totalRevenue = sales.reduce((sum, sale) => sum + (sale.total || 0), 0);
+      const totalExpenses = expenses.reduce((sum, expense) => sum + (expense.monto || 0), 0);
+      const inventoryValue = products.reduce((sum, product) => {
+        return sum + ((product.precio_compra || 0) * (product.stock || 0));
+      }, 0);
+      const netProfit = totalRevenue - totalExpenses;
+      const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+      
+      const data = {
+        totalProducts,
+        totalSales,
+        totalCustomers,
+        totalRevenue,
+        totalExpenses,
+        inventoryValue,
+        netProfit,
+        profitMargin,
+        monthlyStats: [] // Se calculará abajo
+      };
       
       setStats({
         totalProducts: data.totalProducts,
@@ -147,11 +181,26 @@ function Dashboard() {
         }
         
         const weeklyData = last7Days.map(dayName => {
-          const dayData = data.monthlyStats.find(stat => stat.mes === dayName);
+          const dayStart = new Date();
+          dayStart.setDate(dayStart.getDate() - (6 - last7Days.indexOf(dayName)));
+          dayStart.setHours(0, 0, 0, 0);
+          const dayEnd = new Date(dayStart);
+          dayEnd.setHours(23, 59, 59, 999);
+          
+          const daySales = sales.filter(sale => {
+            const saleDate = sale.fecha?.toDate ? sale.fecha.toDate() : new Date(sale.fecha);
+            return saleDate >= dayStart && saleDate <= dayEnd;
+          });
+          
+          const dayExpenses = expenses.filter(expense => {
+            const expenseDate = expense.fecha?.toDate ? expense.fecha.toDate() : new Date(expense.fecha);
+            return expenseDate >= dayStart && expenseDate <= dayEnd;
+          });
+          
           return {
             mes: dayMapping[dayName] || dayName,
-            ingresos: dayData ? parseFloat(dayData.ingresos || 0) : 0,
-            egresos: dayData ? parseFloat(dayData.egresos || 0) : 0
+            ingresos: daySales.reduce((sum, sale) => sum + (sale.total || 0), 0),
+            egresos: dayExpenses.reduce((sum, expense) => sum + (expense.monto || 0), 0)
           };
         });
         labels = weeklyData.map(stat => stat.mes);
@@ -166,11 +215,23 @@ function Dashboard() {
         }
         
         const yearlyData = years.map(year => {
-          const yearData = data.monthlyStats.find(stat => stat.mes === year);
+          const yearStart = new Date(parseInt(year), 0, 1);
+          const yearEnd = new Date(parseInt(year), 11, 31, 23, 59, 59, 999);
+          
+          const yearSales = sales.filter(sale => {
+            const saleDate = sale.fecha?.toDate ? sale.fecha.toDate() : new Date(sale.fecha);
+            return saleDate >= yearStart && saleDate <= yearEnd;
+          });
+          
+          const yearExpenses = expenses.filter(expense => {
+            const expenseDate = expense.fecha?.toDate ? expense.fecha.toDate() : new Date(expense.fecha);
+            return expenseDate >= yearStart && expenseDate <= yearEnd;
+          });
+          
           return {
             mes: year,
-            ingresos: yearData ? parseFloat(yearData.ingresos || 0) : 0,
-            egresos: yearData ? parseFloat(yearData.egresos || 0) : 0
+            ingresos: yearSales.reduce((sum, sale) => sum + (sale.total || 0), 0),
+            egresos: yearExpenses.reduce((sum, expense) => sum + (expense.monto || 0), 0)
           };
         });
         
@@ -178,10 +239,34 @@ function Dashboard() {
         ingresos = yearlyData.map(stat => stat.ingresos);
         egresos = yearlyData.map(stat => stat.egresos);
       } else {
-        // Para vista mensual
-        labels = data.monthlyStats.map(stat => stat.mes);
-        ingresos = data.monthlyStats.map(stat => parseFloat(stat.ingresos || 0));
-        egresos = data.monthlyStats.map(stat => parseFloat(stat.egresos || 0));
+        // Vista mensual por defecto - últimos 12 meses
+        const monthlyData = [];
+        for (let i = 11; i >= 0; i--) {
+          const date = new Date();
+          date.setMonth(date.getMonth() - i);
+          const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+          const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
+          
+          const monthSales = sales.filter(sale => {
+            const saleDate = sale.fecha?.toDate ? sale.fecha.toDate() : new Date(sale.fecha);
+            return saleDate >= monthStart && saleDate <= monthEnd;
+          });
+          
+          const monthExpenses = expenses.filter(expense => {
+            const expenseDate = expense.fecha?.toDate ? expense.fecha.toDate() : new Date(expense.fecha);
+            return expenseDate >= monthStart && expenseDate <= monthEnd;
+          });
+          
+          monthlyData.push({
+            mes: date.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' }),
+            ingresos: monthSales.reduce((sum, sale) => sum + (sale.total || 0), 0),
+            egresos: monthExpenses.reduce((sum, expense) => sum + (expense.monto || 0), 0)
+          });
+        }
+        
+        labels = monthlyData.map(stat => stat.mes);
+        ingresos = monthlyData.map(stat => stat.ingresos);
+        egresos = monthlyData.map(stat => stat.egresos);
       }
 
       setChartsData({

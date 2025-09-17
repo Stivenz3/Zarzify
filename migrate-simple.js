@@ -51,12 +51,13 @@ async function migrateData() {
     console.log(`📊 Encontrados ${usersResult.rows.length} usuarios`);
     
     for (const user of usersResult.rows) {
-      await db.collection('users').doc(user.id).set({
-        email: user.email,
-        nombre: user.nombre,
-        foto_url: user.foto_url,
+      const userData = {
+        email: user.email || '',
+        nombre: user.nombre || '',
+        foto_url: user.foto_url || null,
         created_at: user.created_at || new Date()
-      });
+      };
+      await db.collection('users').doc(user.id).set(userData, { merge: true });
       console.log(`✅ Usuario migrado: ${user.nombre}`);
     }
 
@@ -66,13 +67,14 @@ async function migrateData() {
     console.log(`📊 Encontrados ${businessesResult.rows.length} negocios`);
     
     for (const business of businessesResult.rows) {
-      await db.collection('businesses').doc(business.id).set({
-        nombre: business.nombre,
-        direccion: business.direccion,
-        telefono: business.telefono,
+      const businessData = {
+        nombre: business.nombre || '',
+        direccion: business.direccion || '',
+        telefono: business.telefono || '',
         user_id: business.usuario_id,
         created_at: business.created_at || new Date()
-      });
+      };
+      await db.collection('businesses').doc(business.id).set(businessData, { merge: true });
       console.log(`✅ Negocio migrado: ${business.nombre}`);
     }
 
@@ -82,13 +84,14 @@ async function migrateData() {
     console.log(`📊 Encontrados ${categoriesResult.rows.length} categorías`);
     
     for (const category of categoriesResult.rows) {
-      await db.collection('categories').doc(category.id).set({
-        nombre: category.nombre,
-        descripcion: category.descripcion,
-        imagen_url: category.imagen_url,
+      const categoryData = {
+        nombre: category.nombre || '',
+        descripcion: category.descripcion || '',
+        imagen_url: category.imagen_url || null,
         business_id: category.negocio_id,
         created_at: category.created_at || new Date()
-      });
+      };
+      await db.collection('categories').doc(category.id).set(categoryData, { merge: true });
       console.log(`✅ Categoría migrada: ${category.nombre}`);
     }
 
@@ -98,20 +101,21 @@ async function migrateData() {
     console.log(`📊 Encontrados ${productsResult.rows.length} productos`);
     
     for (const product of productsResult.rows) {
-      await db.collection('products').doc(product.id).set({
-        nombre: product.nombre,
-        descripcion: product.descripcion,
-        precio_venta: product.precio_venta,
-        precio_compra: product.precio_compra,
-        stock: product.stock,
-        categoria_id: product.categoria_id,
-        codigo_barras: product.codigo_barras,
-        impuesto: product.impuesto,
-        stock_minimo: product.stock_minimo,
-        imagen_url: product.imagen_url,
+      const productData = {
+        nombre: product.nombre || '',
+        descripcion: product.descripcion || '',
+        precio_venta: product.precio_venta || 0,
+        precio_compra: product.precio_compra || 0,
+        stock: product.stock || 0,
+        categoria_id: product.categoria_id || null,
+        codigo_barras: product.codigo_barras || null,
+        impuesto: product.impuesto || 0,
+        stock_minimo: product.stock_minimo || 0,
+        imagen_url: product.imagen_url || null,
         business_id: product.negocio_id,
         created_at: product.created_at || new Date()
-      });
+      };
+      await db.collection('products').doc(product.id).set(productData, { merge: true });
       console.log(`✅ Producto migrado: ${product.nombre}`);
     }
 
@@ -121,15 +125,16 @@ async function migrateData() {
     console.log(`📊 Encontrados ${clientsResult.rows.length} clientes`);
     
     for (const client of clientsResult.rows) {
-      await db.collection('clients').doc(client.id).set({
-        nombre: client.nombre,
-        telefono: client.telefono,
-        direccion: client.direccion,
-        email: client.email,
-        credito_disponible: client.credito_disponible,
+      const clientData = {
+        nombre: client.nombre || '',
+        telefono: client.telefono || '',
+        direccion: client.direccion || '',
+        email: client.email || '',
+        credito_disponible: client.credito_disponible || 0,
         business_id: client.negocio_id,
         created_at: client.created_at || new Date()
-      });
+      };
+      await db.collection('clients').doc(client.id).set(clientData, { merge: true });
       console.log(`✅ Cliente migrado: ${client.nombre}`);
     }
 
@@ -139,14 +144,17 @@ async function migrateData() {
     console.log(`📊 Encontradas ${salesResult.rows.length} ventas`);
     
     for (const sale of salesResult.rows) {
-      await db.collection('sales').doc(sale.id).set({
-        cliente_id: sale.cliente_id,
-        total: sale.total,
-        fecha: sale.fecha,
-        estado: sale.estado,
+      const saleData = {
+        cliente_id: sale.cliente_id || null,
+        total: sale.total || 0,
+        fecha: sale.fecha || new Date(),
+        estado: sale.estado || 'completada',
         business_id: sale.negocio_id,
         created_at: sale.created_at || new Date()
-      });
+      };
+      
+      // Usar merge para evitar duplicados
+      await db.collection('sales').doc(sale.id).set(saleData, { merge: true });
       console.log(`✅ Venta migrada: ${sale.id}`);
     }
 
@@ -156,14 +164,15 @@ async function migrateData() {
     console.log(`📊 Encontrados ${expensesResult.rows.length} gastos`);
     
     for (const expense of expensesResult.rows) {
-      await db.collection('expenses').doc(expense.id).set({
-        concepto: expense.concepto,
-        monto: expense.monto,
-        fecha: expense.fecha,
-        empleado_id: expense.empleado_id,
+      const expenseData = {
+        concepto: expense.concepto || '',
+        monto: expense.monto || 0,
+        fecha: expense.fecha || new Date(),
+        empleado_id: expense.empleado_id || null,
         business_id: expense.negocio_id,
         created_at: expense.created_at || new Date()
-      });
+      };
+      await db.collection('expenses').doc(expense.id).set(expenseData, { merge: true });
       console.log(`✅ Gasto migrado: ${expense.concepto}`);
     }
 
@@ -173,18 +182,19 @@ async function migrateData() {
     console.log(`📊 Encontrados ${employeesResult.rows.length} empleados`);
     
     for (const employee of employeesResult.rows) {
-      await db.collection('employees').doc(employee.id).set({
-        nombre: employee.nombre,
-        telefono: employee.telefono,
-        email: employee.email,
-        direccion: employee.direccion,
-        cargo: employee.cargo,
-        salario: employee.salario,
-        fecha_contratacion: employee.fecha_contratacion,
-        imagen_url: employee.imagen_url,
+      const employeeData = {
+        nombre: employee.nombre || '',
+        telefono: employee.telefono || '',
+        email: employee.email || '',
+        direccion: employee.direccion || '',
+        cargo: employee.cargo || '',
+        salario: employee.salario || 0,
+        fecha_contratacion: employee.fecha_contratacion || null,
+        imagen_url: employee.imagen_url || null,
         business_id: employee.negocio_id,
         created_at: employee.created_at || new Date()
-      });
+      };
+      await db.collection('employees').doc(employee.id).set(employeeData, { merge: true });
       console.log(`✅ Empleado migrado: ${employee.nombre}`);
     }
 
