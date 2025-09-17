@@ -188,12 +188,12 @@ function Dashboard() {
           dayEnd.setHours(23, 59, 59, 999);
           
           const daySales = sales.filter(sale => {
-            const saleDate = sale.fecha?.toDate ? sale.fecha.toDate() : new Date(sale.fecha);
+            const saleDate = sale.fecha_venta?.toDate ? sale.fecha_venta.toDate() : new Date(sale.fecha_venta || sale.created_at);
             return saleDate >= dayStart && saleDate <= dayEnd;
           });
           
           const dayExpenses = expenses.filter(expense => {
-            const expenseDate = expense.fecha?.toDate ? expense.fecha.toDate() : new Date(expense.fecha);
+            const expenseDate = expense.fecha_pago?.toDate ? expense.fecha_pago.toDate() : new Date(expense.fecha_pago || expense.created_at);
             return expenseDate >= dayStart && expenseDate <= dayEnd;
           });
           
@@ -219,12 +219,12 @@ function Dashboard() {
           const yearEnd = new Date(parseInt(year), 11, 31, 23, 59, 59, 999);
           
           const yearSales = sales.filter(sale => {
-            const saleDate = sale.fecha?.toDate ? sale.fecha.toDate() : new Date(sale.fecha);
+            const saleDate = sale.fecha_venta?.toDate ? sale.fecha_venta.toDate() : new Date(sale.fecha_venta || sale.created_at);
             return saleDate >= yearStart && saleDate <= yearEnd;
           });
           
           const yearExpenses = expenses.filter(expense => {
-            const expenseDate = expense.fecha?.toDate ? expense.fecha.toDate() : new Date(expense.fecha);
+            const expenseDate = expense.fecha_pago?.toDate ? expense.fecha_pago.toDate() : new Date(expense.fecha_pago || expense.created_at);
             return expenseDate >= yearStart && expenseDate <= yearEnd;
           });
           
@@ -248,12 +248,12 @@ function Dashboard() {
           const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
           
           const monthSales = sales.filter(sale => {
-            const saleDate = sale.fecha?.toDate ? sale.fecha.toDate() : new Date(sale.fecha);
+            const saleDate = sale.fecha_venta?.toDate ? sale.fecha_venta.toDate() : new Date(sale.fecha_venta || sale.created_at);
             return saleDate >= monthStart && saleDate <= monthEnd;
           });
           
           const monthExpenses = expenses.filter(expense => {
-            const expenseDate = expense.fecha?.toDate ? expense.fecha.toDate() : new Date(expense.fecha);
+            const expenseDate = expense.fecha_pago?.toDate ? expense.fecha_pago.toDate() : new Date(expense.fecha_pago || expense.created_at);
             return expenseDate >= monthStart && expenseDate <= monthEnd;
           });
           

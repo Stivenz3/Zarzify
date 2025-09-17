@@ -484,11 +484,11 @@ function Sales() {
       return true;
     });
 
-    // Si no hay filtros de ordenamiento activos, ordenar por fecha (más reciente arriba)
+    // Si no hay filtros de ordenamiento activos, ordenar por fecha_venta (más reciente arriba)
     if (filters.priceOrder === null && filters.dateOrder === null) {
       filteredSales.sort((a, b) => {
-        const dateA = new Date(a.created_at);
-        const dateB = new Date(b.created_at);
+        const dateA = a.fecha_venta?.toDate ? a.fecha_venta.toDate() : new Date(a.fecha_venta || a.created_at);
+        const dateB = b.fecha_venta?.toDate ? b.fecha_venta.toDate() : new Date(b.fecha_venta || b.created_at);
         return dateB - dateA; // Más reciente arriba
       });
       return filteredSales;
@@ -511,8 +511,8 @@ function Sales() {
     // Ordenar por fecha si está activo (puede sobrescribir el orden de precio)
     if (filters.dateOrder !== null) {
       filteredSales.sort((a, b) => {
-        const dateA = new Date(a.created_at);
-        const dateB = new Date(b.created_at);
+        const dateA = a.fecha_venta?.toDate ? a.fecha_venta.toDate() : new Date(a.fecha_venta || a.created_at);
+        const dateB = b.fecha_venta?.toDate ? b.fecha_venta.toDate() : new Date(b.fecha_venta || b.created_at);
         
         if (filters.dateOrder === 'desc') {
           return dateB - dateA; // Recientes primero

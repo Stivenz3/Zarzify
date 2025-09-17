@@ -223,11 +223,11 @@ function Expenses() {
       return true;
     });
 
-    // Si no hay filtros de ordenamiento activos, ordenar por fecha (más reciente arriba)
+    // Si no hay filtros de ordenamiento activos, ordenar por fecha_pago (más reciente arriba)
     if (filters.amountOrder === null && filters.dateOrder === null) {
       filteredExpenses.sort((a, b) => {
-        const dateA = new Date(a.created_at || a.fecha);
-        const dateB = new Date(b.created_at || b.fecha);
+        const dateA = a.fecha_pago?.toDate ? a.fecha_pago.toDate() : new Date(a.fecha_pago || a.created_at);
+        const dateB = b.fecha_pago?.toDate ? b.fecha_pago.toDate() : new Date(b.fecha_pago || b.created_at);
         return dateB - dateA; // Más reciente arriba
       });
       return filteredExpenses;
@@ -250,8 +250,8 @@ function Expenses() {
     // Ordenar por fecha si está activo (puede sobrescribir el orden de monto)
     if (filters.dateOrder !== null) {
       filteredExpenses.sort((a, b) => {
-        const dateA = new Date(a.created_at || a.fecha);
-        const dateB = new Date(b.created_at || b.fecha);
+        const dateA = a.fecha_pago?.toDate ? a.fecha_pago.toDate() : new Date(a.fecha_pago || a.created_at);
+        const dateB = b.fecha_pago?.toDate ? b.fecha_pago.toDate() : new Date(b.fecha_pago || b.created_at);
         
         if (filters.dateOrder === 'desc') {
           return dateB - dateA; // Recientes primero

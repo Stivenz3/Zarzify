@@ -220,11 +220,11 @@ function Employees() {
   const getFilteredEmployees = () => {
     let filteredEmployees = [...employees];
 
-    // Si no hay filtros de ordenamiento activos, ordenar por fecha de registro (más reciente arriba)
+    // Si no hay filtros de ordenamiento activos, ordenar por fecha de contratación (más reciente arriba)
     if (filters.salaryOrder === null && filters.dateOrder === null) {
       filteredEmployees.sort((a, b) => {
-        const dateA = new Date(a.created_at || a.id);
-        const dateB = new Date(b.created_at || b.id);
+        const dateA = a.fecha_contratacion?.toDate ? a.fecha_contratacion.toDate() : new Date(a.fecha_contratacion || a.created_at);
+        const dateB = b.fecha_contratacion?.toDate ? b.fecha_contratacion.toDate() : new Date(b.fecha_contratacion || b.created_at);
         return dateB - dateA; // Más reciente arriba
       });
       return filteredEmployees;
