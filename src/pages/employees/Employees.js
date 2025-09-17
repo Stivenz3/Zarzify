@@ -52,6 +52,8 @@ import getImageUrl from '../../utils/imageUtils';
 import DataTable from '../../components/common/DataTable';
 import CurrencyDisplay from '../../components/common/CurrencyDisplay';
 import { employeesService } from '../../services/firestoreService';
+import { storage } from '../../config/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 function Employees() {
   const { currentBusiness } = useApp();
@@ -166,27 +168,17 @@ function Employees() {
     }
   };
 
-  const uploadImageToLocal = async (file) => {
-    const formData = new FormData();
-    formData.append('imagen', file);
-    
+  const uploadImageToFirebase = async (file) => {
     try {
-      const response = await fetch('http://localhost:3001/api/upload', {
-        method: 'POST',
-        body: formData
-      });
+      const timestamp = Date.now();
+      const fileName = `empleados/${currentBusiness.id}/${timestamp}_${file.name}`;
+      const storageRef = ref(storage, fileName);
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Error del servidor: ${response.status} - ${errorText}`);
-      }
-      
-      const data = await response.json();
-      return data.imageUrl;
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+      return downloadURL;
     } catch (error) {
-      if (error.message.includes('fetch')) {
-        throw new Error('Error de conexión. Verifica que el servidor esté corriendo en puerto 3001.');
-      }
+      console.error('Error al subir la imagen a Firebase:', error);
       throw new Error(`Error al subir la imagen: ${error.message}`);
     }
   };
@@ -227,9 +219,9 @@ function Employees() {
     try {
       let imageUrl = employeeData.imagen_url;
 
-      // Si hay un archivo de imagen, subirlo
+      // Si hay un archivo de imagen, subirlo a Firebase Storage
       if (employeeData.imagen_file) {
-        imageUrl = await uploadImageToLocal(employeeData.imagen_file);
+        imageUrl = await uploadImageToFirebase(employeeData.imagen_file);
       }
 
       const dataToSend = {

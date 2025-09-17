@@ -8,15 +8,14 @@ const getImageUrl = (imagePath) => {
     return imagePath;
   }
   
-  // Construir URL completa basada en el entorno
-  const baseUrl = process.env.NODE_ENV === 'production'
-    ? 'https://zarzify.up.railway.app'  // URL de Railway en producción
-    : 'http://localhost:3001';  // URL local en desarrollo
+  // Si es una URL de Firebase Storage, devolverla tal como está
+  if (imagePath.includes('firebasestorage.googleapis.com')) {
+    return imagePath;
+  }
   
-  // Asegurar que el path comience con /
-  const normalizedPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
-  
-  return `${baseUrl}${normalizedPath}`;
+  // Para imágenes subidas localmente, usar Firebase Storage
+  // Las imágenes se suben a Firebase Storage y se guarda la URL completa
+  return imagePath;
 };
 
 export default getImageUrl;

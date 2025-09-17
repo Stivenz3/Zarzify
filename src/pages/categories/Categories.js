@@ -249,7 +249,10 @@ function Categories() {
       field: 'created_at',
       headerName: 'Fecha Creación',
       width: 150,
-      renderCell: (params) => new Date(params.row.created_at).toLocaleDateString(),
+      renderCell: (params) => {
+        const date = params.row.created_at?.toDate ? params.row.created_at.toDate() : new Date(params.row.created_at);
+        return date.toLocaleDateString();
+      },
     },
     {
       field: 'actions',
@@ -329,7 +332,7 @@ function Categories() {
               </Typography>
               <Divider sx={{ my: 1 }} />
               <Typography variant="caption" color="text.secondary">
-                Creada: {new Date(category.created_at).toLocaleDateString()}
+                Creada: {category.created_at?.toDate ? category.created_at.toDate().toLocaleDateString() : new Date(category.created_at).toLocaleDateString()}
               </Typography>
             </CardContent>
           </Card>
