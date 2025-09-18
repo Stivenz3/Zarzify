@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Configuración para desarrollo y producción
 const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? process.env.REACT_APP_API_URL || 'http://localhost:3001/api'  // Tu backend local en producción
+  ? process.env.REACT_APP_API_URL || '/api'  // API routes de Vercel en producción
   : process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
 const api = axios.create({
