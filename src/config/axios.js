@@ -3,7 +3,7 @@ import axios from 'axios';
 // Configuración para desarrollo y producción
 const API_BASE_URL = process.env.NODE_ENV === 'production'
   ? process.env.REACT_APP_API_URL || '/api'  // API routes de Vercel en producción
-  : process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+  : process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -42,5 +42,6 @@ api.interceptors.response.use(
 );
 
 console.log('🔗 API configurada para:', API_BASE_URL);
+console.log('🔗 Timestamp:', new Date().toISOString());
 
 export default api; 
