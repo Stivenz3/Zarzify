@@ -1,4 +1,4 @@
-// API route para manejar operaciones de usuarios
+// API route para manejar operaciones de clientes
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 
@@ -39,95 +39,106 @@ export default async function handler(req, res) {
 
     switch (method) {
       case 'GET':
-        // Obtener todos los usuarios
-        const usersSnapshot = await getDocs(
-          query(collection(db, 'users'), orderBy('createdAt', 'desc'))
+        // Obtener clientes por negocio
+        const { businessId } = req.query;
+        let clientesQuery = collection(db, 'clients');
+        
+        if (businessId) {
+          clientesQuery = query(clientesQuery, where('business_id', '==', businessId));
+        }
+        
+        const clientesSnapshot = await getDocs(
+          query(clientesQuery, orderBy('nombre', 'asc'))
         );
-        const users = [];
-        usersSnapshot.forEach((doc) => {
-          users.push({ id: doc.id, ...doc.data() });
+        const clientes = [];
+        clientesSnapshot.forEach((doc) => {
+          clientes.push({ id: doc.id, ...doc.data() });
         });
-        res.status(200).json({ success: true, data: users });
+        res.status(200).json({ success: true, data: clientes });
         break;
 
       case 'POST':
-        // Crear nuevo usuario
+        // Crear nuevo cliente
         const { 
           nombre, 
-          email, 
           telefono, 
           direccion, 
-          documento, 
-          tipo_documento, 
-          rol,
-          password 
+          email, 
+          credito_disponible, 
+          business_id 
         } = req.body;
         
-        if (!nombre || !email || !password) {
+        if (!nombre || !business_id) {
           return res.status(400).json({ 
             success: false, 
-            error: 'Nombre, email y password son requeridos' 
+            error: 'Nombre y business_id son requeridos' 
           });
         }
 
-        const userData = {
+        const clienteData = {
           nombre: nombre.trim(),
-          email: email.trim().toLowerCase(),
-          telefono: telefono?.trim() || null,
-          direccion: direccion?.trim() || null,
-          documento: documento?.trim() || null,
-          tipo_documento: tipo_documento || 'cedula',
-          rol: rol || 'usuario',
-          password: password, // En producción debería estar hasheado
+          telefono: telefono?.trim() || '',
+          direccion: direccion?.trim() || '',
+          email: email?.trim() || '',
+          credito_disponible: parseFloat(credito_disponible) || 0.00,
+          business_id,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         };
 
-        const docRef = await addDoc(collection(db, 'users'), userData);
+        const docRef = await addDoc(collection(db, 'clients'), clienteData);
         
         res.status(201).json({ 
           success: true, 
-          data: { id: docRef.id, ...userData },
-          message: 'Usuario creado exitosamente'
+          data: { id: docRef.id, ...clienteData },
+          message: 'Cliente creado exitosamente'
         });
         break;
 
       case 'PUT':
-        // Actualizar usuario
+        // Actualizar cliente
         const { id, ...updateData } = req.body;
         
         if (!id) {
           return res.status(400).json({ 
             success: false, 
-            error: 'ID del usuario es requerido' 
+            error: 'ID del cliente es requerido' 
           });
         }
 
-        updateData.updatedAt = serverTimestamp();
-        await updateDoc(doc(db, 'users', id), updateData);
+        // Limpiar datos de actualización
+        const cleanUpdateData = {};
+        if (updateData.nombre) cleanUpdateData.nombre = updateData.nombre.trim();
+        if (updateData.telefono !== undefined) cleanUpdateData.telefono = updateData.telefono.trim();
+        if (updateData.direccion !== undefined) cleanUpdateData.direccion = updateData.direccion.trim();
+        if (updateData.email !== undefined) cleanUpdateData.email = updateData.email.trim();
+        if (updateData.credito_disponible !== undefined) cleanUpdateData.credito_disponible = parseFloat(updateData.credito_disponible);
+
+        cleanUpdateData.updatedAt = serverTimestamp();
+        await updateDoc(doc(db, 'clients', id), cleanUpdateData);
         
         res.status(200).json({ 
           success: true, 
-          message: 'Usuario actualizado exitosamente' 
+          message: 'Cliente actualizado exitosamente' 
         });
         break;
 
       case 'DELETE':
-        // Eliminar usuario
+        // Eliminar cliente
         const { id: deleteId } = req.body;
         
         if (!deleteId) {
           return res.status(400).json({ 
             success: false, 
-            error: 'ID del usuario es requerido' 
+            error: 'ID del cliente es requerido' 
           });
         }
 
-        await deleteDoc(doc(db, 'users', deleteId));
+        await deleteDoc(doc(db, 'clients', deleteId));
         
         res.status(200).json({ 
           success: true, 
-          message: 'Usuario eliminado exitosamente' 
+          message: 'Cliente eliminado exitosamente' 
         });
         break;
 
@@ -139,7 +150,7 @@ export default async function handler(req, res) {
         });
     }
   } catch (error) {
-    console.error('Error en API usuarios:', error);
+    console.error('Error en API clientes:', error);
     res.status(500).json({ 
       success: false, 
       error: 'Error interno del servidor',

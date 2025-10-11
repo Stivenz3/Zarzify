@@ -1,5 +1,0 @@
-[33mb2fa064[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m fix: Convertir API routes a CommonJS para compatibilidad con Vercel
-[33mb836c6c[m fix: Configurar API routes de Vercel con CORS para Firebase
-[33m1c198ae[m fix: improve login responsive design for mobile
-[33m8fdd706[m feat: improve landing design with logo and better typography
-[33m35e0f70[m fix(landing): import useNavigate to prevent ReferenceError

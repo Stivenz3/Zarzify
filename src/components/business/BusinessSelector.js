@@ -80,23 +80,16 @@ function BusinessSelector() {
     try {
       console.log('Creando negocio para usuario:', user.uid);
       
-      // Primero verificar/crear el usuario en la base de datos con el nuevo formato
-      await api.post('/usuarios', {
-        id: user.uid,  // usar directamente el UID de Firebase
-        email: user.email,
-        nombre: user.displayName || user.email.split('@')[0],
-        foto_url: user.photoURL || null
-      });
-
-      console.log('Usuario verificado/creado con ID:', user.uid);
+      // El usuario ya se guarda automáticamente en el login
+      console.log('Usuario ya registrado en Firestore');
 
       // Crear el negocio usando el UID de Firebase directamente
-      const businessResponse = await api.post('/businesses', {
+      const businessResponse = await api.post('/negocios', {
         nombre: newBusiness.nombre.trim(),
         direccion: newBusiness.direccion.trim(),
         telefono: newBusiness.telefono.trim(),
-        usuario_id: user.uid,  // usar directamente el UID de Firebase
-        moneda: 'COP',
+        user_id: user.uid,  // usar directamente el UID de Firebase
+        email: user.email,
         impuesto_default: 0.00
       });
 

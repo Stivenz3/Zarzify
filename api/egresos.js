@@ -1,4 +1,4 @@
-// API route para manejar operaciones de negocios
+// API route para manejar operaciones de egresos/gastos
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 
@@ -39,98 +39,117 @@ export default async function handler(req, res) {
 
     switch (method) {
       case 'GET':
-        // Obtener negocios por usuario
-        const { user_id } = req.query;
-        let negociosQuery = collection(db, 'negocios');
+        // Obtener egresos por negocio
+        const { businessId } = req.query;
+        let egresosQuery = collection(db, 'expenses');
         
-        if (user_id) {
-          negociosQuery = query(negociosQuery, where('user_id', '==', user_id));
+        if (businessId) {
+          egresosQuery = query(egresosQuery, where('business_id', '==', businessId));
         }
         
-        const negociosSnapshot = await getDocs(
-          query(negociosQuery, orderBy('createdAt', 'desc'))
+        const egresosSnapshot = await getDocs(
+          query(egresosQuery, orderBy('fecha', 'desc'))
         );
-        const negocios = [];
-        negociosSnapshot.forEach((doc) => {
-          negocios.push({ id: doc.id, ...doc.data() });
+        const egresos = [];
+        egresosSnapshot.forEach((doc) => {
+          egresos.push({ id: doc.id, ...doc.data() });
         });
-        res.status(200).json({ success: true, data: negocios });
+        res.status(200).json({ success: true, data: egresos });
         break;
 
       case 'POST':
-        // Crear nuevo negocio
+        // Crear nuevo egreso
         const { 
-          nombre, 
+          concepto, 
           descripcion, 
-          direccion, 
-          telefono, 
-          email, 
-          user_id 
+          monto, 
+          categoria, 
+          metodo_pago, 
+          empleado_id,
+          proveedor_id,
+          fecha_pago,
+          business_id 
         } = req.body;
         
-        if (!nombre || !user_id) {
+        if (!concepto || !monto || !business_id) {
           return res.status(400).json({ 
             success: false, 
-            error: 'Nombre y user_id son requeridos' 
+            error: 'Concepto, monto y business_id son requeridos' 
           });
         }
 
-        const negocioData = {
-          nombre: nombre.trim(),
+        const egresoData = {
+          concepto: concepto.trim(),
           descripcion: descripcion?.trim() || '',
-          direccion: direccion?.trim() || '',
-          telefono: telefono?.trim() || '',
-          email: email?.trim() || '',
-          user_id,
+          monto: parseFloat(monto),
+          categoria: categoria?.trim() || 'General',
+          metodo_pago: metodo_pago || 'efectivo',
+          empleado_id: empleado_id || null,
+          proveedor_id: proveedor_id || null,
+          fecha: fecha_pago ? new Date(fecha_pago) : serverTimestamp(),
+          business_id,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         };
 
-        const docRef = await addDoc(collection(db, 'businesses'), negocioData);
+        const docRef = await addDoc(collection(db, 'expenses'), egresoData);
         
         res.status(201).json({ 
           success: true, 
-          data: { id: docRef.id, ...negocioData },
-          message: 'Negocio creado exitosamente'
+          data: { id: docRef.id, ...egresoData },
+          message: 'Egreso creado exitosamente'
         });
         break;
 
       case 'PUT':
-        // Actualizar negocio
+        // Actualizar egreso
         const { id, ...updateData } = req.body;
         
         if (!id) {
           return res.status(400).json({ 
             success: false, 
-            error: 'ID del negocio es requerido' 
+            error: 'ID del egreso es requerido' 
           });
         }
 
-        updateData.updatedAt = serverTimestamp();
-        await updateDoc(doc(db, 'businesses', id), updateData);
+        // Limpiar datos de actualización
+        const cleanUpdateData = {};
+        if (updateData.concepto) cleanUpdateData.concepto = updateData.concepto.trim();
+        if (updateData.descripcion !== undefined) cleanUpdateData.descripcion = updateData.descripcion.trim();
+        if (updateData.monto !== undefined) cleanUpdateData.monto = parseFloat(updateData.monto);
+        if (updateData.categoria !== undefined) cleanUpdateData.categoria = updateData.categoria.trim();
+        if (updateData.metodo_pago !== undefined) cleanUpdateData.metodo_pago = updateData.metodo_pago;
+        if (updateData.empleado_id !== undefined) cleanUpdateData.empleado_id = updateData.empleado_id;
+        if (updateData.proveedor_id !== undefined) cleanUpdateData.proveedor_id = updateData.proveedor_id;
+        if (updateData.fecha_pago !== undefined) {
+          cleanUpdateData.fecha = new Date(updateData.fecha_pago);
+        }
+
+        cleanUpdateData.updatedAt = serverTimestamp();
+        await updateDoc(doc(db, 'expenses', id), cleanUpdateData);
         
         res.status(200).json({ 
           success: true, 
-          message: 'Negocio actualizado exitosamente' 
+          message: 'Egreso actualizado exitosamente' 
         });
         break;
 
       case 'DELETE':
-        // Eliminar negocio
+        // Eliminar egreso
         const { id: deleteId } = req.body;
         
         if (!deleteId) {
           return res.status(400).json({ 
             success: false, 
-            error: 'ID del negocio es requerido' 
+            error: 'ID del egreso es requerido' 
           });
         }
 
-        await deleteDoc(doc(db, 'businesses', deleteId));
+        await deleteDoc(doc(db, 'expenses', deleteId));
         
         res.status(200).json({ 
           success: true, 
-          message: 'Negocio eliminado exitosamente' 
+          message: 'Egreso eliminado exitosamente' 
         });
         break;
 
@@ -142,7 +161,7 @@ export default async function handler(req, res) {
         });
     }
   } catch (error) {
-    console.error('Error en API negocios:', error);
+    console.error('Error en API egresos:', error);
     res.status(500).json({ 
       success: false, 
       error: 'Error interno del servidor',

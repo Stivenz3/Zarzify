@@ -140,4 +140,51 @@ export const employeesService = new FirestoreService('employees');
 export const businessesService = new FirestoreService('businesses');
 export const usersService = new FirestoreService('users');
 
+// Servicio específico para usuarios con Firebase Auth
+export class UserService extends FirestoreService {
+  constructor() {
+    super('users');
+  }
+
+  // Crear usuario con datos de Firebase Auth
+  async createUserFromAuth(user) {
+    try {
+      const userData = {
+        uid: user.uid,
+        email: user.email,
+        nombre: user.displayName || user.email.split('@')[0],
+        foto_url: user.photoURL || null,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+
+      // Verificar si el usuario ya existe
+      const existingUser = await this.getWhere('uid', '==', user.uid);
+      if (existingUser.length > 0) {
+        return existingUser[0];
+      }
+
+      // Crear nuevo usuario
+      const docRef = await addDoc(this.collectionRef, userData);
+      return { id: docRef.id, ...userData };
+    } catch (error) {
+      console.error('Error creating user from auth:', error);
+      throw error;
+    }
+  }
+
+  // Obtener usuario por UID de Firebase Auth
+  async getUserByUid(uid) {
+    try {
+      const users = await this.getWhere('uid', '==', uid);
+      return users.length > 0 ? users[0] : null;
+    } catch (error) {
+      console.error('Error getting user by UID:', error);
+      throw error;
+    }
+  }
+}
+
+export const userService = new UserService();
+
 export default FirestoreService;

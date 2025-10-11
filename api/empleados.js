@@ -1,4 +1,4 @@
-// API route para manejar operaciones de negocios
+// API route para manejar operaciones de empleados
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 
@@ -39,98 +39,117 @@ export default async function handler(req, res) {
 
     switch (method) {
       case 'GET':
-        // Obtener negocios por usuario
-        const { user_id } = req.query;
-        let negociosQuery = collection(db, 'negocios');
+        // Obtener empleados por negocio
+        const { businessId } = req.query;
+        let empleadosQuery = collection(db, 'employees');
         
-        if (user_id) {
-          negociosQuery = query(negociosQuery, where('user_id', '==', user_id));
+        if (businessId) {
+          empleadosQuery = query(empleadosQuery, where('business_id', '==', businessId));
         }
         
-        const negociosSnapshot = await getDocs(
-          query(negociosQuery, orderBy('createdAt', 'desc'))
+        const empleadosSnapshot = await getDocs(
+          query(empleadosQuery, orderBy('nombre', 'asc'))
         );
-        const negocios = [];
-        negociosSnapshot.forEach((doc) => {
-          negocios.push({ id: doc.id, ...doc.data() });
+        const empleados = [];
+        empleadosSnapshot.forEach((doc) => {
+          empleados.push({ id: doc.id, ...doc.data() });
         });
-        res.status(200).json({ success: true, data: negocios });
+        res.status(200).json({ success: true, data: empleados });
         break;
 
       case 'POST':
-        // Crear nuevo negocio
+        // Crear nuevo empleado
         const { 
           nombre, 
-          descripcion, 
-          direccion, 
+          cargo, 
           telefono, 
           email, 
-          user_id 
+          salario, 
+          direccion, 
+          fecha_contratacion, 
+          business_id,
+          imagen_url
         } = req.body;
         
-        if (!nombre || !user_id) {
+        if (!nombre || !business_id) {
           return res.status(400).json({ 
             success: false, 
-            error: 'Nombre y user_id son requeridos' 
+            error: 'Nombre y business_id son requeridos' 
           });
         }
 
-        const negocioData = {
+        const empleadoData = {
           nombre: nombre.trim(),
-          descripcion: descripcion?.trim() || '',
-          direccion: direccion?.trim() || '',
+          cargo: cargo?.trim() || '',
           telefono: telefono?.trim() || '',
           email: email?.trim() || '',
-          user_id,
+          salario: parseFloat(salario) || 0,
+          direccion: direccion?.trim() || '',
+          fecha_contratacion: fecha_contratacion ? new Date(fecha_contratacion) : serverTimestamp(),
+          business_id,
+          imagen_url: imagen_url || null,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         };
 
-        const docRef = await addDoc(collection(db, 'businesses'), negocioData);
+        const docRef = await addDoc(collection(db, 'employees'), empleadoData);
         
         res.status(201).json({ 
           success: true, 
-          data: { id: docRef.id, ...negocioData },
-          message: 'Negocio creado exitosamente'
+          data: { id: docRef.id, ...empleadoData },
+          message: 'Empleado creado exitosamente'
         });
         break;
 
       case 'PUT':
-        // Actualizar negocio
+        // Actualizar empleado
         const { id, ...updateData } = req.body;
         
         if (!id) {
           return res.status(400).json({ 
             success: false, 
-            error: 'ID del negocio es requerido' 
+            error: 'ID del empleado es requerido' 
           });
         }
 
-        updateData.updatedAt = serverTimestamp();
-        await updateDoc(doc(db, 'businesses', id), updateData);
+        // Limpiar datos de actualización
+        const cleanUpdateData = {};
+        if (updateData.nombre) cleanUpdateData.nombre = updateData.nombre.trim();
+        if (updateData.cargo !== undefined) cleanUpdateData.cargo = updateData.cargo.trim();
+        if (updateData.telefono !== undefined) cleanUpdateData.telefono = updateData.telefono.trim();
+        if (updateData.email !== undefined) cleanUpdateData.email = updateData.email.trim();
+        if (updateData.salario !== undefined) cleanUpdateData.salario = parseFloat(updateData.salario);
+        if (updateData.direccion !== undefined) cleanUpdateData.direccion = updateData.direccion.trim();
+        if (updateData.fecha_contratacion !== undefined) {
+          cleanUpdateData.fecha_contratacion = new Date(updateData.fecha_contratacion);
+        }
+        if (updateData.imagen_url !== undefined) cleanUpdateData.imagen_url = updateData.imagen_url;
+
+        cleanUpdateData.updatedAt = serverTimestamp();
+        await updateDoc(doc(db, 'employees', id), cleanUpdateData);
         
         res.status(200).json({ 
           success: true, 
-          message: 'Negocio actualizado exitosamente' 
+          message: 'Empleado actualizado exitosamente' 
         });
         break;
 
       case 'DELETE':
-        // Eliminar negocio
+        // Eliminar empleado
         const { id: deleteId } = req.body;
         
         if (!deleteId) {
           return res.status(400).json({ 
             success: false, 
-            error: 'ID del negocio es requerido' 
+            error: 'ID del empleado es requerido' 
           });
         }
 
-        await deleteDoc(doc(db, 'businesses', deleteId));
+        await deleteDoc(doc(db, 'employees', deleteId));
         
         res.status(200).json({ 
           success: true, 
-          message: 'Negocio eliminado exitosamente' 
+          message: 'Empleado eliminado exitosamente' 
         });
         break;
 
@@ -142,7 +161,7 @@ export default async function handler(req, res) {
         });
     }
   } catch (error) {
-    console.error('Error en API negocios:', error);
+    console.error('Error en API empleados:', error);
     res.status(500).json({ 
       success: false, 
       error: 'Error interno del servidor',

@@ -1,4 +1,4 @@
-// API route para manejar operaciones de usuarios
+// API route para manejar operaciones de categorías
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 
@@ -39,95 +39,100 @@ export default async function handler(req, res) {
 
     switch (method) {
       case 'GET':
-        // Obtener todos los usuarios
-        const usersSnapshot = await getDocs(
-          query(collection(db, 'users'), orderBy('createdAt', 'desc'))
+        // Obtener categorías por negocio
+        const { businessId } = req.query;
+        let categoriasQuery = collection(db, 'categories');
+        
+        if (businessId) {
+          categoriasQuery = query(categoriasQuery, where('business_id', '==', businessId));
+        }
+        
+        const categoriasSnapshot = await getDocs(
+          query(categoriasQuery, orderBy('nombre', 'asc'))
         );
-        const users = [];
-        usersSnapshot.forEach((doc) => {
-          users.push({ id: doc.id, ...doc.data() });
+        const categorias = [];
+        categoriasSnapshot.forEach((doc) => {
+          categorias.push({ id: doc.id, ...doc.data() });
         });
-        res.status(200).json({ success: true, data: users });
+        res.status(200).json({ success: true, data: categorias });
         break;
 
       case 'POST':
-        // Crear nuevo usuario
+        // Crear nueva categoría
         const { 
           nombre, 
-          email, 
-          telefono, 
-          direccion, 
-          documento, 
-          tipo_documento, 
-          rol,
-          password 
+          descripcion, 
+          business_id,
+          imagen_url
         } = req.body;
         
-        if (!nombre || !email || !password) {
+        if (!nombre || !business_id) {
           return res.status(400).json({ 
             success: false, 
-            error: 'Nombre, email y password son requeridos' 
+            error: 'Nombre y business_id son requeridos' 
           });
         }
 
-        const userData = {
+        const categoriaData = {
           nombre: nombre.trim(),
-          email: email.trim().toLowerCase(),
-          telefono: telefono?.trim() || null,
-          direccion: direccion?.trim() || null,
-          documento: documento?.trim() || null,
-          tipo_documento: tipo_documento || 'cedula',
-          rol: rol || 'usuario',
-          password: password, // En producción debería estar hasheado
+          descripcion: descripcion?.trim() || '',
+          business_id,
+          imagen_url: imagen_url || null,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         };
 
-        const docRef = await addDoc(collection(db, 'users'), userData);
+        const docRef = await addDoc(collection(db, 'categories'), categoriaData);
         
         res.status(201).json({ 
           success: true, 
-          data: { id: docRef.id, ...userData },
-          message: 'Usuario creado exitosamente'
+          data: { id: docRef.id, ...categoriaData },
+          message: 'Categoría creada exitosamente'
         });
         break;
 
       case 'PUT':
-        // Actualizar usuario
+        // Actualizar categoría
         const { id, ...updateData } = req.body;
         
         if (!id) {
           return res.status(400).json({ 
             success: false, 
-            error: 'ID del usuario es requerido' 
+            error: 'ID de la categoría es requerido' 
           });
         }
 
-        updateData.updatedAt = serverTimestamp();
-        await updateDoc(doc(db, 'users', id), updateData);
+        // Limpiar datos de actualización
+        const cleanUpdateData = {};
+        if (updateData.nombre) cleanUpdateData.nombre = updateData.nombre.trim();
+        if (updateData.descripcion !== undefined) cleanUpdateData.descripcion = updateData.descripcion.trim();
+        if (updateData.imagen_url !== undefined) cleanUpdateData.imagen_url = updateData.imagen_url;
+
+        cleanUpdateData.updatedAt = serverTimestamp();
+        await updateDoc(doc(db, 'categories', id), cleanUpdateData);
         
         res.status(200).json({ 
           success: true, 
-          message: 'Usuario actualizado exitosamente' 
+          message: 'Categoría actualizada exitosamente' 
         });
         break;
 
       case 'DELETE':
-        // Eliminar usuario
+        // Eliminar categoría
         const { id: deleteId } = req.body;
         
         if (!deleteId) {
           return res.status(400).json({ 
             success: false, 
-            error: 'ID del usuario es requerido' 
+            error: 'ID de la categoría es requerido' 
           });
         }
 
-        await deleteDoc(doc(db, 'users', deleteId));
+        await deleteDoc(doc(db, 'categories', deleteId));
         
         res.status(200).json({ 
           success: true, 
-          message: 'Usuario eliminado exitosamente' 
+          message: 'Categoría eliminada exitosamente' 
         });
         break;
 
@@ -139,7 +144,7 @@ export default async function handler(req, res) {
         });
     }
   } catch (error) {
-    console.error('Error en API usuarios:', error);
+    console.error('Error en API categorías:', error);
     res.status(500).json({ 
       success: false, 
       error: 'Error interno del servidor',
