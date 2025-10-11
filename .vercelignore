@@ -1,0 +1,9 @@
+# Archivos y directorios a ignorar en Vercel
+node_modules
+.git
+.firebase
+.vercel
+backend/uploads
+*.log
+.DS_Store
+Thumbs.db
