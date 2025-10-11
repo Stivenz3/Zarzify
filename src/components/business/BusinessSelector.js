@@ -84,7 +84,7 @@ function BusinessSelector() {
       console.log('Usuario ya registrado en Firestore');
 
       // Crear el negocio usando el UID de Firebase directamente
-      const businessResponse = await api.post('/negocios', {
+      const businessResponse = await api.post('/businesses', {
         nombre: newBusiness.nombre.trim(),
         direccion: newBusiness.direccion.trim(),
         telefono: newBusiness.telefono.trim(),

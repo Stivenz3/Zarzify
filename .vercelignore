@@ -3,7 +3,11 @@ node_modules
 .git
 .firebase
 .vercel
-backend/uploads
+backend
 *.log
 .DS_Store
 Thumbs.db
+*.md
+.idea
+postcss.config.js
+storage.rules
